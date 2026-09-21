@@ -400,6 +400,11 @@ def _resolve_nous_creds() -> Dict[str, Any]:
     return resolve_nous_runtime_credentials(timeout_seconds=float(get_secret_str("HERMES_NOUS_TIMEOUT_SECONDS", "15")))
 
 
+def _resolve_lattice_creds() -> Dict[str, Any]:
+    from hermes_cli.auth_lattice import resolve_lattice_runtime_credentials
+    return resolve_lattice_runtime_credentials()
+
+
 def _finalize_base_url(provider: str, api_mode: str, base_url: str) -> str:
     """Shared tail for pool-entry and api-key paths: OpenCode /v1 rule (OpenCode URLs end with /v1
     for OpenAI-compatible models but the Anthropic SDK prepends its own /v1/messages — strip for
@@ -752,6 +757,8 @@ class _OAuthRuntimeSpec:
 # ``resolve`` entries are late-bound lambdas so tests can monkeypatch the module-level
 # ``resolve_*_runtime_credentials`` names.
 _OAUTH_RUNTIME_PROVIDERS: Dict[str, _OAuthRuntimeSpec] = {
+    "latticecode": _OAuthRuntimeSpec(_resolve_lattice_creds, "chat_completions", "latticecode-free", "expires_at",
+                                     "Auto-detected LatticeCode provider but credentials failed"),
     "nous": _OAuthRuntimeSpec(_resolve_nous_creds, nous_api_mode, "portal", "expires_at",
                               "Auto-detected Nous provider but credentials failed"),
     "openai-codex": _OAuthRuntimeSpec(lambda: resolve_codex_runtime_credentials(), "codex_responses", "hermes-auth-store",

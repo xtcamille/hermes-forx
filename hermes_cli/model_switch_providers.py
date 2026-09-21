@@ -500,6 +500,19 @@ def _free_tier_nous_row(row: dict) -> dict | None:
     return out
 
 
+def _free_tier_lattice_row(row: dict) -> dict | None:
+    """The free-tier rule for LatticeCode picker row."""
+    from hermes_cli import auth_lattice
+    if not auth_lattice.lattice_guest_enabled():
+        return None
+    out = dict(row)
+    out["name"] = auth_lattice.LATTICE_LABEL
+    out["models"] = sorted(list(auth_lattice.get_lattice_allowed_models()))
+    out["total_models"] = len(out["models"])
+    out["free_tier_row"] = True
+    return out
+
+
 def _cap_models(model_ids: list, max_models: int | None, slug: str = "") -> list:
     """Apply ``max_models``; aggregators in ``_UNCAPPED_PICKER_PROVIDERS`` show everything."""
     if slug in _UNCAPPED_PICKER_PROVIDERS or max_models is None:
@@ -726,6 +739,8 @@ class _PickerBuild:
             # Free-tier identity: one row "Nous · free tier" / nous/welcome, or no row when
             # nous.guest is off. Still marks the slug seen so a later lap cannot re-emit it.
             row = _free_tier_nous_row(row)
+        elif slug == "latticecode":
+            row = _free_tier_lattice_row(row)
         if row is not None:
             self.results.append(row)
         self.seen_slugs.add(slug.lower())
@@ -903,6 +918,9 @@ def _lap_overlay_rows(b: _PickerBuild, data: dict, user_providers: dict) -> None
             tier_row = _free_tier_nous_row({"name": get_label(hermes_slug), "models": []})
             real_account = tier_row is not None and not tier_row["models"]
             model_ids = _nous_picker_model_ids(b.curated, b.force_fresh_nous_tier) if real_account else []
+        elif hermes_slug == "latticecode":
+            from hermes_cli.auth_lattice import get_lattice_allowed_models
+            model_ids = sorted(list(get_lattice_allowed_models()))
         else:
             model_ids = _live_or_curated_ids(hermes_slug, b.curated, hermes_slug, pid,
                                              non_blocking=b.non_blocking_catalogs)

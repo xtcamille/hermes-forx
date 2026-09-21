@@ -149,7 +149,8 @@ def _inventory_other_providers() -> bool:
     from hermes_cli.auth import resolve_provider
     _inventory_stamp = _config_stamp()
     try:
-        return resolve_provider("auto", skip_free_tier=True) != "nous"
+        resolved = resolve_provider("auto", skip_free_tier=True)
+        return resolved not in ("nous", "latticecode")
     except Exception as exc:
         logger.debug("free tier bootstrap: nothing else carries inference (%s)", exc)
         return False
@@ -165,30 +166,39 @@ def _resolve_inference() -> str:
 
 def _build_record(*, other: bool, force: bool) -> SetupRecord:
     """One inventory-then-mint pass into a record. ``force`` is the user's own retry: it makes one
-    attempt even inside the mint memo's cooldown (``anon_auth.ensure_portal_identity``)."""
-    from hermes_cli import anon_auth
+    attempt even inside the mint memo's cooldown."""
+    from hermes_cli.free_tiers import get_active_free_tier
 
     error = ""
     failure: Dict[str, Any] = {}
-    state: Optional[Dict[str, Any]] = anon_auth.current_nous_state()
-    if anon_auth.guest_enabled():
+    active_tier = get_active_free_tier()
+    state: Optional[Dict[str, Any]] = None
+
+    if active_tier and active_tier.is_enabled():
         try:
             # ``other`` decides whether the mint may also claim ``active_provider`` (NS-845 Q1.3).
-            state = anon_auth.ensure_portal_identity(explicit=True, carries_inference=not other, force=force)
+            state = active_tier.ensure_identity(explicit=True, carries_inference=not other, force=force)
         except Exception as exc:
             error = str(exc)
-            logger.info("Nous free tier not set up at boot: %s", exc)
+            logger.info("%s free tier not set up at boot: %s", active_tier.display_name, exc)
         if state is None:
-            # Either this attempt failed (the memo now holds why) or an earlier one did and its
-            # cooldown still runs: the record carries that verdict either way.
-            failure = anon_auth.last_mint_failure() or {}
-            error = error or str(failure.get("error") or "")
-    free_tier = bool(state) and anon_auth.is_guest_state(state) and anon_auth.guest_enabled()
+            if active_tier.provider_id == "nous":
+                from hermes_cli import anon_auth
+                failure = anon_auth.last_mint_failure() or {}
+                error = error or str(failure.get("error") or "")
+            elif active_tier.provider_id == "latticecode":
+                from hermes_cli import auth_lattice
+                failure_obj = auth_lattice._mint_failure_for_profile()
+                if failure_obj:
+                    failure = {"code": failure_obj.code, "error": failure_obj.error, "retry_after": failure_obj.retry_after}
+                    error = error or failure_obj.error
+
+    free_tier = bool(active_tier and active_tier.is_enabled() and active_tier.has_identity())
     return SetupRecord(
-        provider_configured=other or free_tier or (bool(state) and not anon_auth.is_guest_state(state)),
+        provider_configured=other or free_tier or bool(state),
         inference_provider=_resolve_inference(),
         free_tier=free_tier,
-        has_identity=bool(state),
+        has_identity=bool(state or (active_tier and active_tier.has_identity())),
         other_providers=other,
         error=error,
         failure=failure,

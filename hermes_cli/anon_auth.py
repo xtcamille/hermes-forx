@@ -168,6 +168,9 @@ def is_anonymous_request(provider: Any, api_key: Any) -> bool:
     This is display/recovery metadata, not token verification; the gateway authenticates the JWT.
     Named free accounts and opaque API keys must retain normal provider errors.
     """
+    if provider == "latticecode":
+        from hermes_cli.auth_lattice import is_lattice_anonymous_request
+        return is_lattice_anonymous_request(provider, api_key)
     from hermes_cli.auth_constants import _decode_jwt_claims
     return provider == "nous" and _decode_jwt_claims(api_key).get("account_tier") == ANON_ACCOUNT_TIER
 
@@ -217,25 +220,27 @@ def welcome_hosts() -> frozenset[str]:
 
 
 def pin_model_for_route(provider: Any, base_url: Any, model: Any) -> Any:
-    """Model policy at agent START: on the Nous welcome host the model is ``nous/welcome``; anywhere
-    else the caller's model stands. Used once, when the route is first finalized. Mid-conversation
-    route changes go through :func:`route_can_serve_model` instead: a conversation's model is never
-    silently rewritten by a credential rotation.
-    """
+    """Model policy at agent START: on the free tier endpoint the model must be in the tier's
+    allowed models; anywhere else the caller's model stands."""
     if provider == "nous" and route_is_welcome_host(base_url):
         if model and model != GUEST_MODEL:
             logger.info("Nous free tier: using %s instead of configured model %s", GUEST_MODEL, model)
         return GUEST_MODEL
+    if provider == "latticecode":
+        from hermes_cli.auth_lattice import pin_lattice_model
+        return pin_lattice_model(base_url, model)
     return model
 
 
 def route_can_serve_model(provider: Any, base_url: Any, model: Any) -> bool:
-    """Eligibility for a credential ROTATION: the welcome host serves only ``nous/welcome``, so a
-    conversation on any other model must not be rotated onto it (and a ``nous/welcome`` conversation
-    may move to the portal host, which serves it too). Non-Nous routes are always eligible."""
-    if provider != "nous" or not route_is_welcome_host(base_url):
-        return True
-    return not model or model == GUEST_MODEL
+    """Eligibility for a credential ROTATION."""
+    if provider == "nous" and route_is_welcome_host(base_url):
+        return not model or model == GUEST_MODEL
+    if provider == "latticecode":
+        from hermes_cli.auth_lattice import is_lattice_welcome_host, LATTICE_ALLOWED_MODELS
+        if is_lattice_welcome_host(base_url):
+            return not model or model in LATTICE_ALLOWED_MODELS
+    return True
 
 
 def route_is_welcome_host(base_url: Any) -> bool:

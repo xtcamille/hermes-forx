@@ -5313,11 +5313,26 @@ def _resolve_registry_branch(req: _ResolveRequest) -> _ResolveResult:
     return _route_client(req, client, final_model) if client is not None else (None, None)
 
 
+def _resolve_lattice_branch(req: _ResolveRequest) -> _ResolveResult:
+    """LatticeCode Free auxiliary client."""
+    from hermes_cli.auth_lattice import resolve_lattice_runtime_credentials, LATTICE_DEFAULT_MODEL
+    creds = resolve_lattice_runtime_credentials()
+    api_key = creds.get("api_key")
+    if not api_key:
+        logger.warning("resolve_provider_client: latticecode requested but no credentials found")
+        return None, None
+    base_url = creds.get("base_url") or "https://api.latticecode.com/v1"
+    model = req.model or LATTICE_DEFAULT_MODEL
+    client = _create_openai_client(api_key=api_key, base_url=base_url)
+    return _route_client(req, client, _normalize_resolved_model(model, req.provider))
+
+
 # Explicit providers with a dedicated branch; anything else falls through to named custom
 # providers → azure-foundry → PROVIDER_REGISTRY (order preserved from the original if-chain).
 _EXPLICIT_PROVIDER_BRANCHES: Dict[str, Callable[[_ResolveRequest], _ResolveResult]] = {
     "auto": _resolve_auto_branch,
     "openrouter": _resolve_openrouter_branch,
+    "latticecode": _resolve_lattice_branch,
     "nous": _resolve_nous_branch,
     "openai-codex": _resolve_openai_codex_branch,
     "xai-oauth": _resolve_xai_oauth_branch,

@@ -1274,9 +1274,10 @@ def _logged_in_oauth_active_provider(*, skip_free_tier: bool = False) -> Optiona
     """auth.json ``active_provider`` when it is a registry provider that reports logged in."""
     try:
         _maybe = _load_auth_store().get("active_provider")
-        if _maybe == "nous":
-            from hermes_cli.anon_auth import guest_enabled, has_guest
-            if has_guest() and (skip_free_tier or not guest_enabled()):
+        if _maybe in ("nous", "latticecode"):
+            from hermes_cli.free_tiers import get_free_tier
+            tier = get_free_tier(_maybe)
+            if tier and tier.has_identity() and (skip_free_tier or not tier.is_enabled()):
                 return None  # the free tier is off (or being discounted), so a guest is not a login
         if _maybe and _maybe in PROVIDER_REGISTRY and get_auth_status(_maybe).get("logged_in"):
             return _maybe
@@ -1416,13 +1417,15 @@ def resolve_provider(
     # chain on purpose: every rung above this line is explicit user intent (CLI creds, config, env
     # keys, a sign-in); the boto chain below is implicit host state, and a leftover ~/.aws profile
     # used to win the first turn of a fresh install (NS-829). The rung never CREATES the identity:
-    # that is the boot bootstrap's job (free_tier_bootstrap), so provider resolution stays free of
-    # network and a fresh install without the bootstrap resolves exactly as upstream does.
+    # Managed free tier (LatticeCode Free / Nous), when enabled and its identity already exists.
+    # This rung sits ABOVE the Bedrock chain on purpose: every rung above this line is explicit
+    # user intent (CLI creds, config, env keys, a sign-in); the boto chain below is implicit host state.
     if not skip_free_tier:
         try:
-            from hermes_cli.anon_auth import guest_enabled, has_guest
-            if guest_enabled() and has_guest():
-                return "nous"
+            from hermes_cli.free_tiers import get_active_free_tier
+            active_tier = get_active_free_tier()
+            if active_tier and active_tier.is_enabled() and active_tier.has_identity():
+                return active_tier.provider_id
         except Exception as exc:
             logger.debug("free tier check during provider resolution skipped: %s", exc)
     # AWS Bedrock via the boto3 credential chain (IAM roles, SSO, env vars): implicit host state,
@@ -1919,7 +1922,9 @@ def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
 _BESPOKE_STATUS_FUNCTIONS: Dict[str, str] = {
     **{pid: flow.status_fn for pid, flow in OAUTH_PROVIDER_FLOWS.items()},
     "spotify": "get_spotify_auth_status",
-    "azure-foundry": "_get_azure_foundry_auth_status"}
+    "azure-foundry": "_get_azure_foundry_auth_status",
+    "latticecode": "get_latticecode_auth_status",
+}
 _STATUS_BY_AUTH_TYPE: Dict[str, str] = {
     "external_process": "get_external_process_provider_status",
     "api_key": "get_api_key_provider_status",
@@ -1976,6 +1981,30 @@ def _get_azure_foundry_auth_status() -> Dict[str, Any]:
         api_key = os.getenv("AZURE_FOUNDRY_API_KEY", "")
     info["logged_in"] = has_usable_secret(api_key)
     return info
+
+
+def get_latticecode_auth_status() -> Dict[str, Any]:
+    """Auth status for LatticeCode (New API password login or anonymous free tier)."""
+    try:
+        from hermes_cli import auth_lattice
+        state = auth_lattice.current_lattice_state()
+        if state and state.get("auth_method") == "password" and state.get("api_key"):
+            return {
+                "logged_in": True,
+                "provider": "latticecode",
+                "username": state.get("username", ""),
+                "auth_method": "password",
+            }
+        if state and auth_lattice.is_lattice_guest_state(state):
+            return {
+                "logged_in": False,
+                "free_tier": True,
+                "provider": "latticecode",
+                "auth_method": "anonymous",
+            }
+    except Exception as exc:
+        logger.debug("Failed to get latticecode auth status: %s", exc)
+    return {"logged_in": False, "provider": "latticecode"}
 
 
 def _default_api_key_base_url(api_key: str, default: str, env_url: str) -> str:

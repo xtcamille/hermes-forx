@@ -1,0 +1,5 @@
+name: latticecode-provider
+kind: model-provider
+version: 1.0.0
+description: LatticeCode Free Tier (Official Managed Free Tier)
+author: LatticeCode

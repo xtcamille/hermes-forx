@@ -28,6 +28,16 @@ def _(rid, params: dict) -> dict:
     A pure read. The identity is created by the boot bootstrap (``free_tier_bootstrap``), never as
     a side effect of a client polling this method (NS-845 Q1.2)."""
     try:
+        from hermes_cli.free_tiers import get_active_free_tier
+        active_tier = get_active_free_tier()
+        if active_tier and active_tier.provider_id == "latticecode":
+            has_guest = active_tier.has_identity()
+            enabled = active_tier.is_enabled()
+            payload = {
+                "has_guest": has_guest, "enabled": enabled, "available": has_guest and enabled,
+                "notice_pending": False,
+                "model": active_tier.default_model, "label": active_tier.display_name}
+            return _ok(rid, payload)
         from hermes_cli import anon_auth
         has_guest = anon_auth.has_guest()
         enabled = anon_auth.guest_enabled()
