@@ -58,7 +58,7 @@ export const widgetSdk = {
 
 export type WidgetSdk = typeof widgetSdk
 
-const widgetsDir = () => join(process.env.HERMES_HOME?.trim() || join(homedir(), '.hermes'), 'tui-widgets')
+const widgetsDir = () => join(process.env.FORX_HOME?.trim() || process.env.HERMES_HOME?.trim() || join(homedir(), '.forx'), 'tui-widgets')
 
 export interface UserWidgetLoadResult {
   /** App ids newly registered by this scan. */

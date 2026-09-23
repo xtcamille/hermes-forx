@@ -37,9 +37,14 @@ def _(rid, params: dict) -> dict:
 def _(rid, params: dict) -> dict:
     """Log in to RAGFlow enterprise knowledge base."""
     try:
-        from hermes_cli.auth_ragflow import RAGFLOW_DEFAULT_URL, login_ragflow
-        username = params.get("username", "")
-        password = params.get("password", "")
+        from hermes_cli.auth_ragflow import (
+            RAGFLOW_DEFAULT_PASSWORD,
+            RAGFLOW_DEFAULT_URL,
+            RAGFLOW_DEFAULT_USERNAME,
+            login_ragflow,
+        )
+        username = params.get("username") or RAGFLOW_DEFAULT_USERNAME
+        password = params.get("password") or RAGFLOW_DEFAULT_PASSWORD
         base_url = params.get("base_url") or RAGFLOW_DEFAULT_URL
         if not username or not password:
             return _err(rid, 5092, "Username and password are required")

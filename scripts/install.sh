@@ -43,9 +43,9 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
-HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+REPO_URL_SSH="git@github.com:xtcamille/hermes-forX.git"
+REPO_URL_HTTPS="https://github.com/xtcamille/hermes-forX.git"
+HERMES_HOME="${FORX_HOME:-${HERMES_HOME:-$HOME/.forx}}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
@@ -2138,76 +2138,68 @@ setup_path() {
     # Older installs created this path as a symlink to $HERMES_BIN. Without
     # the rm, `cat >` follows the symlink and overwrites the venv pip entry
     # point with this shim — making `exec "$HERMES_BIN"` self-recurse. (#21454)
-    rm -f "$command_link_dir/hermes"
+    rm -f "$command_link_dir/forx"
     if [ "$USE_VENV" = true ]; then
         # uv-generated console scripts resolve themselves through `realpath`,
         # which stock macOS does not provide. Run the checked-in entrypoint
         # with the venv interpreter instead, so the public launcher remains
         # independent of non-standard shell utilities.
-        cat > "$command_link_dir/hermes" <<EOF
+        cat > "$command_link_dir/forx" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" "$HERMES_ENTRYPOINT" "\$@"
 EOF
     else
-        cat > "$command_link_dir/hermes" <<EOF
+        cat > "$command_link_dir/forx" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" "\$@"
 EOF
     fi
-    chmod +x "$command_link_dir/hermes"
-    log_success "Installed hermes launcher → $command_link_display_dir/hermes"
+    chmod +x "$command_link_dir/forx"
+    log_success "Installed forx launcher → $command_link_display_dir/forx"
 
-    # Also expose `hermes-agent`. The `hermes-agent` console script declared in
-    # pyproject.toml's [project.scripts] lives inside the venv, which is not on
-    # the login-shell PATH. Without this launcher users can't invoke the agent
-    # entrypoint directly from outside the venv. (#74819)
-    rm -f "$command_link_dir/hermes-agent"
+    # Also expose `forx-agent`.
+    rm -f "$command_link_dir/forx-agent"
     if [ "$USE_VENV" = true ]; then
-        cat > "$command_link_dir/hermes-agent" <<EOF
+        cat > "$command_link_dir/forx-agent" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" "$INSTALL_DIR/run_agent.py" "\$@"
 EOF
     else
-        cat > "$command_link_dir/hermes-agent" <<EOF
+        cat > "$command_link_dir/forx-agent" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" run_agent.py "\$@"
 EOF
     fi
-    chmod +x "$command_link_dir/hermes-agent"
-    log_success "Installed hermes-agent launcher → $command_link_display_dir/hermes-agent"
+    chmod +x "$command_link_dir/forx-agent"
+    log_success "Installed forx-agent launcher → $command_link_display_dir/forx-agent"
 
-    # Also expose `hermes-acp`. ACP hosts (Zed, JetBrains, Buzz) resolve the
-    # agent by command name on the login-shell PATH, and the `hermes-acp`
-    # console script lives inside the venv, which is not on that PATH. Without
-    # this launcher those hosts report Hermes as not installed. (#21454 applies
-    # here too: clear the path first so `cat >` cannot follow an old symlink
-    # into the venv and overwrite the console script.)
-    rm -f "$command_link_dir/hermes-acp"
+    # Also expose `forx-acp`.
+    rm -f "$command_link_dir/forx-acp"
     if [ "$USE_VENV" = true ]; then
-        cat > "$command_link_dir/hermes-acp" <<EOF
+        cat > "$command_link_dir/forx-acp" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" "$HERMES_ENTRYPOINT" acp "\$@"
 EOF
     else
-        cat > "$command_link_dir/hermes-acp" <<EOF
+        cat > "$command_link_dir/forx-acp" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
 exec "$HERMES_BIN" acp "\$@"
 EOF
     fi
-    chmod +x "$command_link_dir/hermes-acp"
-    log_success "Installed hermes-acp launcher → $command_link_display_dir/hermes-acp"
+    chmod +x "$command_link_dir/forx-acp"
+    log_success "Installed forx-acp launcher → $command_link_display_dir/forx-acp"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"

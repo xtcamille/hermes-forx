@@ -287,18 +287,30 @@ def _enterprise_kb_guidance(agent: Any) -> Optional[str]:
         session_id = getattr(agent, "session_id", None)
         active_ids = get_session_active_datasets(session_id)
 
+        if not active_ids:
+            return (
+                "## Enterprise Knowledge Base (RAGFlow)\n"
+                "Enterprise knowledge base is connected, but NO datasets are currently selected or active for this conversation.\n"
+                "CRITICAL: Do NOT use `search_enterprise_kb` unless the user explicitly enables or selects a knowledge base."
+            )
+
+        active_datasets = [d for d in cached if str(d.get("id")) in active_ids]
+        if not active_datasets:
+            return (
+                "## Enterprise Knowledge Base (RAGFlow)\n"
+                "Enterprise knowledge base is connected, but NO matching datasets are currently selected or active for this conversation.\n"
+                "CRITICAL: Do NOT use `search_enterprise_kb`."
+            )
+
         lines = [
             "## Enterprise Knowledge Base (RAGFlow)",
             "An enterprise knowledge base (RAGFlow) is connected and available via `search_enterprise_kb` and `list_enterprise_kb`.",
+            "Available / Active Dataset(s) for this conversation:",
         ]
-
-        active_datasets = [d for d in cached if str(d.get("id")) in active_ids] if (active_ids and cached) else cached
-        if active_datasets:
-            lines.append("Available / Active Dataset(s):")
-            for d in active_datasets:
-                doc_count = d.get("document_count", 0)
-                desc = f" - {d['description']}" if d.get("description") and str(d["description"]).strip() not in ("None", "") else ""
-                lines.append(f"- **{d.get('name', 'dataset')}** ({doc_count} documents){desc}")
+        for d in active_datasets:
+            doc_count = d.get("document_count", 0)
+            desc = f" - {d['description']}" if d.get("description") and str(d["description"]).strip() not in ("None", "") else ""
+            lines.append(f"- **{d.get('name', 'dataset')}** ({doc_count} documents){desc}")
 
         lines.append(
             "CRITICAL: When the user asks questions that involve domain-specific knowledge, enterprise policies, technical specifications, internal documents, or topics covered by the available datasets above, you MUST prioritize using `search_enterprise_kb(query=...)` to retrieve accurate, verified information from the knowledge base before formulating your response. Do not answer solely from pre-trained memory when the enterprise knowledge base can provide the factual answer."
@@ -306,10 +318,7 @@ def _enterprise_kb_guidance(agent: Any) -> Optional[str]:
         return "\n".join(lines)
     except Exception as exc:
         logger.debug("Failed to build enterprise KB guidance: %s", exc)
-        return (
-            "## Enterprise Knowledge Base (RAGFlow)\n"
-            "An enterprise knowledge base is connected. Prioritize using `search_enterprise_kb` to retrieve relevant internal documents before answering domain-specific or enterprise knowledge questions."
-        )
+        return None
 
 
 def _tool_guidance_block(agent: Any) -> Optional[str]:

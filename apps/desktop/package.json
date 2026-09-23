@@ -1,9 +1,9 @@
 {
-  "name": "hermes",
-  "productName": "Hermes",
+  "name": "forx",
+  "productName": "ForX",
   "private": true,
-  "version": "0.17.6",
-  "description": "Native desktop shell for Hermes Agent.",
+  "version": "0.1.0",
+  "description": "Native desktop shell for ForX Agent.",
   "author": "Nous Research",
   "repository": {
     "type": "git",
@@ -192,18 +192,18 @@
   },
   "build": {
     "electronVersion": "40.10.2",
-    "appId": "com.nousresearch.hermes",
-    "productName": "Hermes",
-    "executableName": "Hermes",
+    "appId": "com.forx.agent",
+    "productName": "ForX",
+    "executableName": "ForX",
     "protocols": [
       {
-        "name": "Hermes Protocol",
+        "name": "ForX Protocol",
         "schemes": [
-          "hermes"
+          "forx"
         ]
       }
     ],
-    "artifactName": "Hermes-${version}-${os}-${arch}.${ext}",
+    "artifactName": "ForX-${version}-${os}-${arch}.${ext}",
     "icon": "assets/icon",
     "directories": {
       "output": "release"
@@ -243,19 +243,19 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
-        "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSCameraUsageDescription": "Hermes uses the camera when a plugin or feature you enable requests it.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations.",
-        "NSCalendarsUsageDescription": "Hermes needs access to Calendar to provide requested meeting and scheduling support.",
-        "NSCalendarsFullAccessUsageDescription": "Hermes needs full access to Calendar to read and manage events when explicitly requested.",
-        "NSRemindersUsageDescription": "Hermes needs access to Reminders to provide requested personal-assistant and scheduling support.",
-        "NSRemindersFullAccessUsageDescription": "Hermes needs full access to Reminders to read and manage reminders when explicitly requested.",
-        "NSScreenCaptureUsageDescription": "Hermes captures the screen when you ask the agent to screenshot or record it.",
-        "NSLocalNetworkUsageDescription": "Hermes connects to devices on your local network when a plugin or feature you enable requests it.",
-        "NSAppleMusicUsageDescription": "Hermes accesses your music library when a plugin or feature you enable requests it."
+        "CFBundleDisplayName": "ForX",
+        "CFBundleExecutable": "ForX",
+        "CFBundleName": "ForX",
+        "NSAudioCaptureUsageDescription": "ForX uses audio capture for voice conversations.",
+        "NSCameraUsageDescription": "ForX uses the camera when a plugin or feature you enable requests it.",
+        "NSMicrophoneUsageDescription": "ForX uses the microphone for voice input and voice conversations.",
+        "NSCalendarsUsageDescription": "ForX needs access to Calendar to provide requested meeting and scheduling support.",
+        "NSCalendarsFullAccessUsageDescription": "ForX needs full access to Calendar to read and manage events when explicitly requested.",
+        "NSRemindersUsageDescription": "ForX needs access to Reminders to provide requested personal-assistant and scheduling support.",
+        "NSRemindersFullAccessUsageDescription": "ForX needs full access to Reminders to read and manage reminders when explicitly requested.",
+        "NSScreenCaptureUsageDescription": "ForX captures the screen when you ask the agent to screenshot or record it.",
+        "NSLocalNetworkUsageDescription": "ForX connects to devices on your local network when a plugin or feature you enable requests it.",
+        "NSAppleMusicUsageDescription": "ForX accesses your music library when a plugin or feature you enable requests it."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
@@ -265,7 +265,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "Install ForX",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -287,7 +287,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "ForX",
       "target": [
         "nsis",
         "msi"
@@ -297,7 +297,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "Nous Research <support@nousresearch.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "synopsis": "Native desktop shell for ForX Agent.",
       "target": [
         "AppImage",
         "deb",
@@ -308,8 +308,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "ForX",
+      "uninstallDisplayName": "ForX",
       "warningsAsErrors": false
     }
   }

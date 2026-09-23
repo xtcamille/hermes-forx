@@ -42,7 +42,7 @@ def _home_hash(home: Path) -> str:
 
 def windows_pipe_name(home: Path) -> str:
     """Per-HERMES_HOME named pipe path (Windows transport)."""
-    return rf"\\.\pipe\hermes-gateway-{_home_hash(home)}"
+    return rf"\\.\pipe\forx-gateway-{_home_hash(home)}"
 
 
 def _fits_sun_path(path: Path) -> bool:
@@ -53,7 +53,7 @@ def _fallback_socket_path(home: Path) -> Path:
     """Short temp-dir path for homes whose direct socket path exceeds sun_path: ``tempfile.gettempdir()``
     then ``/tmp`` (POSIX); if nothing fits the tempdir candidate is returned anyway — bind fails
     non-fatally and consumers use the scan layer."""
-    name = f"hermes-gw-{_home_hash(home)}.sock"
+    name = f"forx-gw-{_home_hash(home)}.sock"
     candidates = [Path(tempfile.gettempdir()) / name] + ([] if _IS_WINDOWS else [Path("/tmp") / name])  # no-tmp: ok — AF_UNIX 104-byte path limit needs the short /tmp candidate
     return next((c for c in candidates if _fits_sun_path(c)), candidates[0])
 

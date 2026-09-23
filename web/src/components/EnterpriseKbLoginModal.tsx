@@ -14,8 +14,8 @@ interface Props {
 
 export function EnterpriseKbLoginModal({ onClose, onSuccess }: Props) {
   const [baseUrl, setBaseUrl] = useState("http://172.22.0.87");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin@zkjg.com");
+  const [password, setPassword] = useState("123");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

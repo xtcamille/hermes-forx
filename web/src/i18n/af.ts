@@ -50,8 +50,8 @@ export const af: Translations = {
   },
 
   app: {
-    brand: "Hermes Agent",
-    brandShort: "HA",
+    brand: "ForX Agent",
+    brandShort: "FA",
     closeNavigation: "Maak navigasie toe",
     closeModelTools: "Maak model en gereedskap toe",
     footer: {
@@ -505,7 +505,7 @@ export const af: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Hermes Achievements",
+      title: "ForX Achievements",
       subtitle:
         "Versamelbare Hermes-kentekens wat verdien word uit werklike sessiegeskiedenis. Bekende, onvoltooide prestasies word as Ontdek vertoon; Geheime prestasies bly verborge totdat die eerste ooreenstemmende gedrag verskyn.",
       scan_subtitle:
@@ -605,7 +605,7 @@ export const af: Translations = {
         "Deel op X maak 'n vooraf-ingevulde plasing in 'n nuwe oortjie oop. Klik eers op Kopieer beeld as jy die 1200×630-kenteken aangeheg wil hê — X laat jou dit direk in die tweet-skrywer plak. Laai PNG af stoor die lêer om enige plek te gebruik.",
       clipboard_unsupported:
         "Beeldkopiëring na knipbord word nie in hierdie blaaier ondersteun nie — gebruik eerder Aflaai.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in Hermes Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in ForX Agent ☤",
     },
   },
   kanban: {

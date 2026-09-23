@@ -67,17 +67,29 @@ def _handle_search_enterprise_kb(args: dict, **kwargs) -> str:
         return tool_error("query is required")
 
     session_id = kwargs.get("session_id")
-    dataset_ids = args.get("dataset_ids")
-    if not dataset_ids or not isinstance(dataset_ids, list):
-        dataset_ids = get_session_active_datasets(session_id)
+    allowed_ids = get_session_active_datasets(session_id)
 
-    if not dataset_ids:
-        state = get_ragflow_auth_state()
-        if state and state.get("cached_datasets"):
-            dataset_ids = [str(d["id"]) for d in state["cached_datasets"] if isinstance(d, dict) and "id" in d]
+    if not allowed_ids:
+        return tool_result(
+            success=True,
+            content="No enterprise knowledge base datasets are selected or active for this conversation. "
+                    "The user has not selected or enabled any knowledge base datasets. "
+                    "Do not attempt to search; please answer the user's question directly using your general knowledge, "
+                    "or inform the user that they can select a knowledge base from the chat controls if they want to query internal documents."
+        )
 
-    if not dataset_ids:
-        return tool_result(success=True, content="No enterprise knowledge bases available or selected to search.")
+    requested_ids = args.get("dataset_ids")
+    if requested_ids and isinstance(requested_ids, list):
+        dataset_ids = [str(x) for x in requested_ids if str(x) in allowed_ids]
+        if not dataset_ids:
+            return tool_result(
+                success=True,
+                content=f"The requested dataset ID(s) {requested_ids} are not selected or enabled for this conversation. "
+                        f"Active dataset(s) for this session: {allowed_ids}. "
+                        "Do not search unselected datasets. Please answer based on your general knowledge or using only the active datasets."
+            )
+    else:
+        dataset_ids = allowed_ids
 
     top_k = int(args.get("top_k") or 6)
 
@@ -113,9 +125,14 @@ def _handle_list_enterprise_kb(args: dict, **kwargs) -> str:
     if not datasets:
         return tool_result(success=True, content="No knowledge bases found for current account.", datasets=[])
 
+    session_id = kwargs.get("session_id")
+    active_ids = set(get_session_active_datasets(session_id))
+
     lines = [f"Found {len(datasets)} accessible enterprise knowledge base(s):"]
     for d in datasets:
-        lines.append(f"- **{d['name']}** (ID: `{d['id']}`, Documents: {d['document_count']})")
+        is_active = str(d.get("id")) in active_ids
+        status_tag = "[ACTIVE in this session]" if is_active else "[NOT SELECTED in this session - DO NOT SEARCH]"
+        lines.append(f"- **{d['name']}** (ID: `{d['id']}`, Documents: {d['document_count']}) {status_tag}")
         if d.get("description"):
             lines.append(f"  *Description*: {d['description']}")
 

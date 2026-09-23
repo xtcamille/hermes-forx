@@ -2086,8 +2086,8 @@ def _windows_gateway_breakaway_state() -> bool | None:
 # Service Configuration
 # =============================================================================
 
-_SERVICE_BASE = "hermes-gateway"
-SERVICE_DESCRIPTION = "Hermes Agent Gateway - Messaging Platform Integration"
+_SERVICE_BASE = "forx-gateway"
+SERVICE_DESCRIPTION = "ForX Agent Gateway - Messaging Platform Integration"
 
 _SYSTEM_UNIT_DIR = Path("/etc/systemd/system")
 
@@ -2424,8 +2424,8 @@ def has_conflicting_systemd_units() -> bool:
     return len(get_installed_systemd_scopes()) > 1
 
 
-# Legacy pre-rename names: explicit allowlist (NOT a glob) so profile and third-party units never match.
-_LEGACY_SERVICE_NAMES: tuple[str, ...] = ("hermes.service",)
+# Legacy pre-rename names: empty so it never flags or touches official hermes.service.
+_LEGACY_SERVICE_NAMES: tuple[str, ...] = ()
 
 # ExecStart markers identifying a unit as running our gateway; a legacy unit is flagged only if one matches.
 _LEGACY_UNIT_EXECSTART_MARKERS: tuple[str, ...] = (

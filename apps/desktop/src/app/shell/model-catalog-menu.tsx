@@ -655,7 +655,7 @@ export function ModelCatalogMenu({
                         event.preventDefault()
                         const ok = await confirm({
                           title: '退出登录',
-                          message: '确定退出 New API 账号？退出后将清除已保存的登录凭据。',
+                          description: '确定退出 New API 账号？退出后将清除已保存的登录凭据。',
                           confirmLabel: '退出登录',
                           destructive: true
                         })

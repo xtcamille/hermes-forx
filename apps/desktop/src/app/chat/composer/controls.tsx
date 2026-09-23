@@ -80,6 +80,7 @@ export function ComposerControls({
   const runtimeId = useStore(view.$runtimeId)
   const storedId = useStore(view.$storedId)
   const sessionId = runtimeId || storedId
+  const alternateSessionId = storedId && storedId !== sessionId ? storedId : (runtimeId && runtimeId !== sessionId ? runtimeId : undefined)
   const showKbDialog = useStore($showKbLoginDialog)
 
   if (conversation.active) {
@@ -129,7 +130,13 @@ export function ComposerControls({
             <>
               <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
               {compactModelPill ? null : <ReasoningPill disabled={disabled} model={state.model} />}
-              {compactModelPill ? null : <KbPickerPopover disabled={disabled} sessionId={sessionId} />}
+              {compactModelPill ? null : (
+                <KbPickerPopover
+                  alternateSessionId={alternateSessionId}
+                  disabled={disabled}
+                  sessionId={sessionId}
+                />
+              )}
             </>
           )}
           {voiceControls}

@@ -35,22 +35,14 @@ def project_root_str() -> str:
 
 
 def normalize_hermes_home_env() -> None:
-    """Expand ``~``/``$VAR`` in ``HERMES_HOME`` once, at process entry, and write it back.
-
-    fish does not expand ``~`` inside ``VAR=~/...`` and every shell passes a quoted value
-    through verbatim, so a literal tilde reaches the process. ``Path("~/.hermes")`` is
-    *relative*: the many raw ``os.environ["HERMES_HOME"]`` readers (this fast path, the
-    active_profile probe, profile re-home, the dotenv loader) would each resolve it against
-    cwd and scaffold a full home under ``<cwd>/~/.hermes``. One expansion here gives every
-    reader the same absolute spelling; ``hermes_constants`` expands as well for non-CLI
-    entry points. A relative value that is not tilde/variable-shaped is left alone.
-    """
-    raw = os.environ.get("HERMES_HOME", "")
-    if not raw.strip():
-        return
-    expanded = os.path.expanduser(os.path.expandvars(raw.strip()))
-    if expanded != raw:
-        os.environ["HERMES_HOME"] = expanded
+    """Expand ``~``/``$VAR`` in ``FORX_HOME`` / ``HERMES_HOME`` once, at process entry, and write it back."""
+    for key in ("FORX_HOME", "HERMES_HOME"):
+        raw = os.environ.get(key, "")
+        if not raw.strip():
+            continue
+        expanded = os.path.expanduser(os.path.expandvars(raw.strip()))
+        if expanded != raw:
+            os.environ[key] = expanded
 
 
 def _realpath_or_self(path: str) -> str:
@@ -105,11 +97,15 @@ def active_profile_may_override_home(hermes_root: str) -> bool:
 
 
 def _default_home() -> str:
-    return os.path.join(os.path.expanduser("~"), ".hermes")
+    if sys.platform == "win32":
+        local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
+        base = local_appdata if local_appdata else os.path.join(os.path.expanduser("~"), "AppData", "Local")
+        return os.path.join(base, "forx")
+    return os.path.join(os.path.expanduser("~"), ".forx")
 
 
 def _resolved_home() -> str:
-    return os.environ.get("HERMES_HOME", "").strip() or _default_home()
+    return os.environ.get("FORX_HOME", "").strip() or os.environ.get("HERMES_HOME", "").strip() or _default_home()
 
 
 def container_mode_may_be_active() -> bool:
@@ -175,7 +171,7 @@ def print_fast_version_info(*, check_updates: bool = True) -> None:
     except Exception:
         from hermes_cli import __release_date__, __version__
 
-        print(f"Hermes Agent v{__version__} ({__release_date__})")
+        print(f"ForX Agent v{__version__} ({__release_date__})")
     print(f"Install directory: {project_root_str()}")
     # Authoritative resolver first (code-scoped stamp → managed → nix → git → pip; also self-heals
     # poisoned shared-home 'docker' stamps); cheap stdlib stamp probe only if it fails.

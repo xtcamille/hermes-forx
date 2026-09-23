@@ -34,10 +34,12 @@ const PILL = cn(
 
 export function KbPickerPopover({
   disabled,
-  sessionId
+  sessionId,
+  alternateSessionId
 }: {
   disabled: boolean
   sessionId: string | null | undefined
+  alternateSessionId?: string | null | undefined
 }) {
   const status = useStore($enterpriseKbStatus)
   useStore($selectedDatasetsBySession)
@@ -48,24 +50,24 @@ export function KbPickerPopover({
   }, [])
 
   const datasets = status?.datasets || []
-  const selectedIds = getSelectedDatasetsForSession(sessionId)
+  const selectedIds = getSelectedDatasetsForSession(sessionId, alternateSessionId)
 
   const handleToggle = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const next = selectedIds.includes(id)
       ? selectedIds.filter(x => x !== id)
       : [...selectedIds, id]
-    setSelectedDatasetsForSession(sessionId, next)
+    setSelectedDatasetsForSession(sessionId, next, alternateSessionId)
   }
 
   const handleSelectAll = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setSelectedDatasetsForSession(sessionId, datasets.map(d => d.id))
+    setSelectedDatasetsForSession(sessionId, datasets.map(d => d.id), alternateSessionId)
   }
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setSelectedDatasetsForSession(sessionId, [])
+    setSelectedDatasetsForSession(sessionId, [], alternateSessionId)
   }
 
   const handleRefresh = async (e: React.MouseEvent) => {

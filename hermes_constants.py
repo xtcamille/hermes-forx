@@ -49,18 +49,18 @@ def _expand_hermes_home(path: str) -> Path:
 
 
 def _get_platform_default_hermes_home() -> Path:
-    """Return the platform-native default Hermes home path."""
+    """Return the platform-native default ForX home path."""
     if sys.platform == "win32":
         local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
         base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
-        return base / "hermes"
-    return Path.home() / ".hermes"
+        return base / "forx"
+    return Path.home() / ".forx"
 
 
 def sudo_invoker_default_home() -> Path | None:
-    """The invoking user's native ``~/.hermes`` when this process is root under ``sudo``, else None.
+    """The invoking user's native ``~/.forx`` when this process is root under ``sudo``, else None.
 
-    sudo strips HERMES_HOME and sets HOME=/root, so the process's own default is root's; the profile
+    sudo strips FORX_HOME / HERMES_HOME and sets HOME=/root, so the process's own default is root's; the profile
     store and the system service being operated on belong to SUDO_USER.
     """
     if not hasattr(os, "geteuid") or os.geteuid() != 0:
@@ -71,7 +71,7 @@ def sudo_invoker_default_home() -> Path | None:
     import pwd
 
     try:
-        return Path(pwd.getpwnam(sudo_user).pw_dir) / ".hermes"
+        return Path(pwd.getpwnam(sudo_user).pw_dir) / ".forx"
     except KeyError:  # SUDO_USER not in passwd (chroot/container)
         return None
 
@@ -105,11 +105,11 @@ def _warn_profile_fallback_once() -> None:
 
 
 def get_hermes_home() -> Path:
-    """Hermes home: context-local override → ``HERMES_HOME`` env var → platform default."""
+    """ForX home: context-local override → ``FORX_HOME`` env var → platform default."""
     override = get_hermes_home_override()
     if override:
         return _expand_hermes_home(override)
-    if not os.environ.get("HERMES_HOME", "").strip():
+    if not os.environ.get("FORX_HOME", "").strip():
         _warn_profile_fallback_once()
     return get_process_hermes_home()
 
@@ -154,12 +154,12 @@ def reset_hermes_home_key_cache() -> None:
 
 
 def get_process_hermes_home() -> Path:
-    """Hermes home of the running process, ignoring task overrides.
+    """ForX home of the running process, ignoring task overrides.
 
     For process-level assets (theme YAML, dashboard plugin manifests) that must stay visible while a
     request is scoped to another profile (e.g. embedded ``/chat`` under ``--open-profile``).
     """
-    val = os.environ.get("HERMES_HOME", "").strip()
+    val = os.environ.get("FORX_HOME", "").strip()
     return _expand_hermes_home(val) if val else _get_platform_default_hermes_home()
 
 
@@ -169,16 +169,16 @@ def get_process_hermes_home() -> Path:
 # default profile) so the two lists cannot drift apart.
 LOCAL_RUNTIME_ROOT_DIRS: frozenset[str] = frozenset({"models", "runtimes", "node"})
 
-# get_default_hermes_root() memo keyed on (native home, expanded HERMES_HOME) so it stays
+# get_default_hermes_root() memo keyed on (native home, expanded FORX_HOME) so it stays
 # fresh when a test or plugin mutates either input; saves ~80us/call at 31+ sites.
 _default_hermes_root_memo: "tuple[str, str, Path] | None" = None
 
 
 def get_default_hermes_root() -> Path:
-    """Root Hermes dir for profile-level ops: ``<root>`` when ``HERMES_HOME=<root>/profiles/<name>``."""
+    """Root ForX dir for profile-level ops: ``<root>`` when ``FORX_HOME=<root>/profiles/<name>``."""
     global _default_hermes_root_memo
     native_home = _get_platform_default_hermes_home()
-    env_home = os.environ.get("HERMES_HOME", "").strip()
+    env_home = os.environ.get("FORX_HOME", "").strip()
     env_path = _expand_hermes_home(env_home) if env_home else None
     memo_key = (str(native_home), str(env_path) if env_path is not None else "")
     memo = _default_hermes_root_memo
@@ -187,7 +187,7 @@ def get_default_hermes_root() -> Path:
     result = native_home
     if env_path is not None:
         try:
-            env_path.resolve().relative_to(native_home.resolve())  # under ~/.hermes (normal or profile mode)
+            env_path.resolve().relative_to(native_home.resolve())  # under ~/.forx or ~/.hermes (normal or profile mode)
         except ValueError:  # Docker/custom root: <root>/profiles/<name> -> <root>, else HERMES_HOME itself
             result = env_path.parent.parent if env_path.parent.name == "profiles" else env_path
     _default_hermes_root_memo = (*memo_key, result)
@@ -203,11 +203,11 @@ _HERMES_HOME_MARKERS = ("config.yaml", ".env", "state.db")
 def _is_hermes_profiles_root(profiles_dir: Path) -> bool:
     """True when *profiles_dir* is provably ``<hermes-home>/profiles``.
 
-    Accepts the classic ``~/.hermes`` layout, a root carrying Hermes-home marker files, a
+    Accepts the classic ``~/.hermes`` or ``~/.forx`` layout, a root carrying Hermes-home marker files, a
     ``profiles/.deleted`` tombstone dir (only ``profile delete`` creates it), or the default root.
     """
     root = profiles_dir.parent
-    if root.name == ".hermes":
+    if root.name in (".forx", ".hermes"):
         return True
     try:
         if (profiles_dir / _DELETED_PROFILES_DIR).is_dir() or any(
@@ -233,7 +233,7 @@ def named_profile_home(path: str | Path) -> Path | None:
         if (candidate.parent.name == "profiles" and not candidate.name.startswith(".")
                 and _is_hermes_profiles_root(candidate.parent)):
             return candidate
-        if candidate.name == ".hermes":  # default home: a coincidental profiles/ ancestor is not a root
+        if candidate.name in (".forx", ".hermes"):  # default home: a coincidental profiles/ ancestor is not a root
             return None
     return None
 

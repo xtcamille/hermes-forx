@@ -117,7 +117,7 @@ Examples:
     hermes debug share             Upload debug report for support
     hermes console                Open the safe Hermes command console
     hermes update                 Update to latest version
-    hermes dashboard              Start web UI dashboard (port 9119)
+    hermes dashboard              Start web UI dashboard (port 9339)
     hermes dashboard --stop       Stop running dashboard processes
     hermes dashboard --status     List running dashboard processes
 

@@ -33,7 +33,8 @@ def test_handle_search_enterprise_kb():
             "similarity": 0.92,
         }
     ]
-    with patch("tools.enterprise_kb_tool.search_ragflow", return_value=mock_chunks):
+    with patch("tools.enterprise_kb_tool.get_session_active_datasets", return_value=["kb_1"]), \
+         patch("tools.enterprise_kb_tool.search_ragflow", return_value=mock_chunks):
         res = json.loads(_handle_search_enterprise_kb({"query": "年假几天", "dataset_ids": ["kb_1"]}))
         assert res.get("success") is True
         assert res.get("chunk_count") == 1
@@ -52,3 +53,33 @@ def test_handle_list_enterprise_kb():
         assert len(res.get("datasets", [])) == 2
         assert "研发代码规范" in res.get("content", "")
         assert "人事行政制度" in res.get("content", "")
+
+
+def test_handle_search_enterprise_kb_unselected():
+    # When no datasets are active or selected, it should NOT search RAGFlow
+    with patch("tools.enterprise_kb_tool.get_session_active_datasets", return_value=[]), \
+         patch("tools.enterprise_kb_tool.search_ragflow") as mock_search:
+        res = json.loads(_handle_search_enterprise_kb({"query": "区块链"}, session_id="test_session"))
+        assert res.get("success") is True
+        assert "No enterprise knowledge base datasets are selected" in res.get("content", "")
+        assert mock_search.call_count == 0
+
+
+def test_handle_search_enterprise_kb_filters_unselected_dataset():
+    # User selected only kb_2 (e.g. HR doc), but model requests kb_1 (blockchain)
+    with patch("tools.enterprise_kb_tool.get_session_active_datasets", return_value=["kb_2"]), \
+         patch("tools.enterprise_kb_tool.search_ragflow") as mock_search:
+        res = json.loads(_handle_search_enterprise_kb({"query": "区块链架构", "dataset_ids": ["kb_1"]}, session_id="test_session"))
+        assert res.get("success") is True
+        assert "not selected or enabled" in res.get("content", "")
+        # search_ragflow must NOT be called for unselected datasets
+        assert mock_search.call_count == 0
+
+
+if __name__ == "__main__":
+    test_enterprise_kb_check(None)
+    test_handle_search_enterprise_kb()
+    test_handle_list_enterprise_kb()
+    test_handle_search_enterprise_kb_unselected()
+    test_handle_search_enterprise_kb_filters_unselected_dataset()
+    print("ALL ENTERPRISE KB TOOL TESTS PASSED!")

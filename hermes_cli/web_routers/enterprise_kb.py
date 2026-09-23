@@ -9,7 +9,9 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from hermes_cli.auth_ragflow import (
+    RAGFLOW_DEFAULT_PASSWORD,
     RAGFLOW_DEFAULT_URL,
+    RAGFLOW_DEFAULT_USERNAME,
     clear_ragflow_auth_state,
     fetch_ragflow_datasets,
     get_ragflow_auth_state,
@@ -24,8 +26,8 @@ router = APIRouter(prefix="/api/enterprise-kb", tags=["enterprise-kb"])
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., description="Knowledge base username or email")
-    password: str = Field(..., description="Knowledge base password")
+    username: str = Field(default=RAGFLOW_DEFAULT_USERNAME, description="Knowledge base username or email")
+    password: str = Field(default=RAGFLOW_DEFAULT_PASSWORD, description="Knowledge base password")
     base_url: str = Field(default=RAGFLOW_DEFAULT_URL, description="RAGFlow service URL")
 
 

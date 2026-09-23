@@ -861,12 +861,14 @@ function resolveHermesHome() {
     }
   }
 
-  if (IS_WINDOWS && process.env.LOCALAPPDATA) {
-    const localappdata = path.join(process.env.LOCALAPPDATA, 'hermes')
-    const legacy = path.join(app.getPath('home'), '.hermes')
+  if (process.env.FORX_HOME) {
+    return normalizeHermesHomeRoot(process.env.FORX_HOME)
+  }
 
-    // Migrate transparently to LOCALAPPDATA, but honour an existing legacy
-    // ~/.hermes setup (no LOCALAPPDATA install yet) so users don't lose state.
+  if (IS_WINDOWS && process.env.LOCALAPPDATA) {
+    const localappdata = path.join(process.env.LOCALAPPDATA, 'forx')
+    const legacy = path.join(app.getPath('home'), '.forx')
+
     if (!directoryExists(localappdata) && directoryExists(legacy)) {
       return legacy
     }
@@ -874,7 +876,7 @@ function resolveHermesHome() {
     return localappdata
   }
 
-  return path.join(app.getPath('home'), '.hermes')
+  return path.join(app.getPath('home'), '.forx')
 }
 
 const HERMES_HOME = resolveHermesHome()
@@ -977,7 +979,7 @@ const BOOT_FAKE_STEP_MS = (() => {
   return Math.max(120, raw)
 })()
 
-const APP_NAME = process.env.HERMES_DESKTOP_APP_NAME || 'Hermes'
+const APP_NAME = process.env.FORX_DESKTOP_APP_NAME || process.env.HERMES_DESKTOP_APP_NAME || 'ForX'
 const HUD_WINDOW_TITLE = `${APP_NAME} HUD`
 const TITLEBAR_HEIGHT = 34
 const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
@@ -2542,7 +2544,7 @@ async function waitForUpdateToFinish() {
       rememberLog(`[updates] detached update finished with manual action (branch ${result.branch}): ${result.message}`)
       dialog.showMessageBox({
         type: 'warning',
-        title: 'Hermes update',
+        title: 'ForX update',
         message: 'The update finished, but needs one more step',
         detail: result.message
       })
@@ -2558,8 +2560,8 @@ async function waitForUpdateToFinish() {
       void dialog
         .showMessageBox({
           type: 'error',
-          title: 'Hermes update',
-          message: "Hermes couldn't finish updating",
+          title: 'ForX update',
+          message: "ForX couldn't finish updating",
           detail:
             "You're still on the previous version and can keep using it. Try the update again, or open the update log to report the problem.\n\n" +
             `Details: ${result.message}`,
@@ -2591,7 +2593,7 @@ async function waitForUpdateToFinish() {
   if (outcome === 'timeout') {
     rememberLog('[updates] update still in progress after wait timeout; starting backend anyway')
   } else if (relaunchIntoSwappedBundle()) {
-    await advanceBootProgress('backend.update-restart', 'Restarting Hermes to load the updated app…', 14)
+    await advanceBootProgress('backend.update-restart', 'Restarting ForX to load the updated app…', 14)
     // Park while the scheduled exit lands so this stale build never starts a
     // backend; the failsafe below only runs if the exit somehow does not.
     await new Promise(resolve => setTimeout(resolve, BUNDLE_SWAP_RELAUNCH_FAILSAFE_MS))

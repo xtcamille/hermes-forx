@@ -1377,7 +1377,7 @@ def _run_serve(serve, config, host: str, port: int) -> None:
 
 def start_server(
     host: str = "127.0.0.1",
-    port: int = 9119,
+    port: int = 9339,
     open_browser: bool = True,
     allow_public: bool = False,
     initial_profile: str = "",

@@ -59,12 +59,12 @@ def _skin_color(key: str, fallback: str) -> str:
 
 from hermes_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
-[bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
-[#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
-[#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
-[#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
-[#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
+HERMES_AGENT_LOGO = """[bold #FFD700]███████╗ ██████╗ ██████╗ ██╗  ██╗      █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
+[bold #FFD700]██╔════╝██╔═══██╗██╔══██╗╚██╗██╔╝     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
+[#FFBF00]█████╗  ██║   ██║██████╔╝ ╚███╔╝█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   [/]
+[#FFBF00]██╔══╝  ██║   ██║██╔══██╗ ██╔██╗╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   [/]
+[#CD7F32]██║     ╚██████╔╝██║  ██║██╔╝ ██╗     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   [/]
+[#CD7F32]╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   [/]"""
 
 HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
@@ -144,8 +144,8 @@ _last_target_rev: Optional[str] = None
 # Returned when an update is known to exist but commits can't be counted (e.g. nix builds).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
-_UPSTREAM_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
-_OFFICIAL_REPO_CANONICAL = "github.com/nousresearch/hermes-agent"
+_UPSTREAM_REPO_URL = "https://github.com/xtcamille/hermes-forX.git"
+_OFFICIAL_REPO_CANONICAL = "github.com/xtcamille/hermes-forx"
 
 
 def _canonical_github_remote(url: str | None) -> str:
@@ -236,13 +236,13 @@ def _github_compare(current_rev: str, target_rev: str) -> Optional[dict]:
     key = (current_rev, target_rev)
     if key in _compare_payload_cache:
         return _compare_payload_cache[key]
-    url = f"https://api.github.com/repos/nousresearch/hermes-agent/compare/{current_rev}...{target_rev}"
+    url = f"https://api.github.com/repos/{_OFFICIAL_REPO_CANONICAL.removeprefix('github.com/')}/compare/{current_rev}...{target_rev}"
 
     def _fetch():
         import urllib.request
         # api.github.com 403s requests without a User-Agent.
         req = urllib.request.Request(
-            url, headers={"Accept": "application/vnd.github+json", "User-Agent": "hermes-cli-update-check"})
+            url, headers={"Accept": "application/vnd.github+json", "User-Agent": "forx-cli-update-check"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
     payload = _quiet(_fetch)
@@ -315,7 +315,7 @@ def _github_branch_tip(repo_slug: str, branch: str) -> Optional[str]:
     def _fetch():
         import urllib.request
         req = urllib.request.Request(
-            url, headers={"Accept": "application/vnd.github.sha", "User-Agent": "hermes-cli-update-check"})
+            url, headers={"Accept": "application/vnd.github.sha", "User-Agent": "forx-cli-update-check"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.read().decode("utf-8").strip()
     sha = _quiet(_fetch)
@@ -485,7 +485,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"Hermes Agent v{VERSION} ({RELEASE_DATE})"
+    base = f"ForX Agent v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base
@@ -881,7 +881,7 @@ def _banner_left_lines(model: str, cwd: str, session_id, context_length, provide
         lines.append(f"[{accent}]MoA: {_short_label(model)}[/]{agg_str}{ctx_str}{nous_str}")
     elif not (model or "").strip() or (model or "").strip().lower() == "unknown":
         # Unconfigured install: the clearest place to say what is wrong and how to fix it.
-        lines.append(f"[bold red]no model configured[/] [dim {dim}]— run /model or hermes setup[/]")
+        lines.append(f"[bold red]no model configured[/] [dim {dim}]— run /model or forx setup[/]")
     else:
         model_short = model.split("/")[-1].removesuffix(".gguf")
         lines.append(f"[{accent}]{_short_label(model_short)}[/]{ctx_str}{nous_str}")

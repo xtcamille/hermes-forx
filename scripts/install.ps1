@@ -30,8 +30,8 @@ param(
     # existing tree pass -ForceCommit.
     [switch]$ForceCommit,
     [string]$Tag = "",
-    [string]$HermesHome = $(if ($env:HERMES_HOME) { $env:HERMES_HOME } else { "$env:LOCALAPPDATA\hermes" }),
-    [string]$InstallDir = $(if ($env:HERMES_HOME) { "$env:HERMES_HOME\hermes-agent" } else { "$env:LOCALAPPDATA\hermes\hermes-agent" }),
+    [string]$HermesHome = $(if ($env:FORX_HOME) { $env:FORX_HOME } elseif ($env:HERMES_HOME) { $env:HERMES_HOME } else { "$env:LOCALAPPDATA\forx" }),
+    [string]$InstallDir = $(if ($env:FORX_HOME) { "$env:FORX_HOME\forx-agent" } elseif ($env:HERMES_HOME) { "$env:HERMES_HOME\forx-agent" } else { "$env:LOCALAPPDATA\forx\forx-agent" }),
 
     # --- Stage protocol (additive; default invocation behaves as before) ----
     # See the "Stage protocol" section near the bottom of the file for the
@@ -3256,9 +3256,9 @@ function Install-HermesCommandLaunchers {
     # Requiring hermes.exe before creating the destination keeps the PATH
     # stage from reporting success with an unusable command (PR #92092).
     $scriptsDir = Join-Path $Root "venv\Scripts"
-    $requiredSource = Join-Path $scriptsDir "hermes.exe"
+    $requiredSource = Join-Path $scriptsDir "forx.exe"
     if (-not (Test-Path -LiteralPath $requiredSource -PathType Leaf)) {
-        throw "Cannot set up the hermes command: required launcher not found: $requiredSource"
+        throw "Cannot set up the forx command: required launcher not found: $requiredSource"
     }
 
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
@@ -3275,7 +3275,7 @@ function Install-HermesCommandLaunchers {
     if (Test-Path -LiteralPath $pyvenvCfg) {
         $venvRelocatable = [bool](Select-String -Path $pyvenvCfg -Pattern '^\s*relocatable\s*=\s*true\s*$' -Quiet)
     }
-    foreach ($launcher in @("hermes", "hermes-acp")) {
+    foreach ($launcher in @("forx", "forx-acp")) {
         $src = Join-Path $scriptsDir "$launcher.exe"
         if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { continue }
         if ($venvRelocatable) {
@@ -3288,11 +3288,11 @@ function Install-HermesCommandLaunchers {
     }
 
     # Verify either staged form before the caller mutates PATH.
-    $requiredExe = Join-Path $Destination "hermes.exe"
-    $requiredCmd = Join-Path $Destination "hermes.cmd"
+    $requiredExe = Join-Path $Destination "forx.exe"
+    $requiredCmd = Join-Path $Destination "forx.cmd"
     if (-not ((Test-Path -LiteralPath $requiredExe -PathType Leaf) -or
               (Test-Path -LiteralPath $requiredCmd -PathType Leaf))) {
-        throw "Cannot set up the hermes command: launcher was not installed: $requiredExe"
+        throw "Cannot set up the forx command: launcher was not installed: $requiredExe"
     }
     return $Destination
 }

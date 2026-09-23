@@ -15,7 +15,7 @@ from typing import Callable
 def _add_server_runtime_args(parser) -> None:
     """Runtime flags shared by ``dashboard`` and ``serve`` (same ``web_server.start_server``)."""
     parser.add_argument(
-        "--port", type=int, default=9119, help="Port (default 9119, 0 for auto-assign by OS)")
+        "--port", type=int, default=9339, help="Port (default 9339, 0 for auto-assign by OS)")
     parser.add_argument("--host", default="127.0.0.1", help="Host (default 127.0.0.1)")
     parser.add_argument(
         "--insecure", action="store_true",
