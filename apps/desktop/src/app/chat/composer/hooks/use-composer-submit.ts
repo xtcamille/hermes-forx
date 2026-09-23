@@ -9,6 +9,8 @@ import { resetBrowseState } from '@/store/composer-input-history'
 import { enqueueQueuedPrompt, type QueuedPromptEntry } from '@/store/composer-queue'
 import { hasConnectionRequest, skipConnectionRequest } from '@/store/connection-request'
 import { hasBlockingPromptRequest } from '@/store/prompts'
+import { getSelectedDatasetsForSession } from '@/store/enterprise-kb'
+import { setSessionEnterpriseKbDatasets } from '@/hermes'
 
 import { cloneAttachments, type QueueEditState } from '../composer-utils'
 import { onComposerSubmitRequest } from '../focus'
@@ -287,6 +289,12 @@ export function useComposerSubmit({
       resetBrowseState(sessionId)
       clearDraft()
       scope.attachments.clear()
+      if (sessionId) {
+        const selectedKbIds = getSelectedDatasetsForSession(sessionId)
+        if (selectedKbIds.length > 0) {
+          void setSessionEnterpriseKbDatasets(sessionId, selectedKbIds)
+        }
+      }
       dispatchSubmit(text, submittedAttachments)
     }
 

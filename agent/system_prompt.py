@@ -270,6 +270,48 @@ def _profile_name_for_home(home: Path) -> str:
         return "default"
 
 
+def _enterprise_kb_guidance(agent: Any) -> Optional[str]:
+    """Behavioral guidance and active dataset index for enterprise knowledge base (RAGFlow)."""
+    names = agent.valid_tool_names or set()
+    if "search_enterprise_kb" not in names:
+        return None
+    try:
+        from hermes_cli.auth_ragflow import get_ragflow_auth_state, get_session_active_datasets, is_ragflow_logged_in
+        if not is_ragflow_logged_in():
+            return None
+        state = get_ragflow_auth_state()
+        if not state:
+            return None
+
+        cached = state.get("cached_datasets") or []
+        session_id = getattr(agent, "session_id", None)
+        active_ids = get_session_active_datasets(session_id)
+
+        lines = [
+            "## Enterprise Knowledge Base (RAGFlow)",
+            "An enterprise knowledge base (RAGFlow) is connected and available via `search_enterprise_kb` and `list_enterprise_kb`.",
+        ]
+
+        active_datasets = [d for d in cached if str(d.get("id")) in active_ids] if (active_ids and cached) else cached
+        if active_datasets:
+            lines.append("Available / Active Dataset(s):")
+            for d in active_datasets:
+                doc_count = d.get("document_count", 0)
+                desc = f" - {d['description']}" if d.get("description") and str(d["description"]).strip() not in ("None", "") else ""
+                lines.append(f"- **{d.get('name', 'dataset')}** ({doc_count} documents){desc}")
+
+        lines.append(
+            "CRITICAL: When the user asks questions that involve domain-specific knowledge, enterprise policies, technical specifications, internal documents, or topics covered by the available datasets above, you MUST prioritize using `search_enterprise_kb(query=...)` to retrieve accurate, verified information from the knowledge base before formulating your response. Do not answer solely from pre-trained memory when the enterprise knowledge base can provide the factual answer."
+        )
+        return "\n".join(lines)
+    except Exception as exc:
+        logger.debug("Failed to build enterprise KB guidance: %s", exc)
+        return (
+            "## Enterprise Knowledge Base (RAGFlow)\n"
+            "An enterprise knowledge base is connected. Prioritize using `search_enterprise_kb` to retrieve relevant internal documents before answering domain-specific or enterprise knowledge questions."
+        )
+
+
 def _tool_guidance_block(agent: Any) -> Optional[str]:
     """Tool-aware behavioral guidance, injected only when the tools are loaded."""
     names = agent.valid_tool_names
@@ -293,8 +335,9 @@ def _tool_guidance_block(agent: Any) -> Optional[str]:
         SESSION_SEARCH_GUIDANCE if "session_search" in names else None,
         SKILLS_GUIDANCE if "skill_manage" in names else None,
         _kanban_guidance,
+        _enterprise_kb_guidance(agent),
     ]
-    return " ".join(g for g in tool_guidance if g) or None
+    return "\n\n".join(g for g in tool_guidance if g) or None
 
 
 def _skills_prompt(agent: Any) -> str:

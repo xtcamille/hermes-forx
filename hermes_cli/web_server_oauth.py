@@ -40,6 +40,30 @@ def _token_status(source: str, source_label: str, creds: Dict[str, Any]) -> Dict
     }
 
 
+def _latticecode_status() -> Dict[str, Any]:
+    """Status for LatticeCode / New API account."""
+    try:
+        from hermes_cli.auth_lattice import current_lattice_state
+        state = current_lattice_state()
+        if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+            user_info = state.get("user_info") or {}
+            user = user_info.get("user") or {}
+            username = state.get("username") or user.get("username") or ""
+            api_key = state.get("api_key") or ""
+            label = f"New API ({username})" if username else "New API"
+            return {
+                "logged_in": True,
+                "source": "auth_store",
+                "source_label": label,
+                "token_preview": _truncate_token(api_key) if api_key else None,
+                "expires_at": user_info.get("access_expires_at"),
+                "has_refresh_token": False,
+            }
+    except Exception:
+        pass
+    return dict(_LOGGED_OUT)
+
+
 def _anthropic_oauth_status() -> Dict[str, Any]:
     """Status for the "Anthropic API Key" card: Hermes-managed PKCE file first, then the
     registry-ordered env vars (process env — where Bitwarden-sourced secrets land — then .env).
@@ -165,6 +189,8 @@ _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     {"id": "claude-code", "name": "Anthropic OAuth: Required Extra Usage Credits to Use Subscription",
      "flow": "external", "cli_command": "claude setup-token",
      "docs_url": "https://docs.claude.com/en/docs/claude-code", "status_fn": _claude_code_only_status},
+    {"id": "latticecode", "name": "New API / 自定义模型平台", "flow": "external",
+     "cli_command": "hermes auth login lattice", "docs_url": "", "status_fn": _latticecode_status},
 )
 _oauth_sessions: Dict[str, Dict[str, Any]] = {}
 _oauth_sessions_lock = threading.Lock()

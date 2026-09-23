@@ -20,7 +20,7 @@ from hermes_cli.web_deps import LateState, late
 from hermes_cli.web_server_oauth import (
     _external_process_cli_command, _oauth_profile_name, _oauth_sessions, _oauth_sessions_lock, _truncate_token,
 )
-from hermes_cli.web_models import OAuthSubmitBody
+from hermes_cli.web_models import OAuthSubmitBody, LatticeLoginRequest
 from hermes_cli.web_routers._common import scoped_to_thread
 
 _log = logging.getLogger("hermes_cli.web_server")
@@ -581,7 +581,7 @@ def _oauth_provider_disconnect_hint(provider: Dict[str, Any], status: Dict[str, 
     # OWNS its credential (the PKCE file ~/.hermes/.anthropic_oauth.json and its
     # credential-pool entry, written by `hermes auth add anthropic`), so it is
     # excluded from the "external providers can't be auto-disconnected" rule.
-    if provider.get("flow") == "external" and provider.get("id") != "anthropic":
+    if provider.get("flow") == "external" and provider.get("id") not in ("anthropic", "latticecode"):
         if _oauth_provider_disconnect_command(provider):
             # Fallback wording for surfaces without the one-click "run in terminal" path.
             return "Managed outside Hermes — run the disconnect command to remove it."
@@ -678,6 +678,11 @@ async def disconnect_oauth_provider(provider_id: str, request: Request, profile:
 
         if provider_id == "anthropic":
             cleared = _clear_anthropic_auth()
+            _log.info("oauth/disconnect: %s", provider_id)
+            return {"ok": bool(cleared), "provider": provider_id}
+        if provider_id == "latticecode":
+            from hermes_cli.auth_lattice import logout_lattice
+            cleared = logout_lattice()
             _log.info("oauth/disconnect: %s", provider_id)
             return {"ok": bool(cleared), "provider": provider_id}
         try:
@@ -793,3 +798,82 @@ async def cancel_oauth_session(session_id: str, request: Request, profile: Optio
     if sess is None:
         return {"ok": False, "message": "session not found"}
     return {"ok": True, "session_id": session_id}
+
+
+@router.post("/api/auth/latticecode/login")
+@router.post("/api/providers/oauth/latticecode/login")
+async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Optional[str] = None):
+    """Authenticate with New API using username & password, auto-provision token, and activate provider."""
+    def _run():
+        import httpx
+        from hermes_cli.auth_lattice import (
+            login_new_api, fetch_new_api_models, _portal_url, _inference_url, _save_lattice_state,
+            get_lattice_default_model, LATTICE_PROVIDER
+        )
+        from hermes_cli.config import set_config_value
+
+        portal = (payload.portal_url or "").strip() or _portal_url()
+        with httpx.Client(timeout=15.0) as client:
+            api_key, user_info = login_new_api(client, portal, payload.username.strip(), payload.password)
+            models = []
+            detected_default = ""
+            if api_key:
+                try:
+                    m_resp = client.get(f"{_inference_url()}/models", headers={"Authorization": f"Bearer {api_key}"})
+                    if m_resp.is_success:
+                        raw = m_resp.json().get("data") or []
+                        models = [m["id"] if isinstance(m, dict) and "id" in m else str(m) for m in raw]
+                except Exception:
+                    pass
+            if not models:
+                models, detected_default = fetch_new_api_models(client, portal)
+
+        if "qwen3.8-27b-5090" in models:
+            default_model = "qwen3.8-27b-5090"
+            models = ["qwen3.8-27b-5090"]
+        elif detected_default and detected_default in models:
+            default_model = detected_default
+        else:
+            default_model = models[0] if models else get_lattice_default_model()
+        state = {
+            "auth_method": "password",
+            "api_key": api_key,
+            "username": payload.username.strip(),
+            "user_info": user_info,
+            "inference_base_url": _inference_url(),
+            "allowed_models": models or [default_model],
+            "default_model": default_model,
+            "logged_in": True,
+        }
+        _save_lattice_state(state, carries_inference=True)
+
+        set_config_value("model.provider", LATTICE_PROVIDER)
+        if default_model:
+            set_config_value("model.default", default_model)
+        set_config_value("model.base_url", _inference_url())
+
+        return {
+            "ok": True,
+            "username": payload.username.strip(),
+            "provider": LATTICE_PROVIDER,
+            "model": default_model,
+            "models": models,
+        }
+
+    try:
+        return await scoped_to_thread(profile, _run)
+    except Exception as e:
+        _log.warning("LatticeCode login failed for %s: %s", payload.username, e)
+        return {"ok": False, "message": str(e)}
+
+
+@router.post("/api/auth/latticecode/logout")
+@router.post("/api/providers/oauth/latticecode/logout")
+async def latticecode_logout_endpoint(profile: Optional[str] = None):
+    """Log out from New API / LatticeCode, clearing credentials and resetting configuration."""
+    def _run():
+        from hermes_cli.auth_lattice import logout_lattice
+        cleared = logout_lattice()
+        return {"ok": bool(cleared), "provider": "latticecode"}
+
+    return await scoped_to_thread(profile, _run)

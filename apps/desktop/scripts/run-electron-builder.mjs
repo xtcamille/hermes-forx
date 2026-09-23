@@ -46,7 +46,8 @@ const dist = electronDistDir()
 // (only the repo root does) and no "repository" field in its package.json —
 // so it fails with "Cannot detect repository by .git/config". Pin publish to
 // "never" so electron-builder skips that lookup entirely.
-const args = ["--publish", "never"]
+const userArgs = process.argv.slice(2)
+const args = ["--publish", "never", "-c.publish.provider=generic", "-c.publish.url=https://localhost"]
 if (dist && fs.existsSync(distBinary(dist))) {
   args.push(`-c.electronDist=${dist}`)
 } else {
@@ -55,7 +56,7 @@ if (dist && fs.existsSync(distBinary(dist))) {
       "via @electron/get (electronVersion + ELECTRON_MIRROR)."
   )
 }
-args.push(...process.argv.slice(2))
+args.push(...userArgs)
 
 const result = spawnSync(process.execPath, [electronBuilderCli(), ...args], {
   stdio: "inherit",

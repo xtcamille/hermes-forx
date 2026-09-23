@@ -1,7 +1,7 @@
 import type { ModelOptionProvider, ModelOptionsResult } from '@hermes/shared'
 import { DEFAULT_REASONING_EFFORT } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
@@ -21,7 +21,7 @@ import { HighlightMatches } from '@/components/ui/highlight-matches'
 import { usePointerQuiet } from '@/components/ui/keyboard-first'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
-import { getLocalModelsStatus } from '@/hermes'
+import { getLocalModelsStatus, logoutLattice } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { isSubmitEnter } from '@/lib/ime'
 import { catalogProviderMatches, modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
@@ -30,6 +30,7 @@ import { reasoningEffortLabel } from '@/lib/reasoning-effort'
 import { foldIncludes, normalize } from '@/lib/text'
 import { useStoreSelector } from '@/lib/use-session-slice'
 import { cn } from '@/lib/utils'
+import { confirm } from '@/store/confirm'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { $localRuntimeJobs, runningModelDownloads, watchLocalRuntimeJobs } from '@/store/local-runtime-jobs'
 import {
@@ -41,6 +42,8 @@ import {
   modelVisibilityKey,
   setModelVisibilityOpen
 } from '@/store/model-visibility'
+import { notify, notifyError } from '@/store/notifications'
+import { resetDesktopOnboarding } from '@/store/onboarding'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import { $defaultReasoningEffort } from '@/store/session'
 import type { LocalModelLoadProgress } from '@/types/hermes'
@@ -136,6 +139,7 @@ export function ModelCatalogMenu({
   const { t } = useI18n()
   const copy = t.shell.modelMenu
   const copyPicker = t.modelPicker
+  const queryClient = useQueryClient()
   const closeMenu = useContext(ModelMenuCloseContext)
   const [search, setSearch] = useState('')
   const collapsedProviders = useStoreCollapsed()
@@ -287,6 +291,11 @@ export function ModelCatalogMenu({
   )
 
   const selectFamily = async (family: ModelFamily, provider: ModelOptionProvider) => {
+    const unavail = new Set(provider.unavailable_models ?? [])
+    if (unavail.has(family.id) || (family.fastId && unavail.has(family.fastId))) {
+      return
+    }
+
     const caps = provider.capabilities?.[family.id]
     const preset = controller.presetFor(provider.slug, family.id)
 
@@ -378,6 +387,13 @@ export function ModelCatalogMenu({
       void selectMoaPreset(row.preset)
 
       return
+    }
+
+    if (row.kind === 'family') {
+      const unavail = new Set(row.provider.unavailable_models ?? [])
+      if (unavail.has(row.family.id) || (row.family.fastId && unavail.has(row.family.fastId))) {
+        return
+      }
     }
 
     if (!rowIsCurrent(row)) {
@@ -496,6 +512,33 @@ export function ModelCatalogMenu({
                     const { name, tag } = modelDisplayParts(family.id)
                     const caps = group.provider.capabilities?.[family.id]
 
+                    const unavailable = new Set(group.provider.unavailable_models ?? [])
+                    const isLocked = unavailable.has(family.id) || (family.fastId ? unavailable.has(family.fastId) : false)
+
+                    if (isLocked) {
+                      const lockedLabel = group.provider.slug === 'latticecode' ? '暂不提供' : copyPicker.pro
+                      return (
+                        <DropdownMenuItem
+                          disabled
+                          key={`${group.provider.slug}:${family.id}`}
+                          {...kbRowProps(`${group.provider.slug}:${family.id}`)}
+                          className={cn(
+                            kbRowProps(`${group.provider.slug}:${family.id}`).className,
+                            'cursor-not-allowed opacity-40 hover:bg-transparent text-muted-foreground'
+                          )}
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            <HighlightMatches foldSeparators query={search} text={name} />
+                            {tag ? <span className="text-(--ui-text-tertiary)"> {tag}</span> : null}
+                          </span>
+                          <span className="ml-auto text-[0.625rem] text-muted-foreground">{lockedLabel}</span>
+                          {isCurrent ? (
+                            <Codicon className="text-foreground ml-1" name="check" size="0.75rem" />
+                          ) : null}
+                        </DropdownMenuItem>
+                      )
+                    }
+
                     // Managed local model loading into memory right now:
                     // real load percent, keyed by exact model id (remote
                     // providers never collide with GGUF stems).
@@ -599,6 +642,44 @@ export function ModelCatalogMenu({
                       </DropdownMenuSub>
                     )
                   })}
+                {!collapsed &&
+                  slug === 'latticecode' &&
+                  group.provider.authenticated &&
+                  !search && (
+                    <DropdownMenuItem
+                      className={cn(
+                        dropdownMenuRow,
+                        'text-destructive hover:text-destructive focus:text-destructive cursor-pointer'
+                      )}
+                      onSelect={async event => {
+                        event.preventDefault()
+                        const ok = await confirm({
+                          title: '退出登录',
+                          message: '确定退出 New API 账号？退出后将清除已保存的登录凭据。',
+                          confirmLabel: '退出登录',
+                          destructive: true
+                        })
+                        if (!ok) return
+                        try {
+                          await logoutLattice(profile)
+                          notify({
+                            durationMs: 3_000,
+                            kind: 'success',
+                            title: '已退出登录',
+                            message: '已成功退出 New API 账号'
+                          })
+                          await queryClient.invalidateQueries({ queryKey: ['model-options'] })
+                          closeMenu()
+                          resetDesktopOnboarding(profile)
+                        } catch (err) {
+                          notifyError(err, '退出登录失败')
+                        }
+                      }}
+                    >
+                      <Codicon className="shrink-0 mr-1 text-destructive" name="sign-out" size="0.75rem" />
+                      <span className="truncate">退出 New API 登录</span>
+                    </DropdownMenuItem>
+                  )}
                 {!collapsed &&
                   slug === LOCAL_PROVIDER_SLUG &&
                   shownDownloads.map(job => (

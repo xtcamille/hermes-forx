@@ -371,6 +371,14 @@ def _refresh_credentials_after_401(
             agent._buffer_vprint("🔐 Nous agent key refreshed after 401. Retrying request...")
             return True
         _print_nous_401_diagnostics(agent, api_error)
+    if (
+        agent.provider == "latticecode"
+        and not getattr(_retry, "lattice_auth_retry_attempted", False)
+    ):
+        _retry.lattice_auth_retry_attempted = True
+        if hasattr(agent, "_try_refresh_lattice_client_credentials") and agent._try_refresh_lattice_client_credentials(force=True):
+            agent._buffer_vprint("🔐 LatticeCode API key refreshed after 401. Retrying request...")
+            return True
     if _is_copilot_provider(agent) and not _retry.copilot_auth_retry_attempted:
         _retry.copilot_auth_retry_attempted = True
         if agent._try_refresh_copilot_client_credentials():

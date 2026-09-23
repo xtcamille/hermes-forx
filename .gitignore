@@ -301,3 +301,10 @@ native/fts5_cjk/*.so
 
 # Disposable profile created by scripts/probe_active_session_exclusivity.py
 .probe-home/
+
+# Local binaries and desktop build artifacts
+/Hermes.exe
+*.exe
+/default_config.yaml
+apps/desktop/config.yaml
+apps/desktop/embedded-backend/

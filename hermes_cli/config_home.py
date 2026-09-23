@@ -66,6 +66,8 @@ def initialize_home(home: Path, subdirs: tuple[str, ...], ensured: set[str]) -> 
             _ensure_directory(home / "logs" / "curator", create=True, secure=False, home=home)
         try:
             _ensure_default_soul_md(home)
+            from hermes_cli.config import _ensure_default_config_yaml
+            _ensure_default_config_yaml(home)
         except OSError as exc:
             raise HomeInitializationError(
                 f"Cannot initialize Hermes home {home}: {exc}. "

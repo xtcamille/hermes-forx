@@ -67,7 +67,7 @@ import { cn } from '@/lib/utils'
 import { playSpeechText, stopVoicePlayback } from '@/lib/voice-playback'
 import { openFreeTierSignIn } from '@/store/free-tier-sign-in'
 import { notifyError } from '@/store/notifications'
-import { startManualProviderOAuth } from '@/store/onboarding'
+import { resetDesktopOnboarding, startManualProviderOAuth } from '@/store/onboarding'
 import { $activeGatewayProfile, normalizeProfileKey, requestFreshSession } from '@/store/profile'
 import { sessionApprovalRequest } from '@/store/prompts'
 import { requestSendDiagnostics } from '@/store/send-diagnostics'
@@ -796,6 +796,10 @@ const ErrorRecoveryActions: FC = () => {
 
     triggerHaptic('submit')
     const key = normalizeProfileKey(gatewayProfile)
+    if (surface.provider === 'latticecode') {
+      resetDesktopOnboarding(key === 'default' ? undefined : key)
+      return
+    }
     startManualProviderOAuth(surface.provider, key === 'default' ? undefined : key)
   }, [gatewayProfile, surface])
 

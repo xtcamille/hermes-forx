@@ -531,3 +531,9 @@ class _PluginProvidersPutBody(BaseModel):
 class _PluginVisibilityBody(BaseModel):
     hidden: bool
 
+
+class LatticeLoginRequest(BaseModel):
+    username: str
+    password: str
+    portal_url: Optional[str] = None
+

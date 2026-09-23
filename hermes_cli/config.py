@@ -608,6 +608,22 @@ def _ensure_default_soul_md(home: Path) -> None:
     _secure_file(soul_path)
 
 
+def _ensure_default_config_yaml(home: Path) -> None:
+    """Seed default config.yaml on first run if none exists and a bundled template is present."""
+    config_path = home / "config.yaml"
+    if config_path.exists():
+        return
+    template = get_project_root() / "default_config.yaml"
+    if not template.is_file():
+        template = get_project_root() / "config.yaml"
+    if template.is_file():
+        try:
+            shutil.copy2(template, config_path)
+            _secure_file(config_path)
+        except OSError as exc:
+            logger.debug("Failed to seed default config.yaml: %s", exc)
+
+
 # Home paths whose directory skeleton was created this process. Only successful passes are
 # recorded, so a raised managed-mode/missing-profile error keeps re-checking on later loads.
 _HERMES_HOME_ENSURED: set = set()

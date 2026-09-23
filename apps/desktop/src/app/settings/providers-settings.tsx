@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import { confirm } from '@/store/confirm'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { notify, notifyError } from '@/store/notifications'
-import { $desktopOnboarding, startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
+import { $desktopOnboarding, resetDesktopOnboarding, startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
 import { $settingsRequestProfile } from '@/store/settings-scope'
 import type { EnvVarInfo, OAuthProvider } from '@/types/hermes'
 
@@ -452,6 +452,9 @@ export function ProvidersSettings({
         message: t.settings.providers.removedMessage(name)
       })
       await refreshOAuthProviders().catch(() => undefined)
+      if (provider.id === 'latticecode') {
+        resetDesktopOnboarding(scopeProfile)
+      }
     } catch (err) {
       notifyError(err, t.settings.providers.failedRemove(name))
     } finally {

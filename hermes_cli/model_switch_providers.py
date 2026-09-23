@@ -501,14 +501,31 @@ def _free_tier_nous_row(row: dict) -> dict | None:
 
 
 def _free_tier_lattice_row(row: dict) -> dict | None:
-    """The free-tier rule for LatticeCode picker row."""
+    """The free-tier / authenticated rule for LatticeCode picker row."""
     from hermes_cli import auth_lattice
+    state = auth_lattice.current_lattice_state()
+    if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+        out = dict(row)
+        username = state.get("username", "")
+        out["name"] = f"New API ({username})" if username else "New API / 自定义模型平台"
+        models = sorted(list(auth_lattice.get_lattice_allowed_models()))
+        out["models"] = models
+        out["total_models"] = len(models)
+        out["unavailable_models"] = []
+        out["free_tier_row"] = False
+        out["authenticated"] = True
+        return out
+
     if not auth_lattice.lattice_guest_enabled():
         return None
     out = dict(row)
     out["name"] = auth_lattice.LATTICE_LABEL
-    out["models"] = sorted(list(auth_lattice.get_lattice_allowed_models()))
-    out["total_models"] = len(out["models"])
+    models = sorted(list(auth_lattice.get_lattice_allowed_models()))
+    out["models"] = models
+    out["total_models"] = len(models)
+    target = "qwen3.8-27b-5090"
+    if target in models:
+        out["unavailable_models"] = [m for m in models if m != target]
     out["free_tier_row"] = True
     return out
 
@@ -919,7 +936,12 @@ def _lap_overlay_rows(b: _PickerBuild, data: dict, user_providers: dict) -> None
             real_account = tier_row is not None and not tier_row["models"]
             model_ids = _nous_picker_model_ids(b.curated, b.force_fresh_nous_tier) if real_account else []
         elif hermes_slug == "latticecode":
-            from hermes_cli.auth_lattice import get_lattice_allowed_models
+            from hermes_cli.auth_lattice import get_lattice_allowed_models, sync_lattice_models_from_server
+            if b.refresh:
+                try:
+                    sync_lattice_models_from_server()
+                except Exception:
+                    pass
             model_ids = sorted(list(get_lattice_allowed_models()))
         else:
             model_ids = _live_or_curated_ids(hermes_slug, b.curated, hermes_slug, pid,
@@ -1293,6 +1315,8 @@ def _finalize_picker_rows(results: list, user_providers, current_model: str) -> 
                 continue
             models = row.get("models") or []
             if current_model not in models:
+                if row.get("slug") == "latticecode":
+                    break
                 from hermes_cli.models import _model_requires_account_discovery
 
                 if _model_requires_account_discovery(row.get("slug"), current_model):

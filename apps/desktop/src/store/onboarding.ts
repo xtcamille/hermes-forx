@@ -5,6 +5,7 @@ import {
   cancelOAuthSession,
   getGlobalModelOptions,
   getRecommendedDefaultModel,
+  hermesApi,
   listOAuthProviders,
   pollOAuthSession,
   setEnvVar,
@@ -158,13 +159,13 @@ function writeCachedSkipped(value: boolean) {
 const INITIAL: DesktopOnboardingState = {
   configured: readCachedConfigured(),
   flow: { status: 'idle' },
-  mode: 'oauth',
+  mode: 'apikey',
   providers: null,
   reason: null,
   requested: false,
   firstRunSkipped: readCachedSkipped(),
   manual: false,
-  localEndpoint: false,
+  localEndpoint: true,
   freeTierReady: false
 }
 
@@ -585,6 +586,32 @@ export function startManualLocalEndpoint(reason: null | string = null, profile?:
   })
 }
 
+// Reset onboarding to the initial startup state (e.g. after logging out)
+// so the user returns to the initial setup / re-login interface where
+// New API / custom providers can be chosen or re-authenticated.
+export function resetDesktopOnboarding(profile?: string) {
+  cancelOnboardingFlow()
+  pendingProviderOAuthId = null
+  providersRefreshPromise = null
+  writeCachedConfigured(false)
+  writeCachedSkipped(false)
+  patch({
+    configured: false,
+    firstRunSkipped: false,
+    manual: true,
+    localEndpoint: true,
+    mode: 'apikey',
+    targetProfile: profile,
+    providers: null,
+    requested: true,
+    freeTierReady: false,
+    reason: null,
+    flow: { status: 'idle' }
+  })
+  void refreshProviders()
+}
+
+
 // One-shot hand-off used when the dedicated Providers settings page launches a
 // specific provider's sign-in: we open the manual onboarding overlay AND
 // remember which provider to start, so the overlay drives that exact OAuth
@@ -671,6 +698,11 @@ export function setOnboardingMode(mode: OnboardingMode) {
   patch({ mode })
 }
 
+export function setOnboardingLocalEndpoint(localEndpoint: boolean) {
+  patch({ localEndpoint })
+}
+
+
 /**
  * `stillWanted`, when given, is re-asked after the readiness round: a background
  * caller (the `setup.ready` listener) passes it so a user action that started
@@ -723,7 +755,7 @@ export async function refreshOnboarding(ctx: OnboardingContext, stillWanted?: ()
   const reason = runtime.reason || state.reason || DEFAULT_ONBOARDING_REASON
 
   writeCachedConfigured(false)
-  patch({ configured: false, reason })
+  patch({ configured: false, reason, localEndpoint: true, mode: 'apikey' })
 
   if (state.providers !== null && !state.requested) {
     return false
@@ -1246,4 +1278,63 @@ export function confirmOnboardingModel(ctx: OnboardingContext) {
   // screen (no-default fallthrough, local endpoint) so feedback isn't lost.
   completeDesktopOnboarding()
   ctx.onCompleted?.()
+}
+
+export async function saveOnboardingLatticeLogin(
+  username: string,
+  password: string,
+  portalUrl: string,
+  ctx: OnboardingContext
+): Promise<{ ok: boolean; message?: string }> {
+  ctx = { ...ctx }
+  const generation = flowGeneration
+  flowProfile = ctx.profile
+  const u = username.trim()
+  const p = password.trim()
+  const url = portalUrl.trim() || 'http://192.168.1.206:3000'
+
+  if (!u || !p) {
+    return { ok: false, message: '请输入账号和密码' }
+  }
+
+  try {
+    const res = await hermesApi<{ ok: boolean; message?: string; username?: string; model?: string }>({
+      path: '/api/auth/latticecode/login',
+      method: 'POST',
+      body: {
+        username: u,
+        password: p,
+        portal_url: url
+      }
+    })
+
+    if (generation !== flowGeneration) {
+      return { ok: false }
+    }
+
+    if (!res.ok) {
+      return { ok: false, message: res.message || '登录失败，请检查账号密码或服务器地址' }
+    }
+
+    if (res.model) {
+      await setMainModelAssignment(
+        { provider: 'latticecode', model: res.model },
+        ctx.profile
+      ).catch(() => undefined)
+    }
+
+    await ctx.requestGateway('reload.env').catch(() => undefined)
+
+    if (generation !== flowGeneration) {
+      return { ok: false }
+    }
+
+    notifyReady(`New API (${res.username || u})`)
+    completeDesktopOnboarding()
+    ctx.onCompleted?.()
+
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, message: (error as Error)?.message || '连接失败' }
+  }
 }

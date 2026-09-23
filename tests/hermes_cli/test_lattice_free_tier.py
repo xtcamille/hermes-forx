@@ -68,9 +68,33 @@ class FakeLatticeServer:
                 return httpx.Response(200, json={"success": False, "message": "Invalid password"})
             return httpx.Response(200, json={
                 "success": True, "message": "",
-                "data": {"id": 1, "username": data.get("username", "testuser"), "role": 1}
+                "data": {
+                    "access_token": "jwt_test_access_token",
+                    "id": 1,
+                    "username": data.get("username", "testuser"),
+                    "role": 1
+                }
             })
+        if "/api/pricing" in path:
+            return httpx.Response(200, json={
+                "success": True,
+                "data": [{"model_name": "deepseek-v4.1-flash"}, {"model_name": "qwen3.8-flash"}]
+            })
+        if "/api/token/batch/keys" in path:
+            auth = request.headers.get("Authorization")
+            if not auth or "Bearer jwt_test_access_token" not in auth:
+                return httpx.Response(401, json={"success": False, "message": "Unauthorized, invalid access token"})
+            data = json.loads(request.content.decode("utf-8"))
+            ids = data.get("ids") or []
+            keys = {}
+            for t in self.user_tokens:
+                if t.get("id") in ids:
+                    keys[str(t["id"])] = t.get("unmasked_key") or t.get("key")
+            return httpx.Response(200, json={"success": True, "data": {"keys": keys}})
         if "/api/token" in path:
+            auth = request.headers.get("Authorization")
+            if not auth or "Bearer jwt_test_access_token" not in auth:
+                return httpx.Response(401, json={"success": False, "message": "Unauthorized, invalid access token"})
             if request.method == "GET":
                 return httpx.Response(200, json={"success": True, "data": self.user_tokens})
             elif request.method == "POST":
@@ -387,3 +411,72 @@ class TestLatticeAccountAuth:
         assert st["auth_method"] == "anonymous"
         assert st["anon_token"] == anon_token
         assert get_auth_status("latticecode")["logged_in"] is False
+
+    @pytest.mark.anyio
+    async def test_api_login_endpoint_success_and_failure(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+
+        fake_lattice.user_tokens = [{"id": 1, "key": "sk-endpoint-key", "status": 1}]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+        assert res["username"] == "alice"
+        assert res["provider"] == "latticecode"
+
+        bad_req = LatticeLoginRequest(username="alice", password="bad_pass", portal_url="https://api.latticecode.test")
+        bad_res = await latticecode_login_endpoint(bad_req)
+        assert bad_res["ok"] is False
+        assert "Invalid password" in bad_res["message"]
+
+    @pytest.mark.anyio
+    async def test_api_login_auto_creates_token_when_empty(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+
+        fake_lattice.user_tokens = []  # No tokens exist yet
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+        assert res["username"] == "alice"
+        assert res["model"] == "deepseek-v4.1-flash"
+        assert len(fake_lattice.user_tokens) == 1
+        assert fake_lattice.user_tokens[0]["key"].startswith("sk-created-test-")
+
+    @pytest.mark.anyio
+    async def test_api_login_unmasks_masked_token(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+        from hermes_cli.auth import get_auth_status
+        from hermes_cli.auth_lattice import current_lattice_state
+
+        # User has a token that is masked with asterisks in the list
+        fake_lattice.user_tokens = [
+            {
+                "id": 10,
+                "key": "J6ph**********FYYm",
+                "unmasked_key": "sk-J6phuuS0Mu7Cx5OGxmVH1Xpd0daP6biLF2JMaUoQU1NTFYYm",
+                "status": 1
+            }
+        ]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+        assert res["username"] == "alice"
+
+        st = current_lattice_state()
+        assert st["api_key"] == "sk-J6phuuS0Mu7Cx5OGxmVH1Xpd0daP6biLF2JMaUoQU1NTFYYm"
+        assert "*" not in st["api_key"]
+

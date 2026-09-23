@@ -3622,8 +3622,8 @@ export const zh = defineLocale({
       gemini: { short: 'Gemini 模型', description: '直接访问 Google Gemini 模型。' },
       xai: { short: 'Grok 模型', description: '直接访问 xAI Grok 模型。' },
       local: {
-        short: '自托管',
-        description: '将 Hermes 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
+        short: 'New API / 自托管平台',
+        description: '连接到企业部署的 New API 或自托管的 OpenAI 兼容端点 (vLLM、Ollama 等)。'
       }
     },
     backToSignIn: '返回登录',

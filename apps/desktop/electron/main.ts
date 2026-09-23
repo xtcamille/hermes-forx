@@ -842,6 +842,12 @@ function resolveHermesHome() {
   }
 
   if (IS_WINDOWS) {
+    // Portable mode: if a "data" directory exists alongside Hermes.exe (e.g. portable green release)
+    const portableData = path.join(path.dirname(process.execPath), 'data')
+    if (directoryExists(portableData)) {
+      return normalizeHermesHomeRoot(portableData)
+    }
+
     // A GUI app launched from Explorer inherits the environment block captured
     // at login, so a HERMES_HOME set via `setx` AFTER login is invisible in
     // process.env even though the CLI (a fresh shell) sees it. Without this the
@@ -2737,8 +2743,16 @@ async function findPythonForRoot(root) {
   }
 
   const relativePaths = IS_WINDOWS
-    ? [path.join('.venv', 'Scripts', 'python.exe'), path.join('venv', 'Scripts', 'python.exe')]
-    : [path.join('.venv', 'bin', 'python'), path.join('venv', 'bin', 'python')]
+    ? [
+        path.join('.venv', 'Scripts', 'python.exe'),
+        path.join('venv', 'Scripts', 'python.exe'),
+        path.join('python', 'python.exe')
+      ]
+    : [
+        path.join('.venv', 'bin', 'python'),
+        path.join('venv', 'bin', 'python'),
+        path.join('python', 'bin', 'python')
+      ]
 
   for (const relativePath of relativePaths) {
     const candidate = path.join(root, relativePath)
@@ -5163,6 +5177,30 @@ async function createPythonBackend(root, label, backendArgs, options: any = {}) 
   const venvPython = getVenvPython(venvRoot)
   const command = IS_WINDOWS && fileExists(venvPython) ? venvPython : python
 
+  // Seed default config.yaml to HERMES_HOME on first run if missing
+  try {
+    const userConfig = path.join(HERMES_HOME, 'config.yaml')
+    if (!fs.existsSync(userConfig)) {
+      const candidates = [
+        path.join(root, 'default_config.yaml'),
+        path.join(root, 'config.yaml'),
+        path.join(process.resourcesPath, 'backend', 'default_config.yaml'),
+        path.join(process.resourcesPath, 'backend', 'config.yaml'),
+        path.join(path.dirname(process.execPath), 'config.yaml'),
+      ]
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          fs.mkdirSync(HERMES_HOME, { recursive: true })
+          fs.copyFileSync(cand, userConfig)
+          rememberLog(`Seeded initial config from ${cand} to ${userConfig}`)
+          break
+        }
+      }
+    }
+  } catch (err) {
+    rememberLog(`Failed to seed default config: ${err}`)
+  }
+
   return {
     kind: 'python',
     label,
@@ -5225,6 +5263,22 @@ async function resolveHermesBackend(backendArgs) {
 
     if (backend) {
       return backend
+    }
+  }
+
+  // 2.5. Bundled / embedded backend -- when shipping an all-in-one package with
+  //      an embedded backend, check resources/backend or app/backend.
+  const bundledCandidates = [
+    path.join(process.resourcesPath, 'backend'),
+    path.join(path.dirname(process.execPath), 'backend'),
+    path.join(APP_ROOT, 'backend')
+  ]
+  for (const candidate of bundledCandidates) {
+    if (isHermesSourceRoot(candidate)) {
+      const backend = await createPythonBackend(candidate, `Bundled Hermes at ${candidate}`, backendArgs)
+      if (backend) {
+        return backend
+      }
     }
   }
 

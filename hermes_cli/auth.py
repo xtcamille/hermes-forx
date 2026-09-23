@@ -170,6 +170,12 @@ def _api_key_provider(
 # [, auth_type]])``; OAuth / bespoke rows are full ``ProviderConfig`` objects.
 _REGISTRY_ROWS: Tuple[Any, ...] = (
     ProviderConfig(
+        "latticecode", "New API", "oauth_device_code",
+        portal_base_url="http://192.168.1.206:3000",
+        inference_base_url="http://192.168.1.206:3000/v1",
+        api_key_env_vars=("LATTICE_API_KEY",),
+        base_url_env_var="LATTICE_INFERENCE_URL"),
+    ProviderConfig(
         "nous", "Nous Portal", "oauth_device_code", portal_base_url=DEFAULT_NOUS_PORTAL_URL,
         inference_base_url=DEFAULT_NOUS_INFERENCE_URL, client_id=DEFAULT_NOUS_CLIENT_ID,
         scope=DEFAULT_NOUS_SCOPE),

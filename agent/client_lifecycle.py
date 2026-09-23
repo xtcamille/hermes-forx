@@ -641,6 +641,22 @@ class ClientLifecycleMixin:
         self._client_kwargs.pop("default_headers", None)
         return self._adopt_openai_credentials(api_key, base_url, reason="nous_credential_refresh")
 
+    def _try_refresh_lattice_client_credentials(self, *, force: bool = True) -> bool:
+        if self.provider != "latticecode":
+            return False
+        try:
+            from hermes_cli.auth_lattice import resolve_lattice_runtime_credentials
+            creds = resolve_lattice_runtime_credentials(force_refresh=force)
+        except Exception as exc:
+            logger.debug("LatticeCode credential refresh failed: %s", exc)
+            return False
+        api_key, base_url = creds.get("api_key"), creds.get("base_url")
+        if not _valid_credential_pair(api_key, base_url):
+            return False
+        if str(api_key).strip() == str(self.api_key or "").strip():
+            return False
+        return self._adopt_openai_credentials(api_key, base_url, reason="latticecode_credential_refresh")
+
     # Adopt a fresh key this many seconds before the one in hand expires. Wider than the store's
     # own refresh skew (120 s) so the keepalive has normally already minted the replacement.
     _NOUS_KEY_ADOPT_SKEW_S = 180

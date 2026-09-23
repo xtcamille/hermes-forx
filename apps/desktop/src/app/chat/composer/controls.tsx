@@ -10,8 +10,12 @@ import { cn } from '@/lib/utils'
 import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
+import { useSessionView } from '@/app/chat/session-view'
+import { EnterpriseKbLoginDialog } from '@/app/chat/enterprise-kb-login-dialog'
+import { $showKbLoginDialog, closeKbLoginDialog } from '@/store/enterprise-kb'
 import { ACTIVE_ICON_BTN, GHOST_ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
+import { KbPickerPopover } from './kb-picker-popover'
 import { ModelPill } from './model-pill'
 import { ReasoningPill } from './reasoning-pill'
 import { StartVoiceButton } from './start-voice-button'
@@ -72,6 +76,11 @@ export function ComposerControls({
   const { t } = useI18n()
   const c = t.composer
   const hudMode = useStore($hudMode)
+  const view = useSessionView()
+  const runtimeId = useStore(view.$runtimeId)
+  const storedId = useStore(view.$storedId)
+  const sessionId = runtimeId || storedId
+  const showKbDialog = useStore($showKbLoginDialog)
 
   if (conversation.active) {
     return <ConversationPill {...conversation} disabled={disabled} />
@@ -120,6 +129,7 @@ export function ComposerControls({
             <>
               <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
               {compactModelPill ? null : <ReasoningPill disabled={disabled} model={state.model} />}
+              {compactModelPill ? null : <KbPickerPopover disabled={disabled} sessionId={sessionId} />}
             </>
           )}
           {voiceControls}
@@ -175,6 +185,10 @@ export function ComposerControls({
           until hovered. Here it costs no reserved space and sits with the other
           things you can press. */}
       {hudMode ? <HudWindowButtons /> : null}
+      <EnterpriseKbLoginDialog
+        open={showKbDialog}
+        onOpenChange={open => !open && closeKbLoginDialog()}
+      />
     </div>
   )
 }

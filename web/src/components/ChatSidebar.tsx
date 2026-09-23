@@ -32,6 +32,7 @@ import { Card } from '@nous-research/ui/ui/components/card'
 import { ModelPickerDialog } from '@/components/ModelPickerDialog'
 import { ModelReloadConfirm } from '@/components/ModelReloadConfirm'
 import { ReasoningPicker } from '@/components/ReasoningPicker'
+import { EnterpriseKbCard } from '@/components/EnterpriseKbCard'
 import { GatewayClient, type ConnectionState } from '@/lib/gatewayClient'
 import { EventsFeedClient } from '@/lib/eventsFeedClient'
 import { api } from '@/lib/api'
@@ -422,6 +423,8 @@ export function ChatSidebar({
           />
         </Card>
       )}
+
+      <EnterpriseKbCard sessionId={channel} />
 
       {modelNotice && (
         <Card className="flex items-start gap-2 border-warning/40 bg-warning/5 px-3 py-2 text-xs">

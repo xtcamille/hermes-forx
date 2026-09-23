@@ -356,8 +356,53 @@ function appendSessionFilters(url: string, options: SessionQueryOptions): string
   return appendProfileParam(next, options.profile);
 }
 
+export interface EnterpriseKbDataset {
+  id: string;
+  name: string;
+  document_count: number;
+  description?: string;
+  permission?: string;
+  avatar?: string;
+}
+
+export interface EnterpriseKbStatusResponse {
+  logged_in: boolean;
+  username?: string;
+  base_url?: string;
+  datasets?: EnterpriseKbDataset[];
+  logged_in_at?: string;
+}
+
+export interface EnterpriseKbLoginResponse {
+  success: boolean;
+  username?: string;
+  base_url?: string;
+  datasets?: EnterpriseKbDataset[];
+}
+
 export const api = {
   buildWsUrl,
+  // Enterprise Knowledge Base (RAGFlow)
+  getEnterpriseKbStatus: () => fetchJSON<EnterpriseKbStatusResponse>("/api/enterprise-kb/status"),
+  loginEnterpriseKb: (username: string, password: string, baseUrl?: string) =>
+    fetchJSON<EnterpriseKbLoginResponse>("/api/enterprise-kb/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, base_url: baseUrl || "http://172.22.0.87" }),
+    }),
+  getEnterpriseKbDatasets: () =>
+    fetchJSON<{ datasets: EnterpriseKbDataset[] }>("/api/enterprise-kb/datasets"),
+  logoutEnterpriseKb: () =>
+    fetchJSON<{ success: boolean }>("/api/enterprise-kb/logout", { method: "POST" }),
+  setSessionEnterpriseKbDatasets: (sessionId: string, datasetIds: string[]) =>
+    fetchJSON<{ success: boolean; session_id: string; dataset_ids: string[] }>("/api/enterprise-kb/session-datasets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, dataset_ids: datasetIds }),
+    }),
+  getSessionEnterpriseKbDatasets: (sessionId: string) =>
+    fetchJSON<{ session_id: string; dataset_ids: string[] }>(`/api/enterprise-kb/session-datasets?session_id=${encodeURIComponent(sessionId)}`),
+
   getStatus: () => fetchJSON<StatusResponse>("/api/status"),
   /**
    * Identity probe for the dashboard auth gate (Phase 7).

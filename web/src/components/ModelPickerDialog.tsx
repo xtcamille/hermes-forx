@@ -250,7 +250,8 @@ export function ModelPickerDialog(props: Props) {
     [models, trimmedQuery, queryMatchesSelectedProviderOnly],
   );
 
-  const canConfirm = !!selectedProvider && !!selectedModel && !applying;
+  const isSelectedUnavailable = !!selectedProvider?.unavailable_models?.includes(selectedModel);
+  const canConfirm = !!selectedProvider && !!selectedModel && !isSelectedUnavailable && !applying;
 
   const applySelection = async (
     confirmExpensiveModel = false,
@@ -597,6 +598,8 @@ function ModelColumn({
     );
   }
 
+  const unavailable = new Set(provider.unavailable_models ?? []);
+
   return (
     <div className="overflow-y-auto">
       {provider.warning && (
@@ -616,14 +619,21 @@ function ModelColumn({
           const active = m === selectedModel;
           const isCurrent =
             m === currentModel && provider.slug === currentProviderSlug;
+          const locked = unavailable.has(m);
 
           return (
             <ListItem
               key={m}
               active={active}
-              onClick={() => onSelect(m)}
-              onDoubleClick={() => onConfirm(m)}
-              className="px-3 py-1.5 text-xs font-mono"
+              onClick={() => {
+                if (!locked) onSelect(m);
+              }}
+              onDoubleClick={() => {
+                if (!locked) onConfirm(m);
+              }}
+              className={`px-3 py-1.5 text-xs font-mono ${
+                locked ? "opacity-40 cursor-not-allowed" : ""
+              }`}
             >
               <Check
                 className={`h-3 w-3 shrink-0 ${active ? "text-primary" : "text-transparent"}`}
@@ -631,6 +641,11 @@ function ModelColumn({
               <span className="flex-1 truncate">
                 <HighlightedText text={m} positions={positions} />
               </span>
+              {locked && (
+                <span className="text-[0.625rem] text-muted-foreground shrink-0 ml-auto">
+                  {provider.slug === "latticecode" ? "(暂不提供)" : "(不可用)"}
+                </span>
+              )}
               {isCurrent && <CurrentTag />}
             </ListItem>
           );

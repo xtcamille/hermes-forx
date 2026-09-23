@@ -270,3 +270,12 @@ export function cancelOAuthSession(sessionId: string, profile?: null | string): 
     method: 'DELETE'
   })
 }
+
+export function logoutLattice(profile?: null | string): Promise<{ ok: boolean; provider: string }> {
+  return hermesApi<{ ok: boolean; provider: string }>({
+    ...profileScoped(profile),
+    path: '/api/auth/latticecode/logout',
+    method: 'POST'
+  })
+}
+

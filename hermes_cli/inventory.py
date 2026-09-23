@@ -521,11 +521,22 @@ def _filter_explicit_provider_rows(rows: list[dict], ctx: ConfigContext) -> list
             # deliberate sign-ins that leave no trace in config/env; keep the rows discovery accepted.
             (slug == "anthropic" and _anthropic_oauth_credentials_present())
             or _external_process_signed_in(slug)
+            or (slug == "latticecode" and _lattice_credentials_present())
             or is_provider_explicitly_configured(slug)
         )
 
     return [row for row in rows
             if (slug := str(row.get("slug", "")).strip().lower()) and _is_explicit(row, slug)]
+
+
+def _lattice_credentials_present() -> bool:
+    """True when LatticeCode / New API state has valid saved credentials."""
+    try:
+        from hermes_cli.auth_lattice import current_lattice_state
+        state = current_lattice_state()
+        return bool(state and (state.get("auth_method") == "password" or state.get("logged_in") or state.get("api_key")))
+    except Exception:
+        return False
 
 
 def _external_process_signed_in(slug: str) -> bool:
@@ -642,6 +653,18 @@ def _apply_pricing(rows: list[dict], *, force_fresh_nous_tier: bool = False, cac
                 row["free_tier"] = bool(cached_nous_tier)
                 row["pricing_pending"] = True
                 row["unavailable_models"] = list(models) if cached_nous_tier else []
+            elif slug == "latticecode":
+                target = "qwen3.8-27b-5090"
+                if target in models:
+                    row["models"] = [target]
+                    row["total_models"] = 1
+                    row["unavailable_models"] = []
+                else:
+                    match = next((m for m in models if "5090" in m or "qwen3.8-27b" in m), None)
+                    if match:
+                        row["models"] = [match]
+                        row["total_models"] = 1
+                        row["unavailable_models"] = []
             continue
 
         formatted: dict[str, dict] = {}
@@ -685,6 +708,18 @@ def _apply_pricing(rows: list[dict], *, force_fresh_nous_tier: bool = False, cac
             except Exception:  # tier detection failed — fail open (no gating)
                 row["free_tier"] = False
                 row["unavailable_models"] = []
+        elif slug == "latticecode":
+            target = "qwen3.8-27b-5090"
+            if target in models:
+                row["models"] = [target]
+                row["total_models"] = 1
+                row["unavailable_models"] = []
+            else:
+                match = next((m for m in models if "5090" in m or "qwen3.8-27b" in m), None)
+                if match:
+                    row["models"] = [match]
+                    row["total_models"] = 1
+                    row["unavailable_models"] = []
 
 
 def _local_runtime_row(ctx: "ConfigContext") -> dict | None:

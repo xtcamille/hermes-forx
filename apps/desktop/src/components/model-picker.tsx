@@ -357,7 +357,9 @@ function ModelResults({
                     </span>
                   )}
                   {locked && (
-                    <span className="shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">{copy.pro}</span>
+                    <span className="shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">
+                      {provider.slug === 'latticecode' ? '暂不提供' : copy.pro}
+                    </span>
                   )}
                   <ModelPrice isCurrent={isCurrent} price={price} />
                 </CommandItem>
@@ -368,7 +370,9 @@ function ModelResults({
             ))}
             {unavailable.size > 0 && (
               <div className="px-6 pb-2 pt-1 text-[0.62rem] leading-relaxed text-muted-foreground">
-                {copy.proNeedsSubscription}
+                {provider.slug === 'latticecode'
+                  ? '当前平台仅提供 qwen3.8-27b-5090 模型，其他模型暂不可用'
+                  : copy.proNeedsSubscription}
               </div>
             )}
           </CommandGroup>

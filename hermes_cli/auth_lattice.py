@@ -156,8 +156,27 @@ def is_lattice_welcome_host(base_url: Any) -> bool:
 def get_lattice_allowed_models() -> frozenset[str]:
     """Return currently active allowed models (server-synced if available, else default)."""
     state = current_lattice_state()
+    target = "qwen3.8-27b-5090"
     if state and isinstance(state.get("allowed_models"), (list, tuple, set, frozenset)) and state["allowed_models"]:
-        return frozenset(state["allowed_models"])
+        raw = list(state["allowed_models"])
+        if target in raw:
+            return frozenset([target])
+        match = next((m for m in raw if "5090" in m or "qwen3.8-27b" in m), None)
+        if match:
+            return frozenset([match])
+        return frozenset(raw)
+    if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+        try:
+            synced = sync_lattice_models_from_server(timeout_seconds=3.0)
+            if synced:
+                if target in synced:
+                    return frozenset([target])
+                match = next((m for m in synced if "5090" in m or "qwen3.8-27b" in m), None)
+                if match:
+                    return frozenset([match])
+                return frozenset(synced)
+        except Exception:
+            pass
     return DEFAULT_LATTICE_ALLOWED_MODELS
 
 
@@ -284,8 +303,45 @@ def _save_lattice_state(state: Dict[str, Any], carries_inference: bool = True) -
 
 
 def sync_lattice_models_from_server(*, timeout_seconds: float = 5.0) -> list[str]:
-    """Fetch available models from GET /v1/models using current JWT, updating state cache."""
+    """Fetch available models from server or New API, updating state cache."""
     state = current_lattice_state()
+    if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+        portal = _portal_url()
+        try:
+            with httpx.Client(timeout=timeout_seconds) as client:
+                api_key = str(state.get("api_key") or state.get("access_token", ""))
+                base_url = str(state.get("inference_base_url") or _inference_url()).rstrip("/")
+                models = []
+                detected_default = ""
+                if api_key:
+                    headers = {
+                        "Accept": "application/json",
+                        "Authorization": f"Bearer {api_key}",
+                        "User-Agent": "hermes-agent",
+                    }
+                    try:
+                        resp = client.get(f"{base_url}/models", headers=headers)
+                        if resp.is_success:
+                            raw_models = resp.json().get("data") or []
+                            models = [m["id"] if isinstance(m, dict) and "id" in m else str(m) for m in raw_models]
+                    except Exception as m_exc:
+                        logger.debug("Failed to query /v1/models with token: %s", m_exc)
+                if not models:
+                    models, detected_default = fetch_new_api_models(client, portal)
+                if models:
+                    state["allowed_models"] = models
+                    if "qwen3.8-27b-5090" in models:
+                        state["default_model"] = "qwen3.8-27b-5090"
+                    elif detected_default and detected_default in models:
+                        state["default_model"] = detected_default
+                    elif state.get("default_model") not in models:
+                        state["default_model"] = models[0]
+                    _save_lattice_state(state, carries_inference=False)
+                    return sorted(models)
+        except Exception as exc:
+            logger.debug("Failed to sync models for password state: %s", exc)
+        return sorted(list(get_lattice_allowed_models()))
+
     if not state or not is_lattice_guest_state(state):
         state = ensure_lattice_identity(explicit=True, carries_inference=True)
     if not state:
@@ -387,7 +443,43 @@ def resolve_lattice_runtime_credentials(force_refresh: bool = False) -> Dict[str
     """Return {'api_key': token, 'base_url': url} with automatic JWT refresh or user API key."""
     state = current_lattice_state()
     if state and state.get("auth_method") == "password" and state.get("api_key"):
-        return {"api_key": state["api_key"], "base_url": state.get("inference_base_url") or _inference_url()}
+        key = str(state["api_key"]).strip()
+        base_url = str(state.get("inference_base_url") or _inference_url()).rstrip("/")
+        if "*" in key:
+            # Masked key detected in state - attempt self-healing using saved JWT
+            user_info = state.get("user_info") or {}
+            access_token = user_info.get("access_token")
+            portal_url = _portal_url()
+            if access_token:
+                try:
+                    with httpx.Client(timeout=5.0) as client:
+                        auth_hdr = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                        }
+                        t_resp = client.get(f"{portal_url}/api/token/?p=0&size=50", headers=auth_hdr)
+                        if t_resp.is_success:
+                            raw_t = t_resp.json().get("data") or {}
+                            items = raw_t if isinstance(raw_t, list) else (raw_t.get("items") or raw_t.get("data") or [])
+                            ids = [it["id"] for it in items if isinstance(it, dict) and it.get("status") == 1 and it.get("id")]
+                            if ids:
+                                b_resp = client.post(f"{portal_url}/api/token/batch/keys", headers=auth_hdr, json={"ids": ids})
+                                if b_resp.is_success:
+                                    keys = (b_resp.json().get("data") or {}).get("keys") or {}
+                                    for k_val in keys.values():
+                                        if isinstance(k_val, str) and "*" not in k_val:
+                                            cand = f"sk-{k_val}" if not k_val.startswith("sk-") else k_val
+                                            m_test = client.get(f"{base_url}/models", headers={"Authorization": f"Bearer {cand}"})
+                                            if m_test.is_success:
+                                                state["api_key"] = cand
+                                                _save_lattice_state(state, carries_inference=False)
+                                                logger.info("Self-healed masked New API key to active token")
+                                                return {"api_key": cand, "base_url": base_url}
+                except Exception as heal_exc:
+                    logger.debug("Failed to self-heal masked key: %s", heal_exc)
+        else:
+            return {"api_key": key, "base_url": base_url}
 
     if not state or not is_lattice_guest_state(state):
         state = ensure_lattice_identity(explicit=True, carries_inference=True)
@@ -443,6 +535,26 @@ def resolve_lattice_runtime_credentials(force_refresh: bool = False) -> Dict[str
     return {"api_key": access_token, "base_url": base_url}
 
 
+def fetch_new_api_models(client: httpx.Client, portal_base_url: str) -> tuple[list[str], str]:
+    """Fetch available models from New API /api/pricing."""
+    url = f"{portal_base_url.rstrip('/')}/api/pricing"
+    try:
+        resp = client.get(url, headers={"Accept": "application/json", "User-Agent": "hermes-agent"}, timeout=5.0)
+        if resp.is_success:
+            items = resp.json().get("data") or []
+            models = [i.get("model_name") for i in items if isinstance(i, dict) and i.get("model_name")]
+            if models:
+                default = models[0]
+                for pref in ["qwen3.8-27b-5090", "deepseek-v4.1-flash", "deepseek-v4-flash", "qwen3.8-flash", "kimi-for-coding", "qwen3.8-max"]:
+                    if pref in models:
+                        default = pref
+                        break
+                return models, default
+    except Exception as exc:
+        logger.debug("Failed to fetch models from New API pricing: %s", exc)
+    return [], ""
+
+
 def login_new_api(
     client: httpx.Client,
     portal_base_url: str,
@@ -467,46 +579,176 @@ def login_new_api(
     if not body.get("success", True):
         raise AuthError(f"New API login failed: {body.get('message', 'Login unsuccessful')}", code="invalid_credentials")
 
-    user_info = body.get("data") or {}
+    data = body.get("data") or {}
+    user_info = data if isinstance(data, dict) else {}
+
+    # Extract JWT/access token returned by login
+    access_token = None
+    if isinstance(data, dict):
+        access_token = data.get("access_token") or data.get("token")
+        if not access_token and isinstance(data.get("user"), dict):
+            access_token = data["user"].get("access_token")
+
+    # Build authenticated headers for subsequent New API calls
+    auth_headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "hermes-agent",
+    }
+    if access_token:
+        token_str = str(access_token).strip()
+        auth_headers["Authorization"] = token_str if token_str.startswith("Bearer ") else f"Bearer {token_str}"
+
+    # Also capture cookies from response
+    cookie_headers = resp.headers.get_list("set-cookie")
+    if cookie_headers:
+        cookie_parts = [c.split(";")[0] for c in cookie_headers]
+        auth_headers["Cookie"] = "; ".join(cookie_parts)
+    elif client.cookies:
+        auth_headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in client.cookies.items()])
 
     # Query tokens to find active token
-    token_url = f"{base}/api/token/?p=0&size=10"
-    resp_tokens = client.get(token_url, headers=headers)
+    token_url = f"{base}/api/token/?p=0&size=50"
+    resp_tokens = client.get(token_url, headers=auth_headers)
     tokens_list = []
     if resp_tokens.is_success:
         t_data = resp_tokens.json() or {}
         raw = t_data.get("data")
         if isinstance(raw, list):
             tokens_list = raw
-        elif isinstance(raw, dict) and isinstance(raw.get("data"), list):
-            tokens_list = raw["data"]
+        elif isinstance(raw, dict):
+            if isinstance(raw.get("data"), list):
+                tokens_list = raw["data"]
+            elif isinstance(raw.get("items"), list):
+                tokens_list = raw["items"]
 
     active_key = None
+    base_v1 = f"{base}/v1" if not base.endswith("/v1") else base
+
+    def _format_and_test_key(raw_k: str) -> Optional[str]:
+        if not raw_k or "*" in raw_k:
+            return None
+        cand = raw_k.strip()
+        variations = []
+        if cand.startswith("sk-"):
+            variations = [cand, cand[3:]]
+        else:
+            variations = [f"sk-{cand}", cand]
+        for c in variations:
+            if not c or "*" in c:
+                continue
+            try:
+                test_resp = client.get(
+                    f"{base_v1}/models",
+                    headers={"Authorization": f"Bearer {c}"},
+                    timeout=3.0,
+                )
+                if test_resp.is_success:
+                    return c
+            except Exception:
+                pass
+        return None
+
+    # Step 1: Separate unmasked keys and masked token IDs
+    candidates_to_test = []
+    masked_ids = []
     for t in tokens_list:
-        if isinstance(t, dict) and t.get("status") == 1 and t.get("key"):
-            active_key = t["key"]
+        if isinstance(t, dict) and t.get("status") == 1:
+            key_val = str(t.get("key") or "").strip()
+            t_id = t.get("id")
+            if key_val and "*" not in key_val and len(key_val) > 10:
+                candidates_to_test.append(key_val)
+            elif t_id is not None:
+                masked_ids.append(t_id)
+
+    # Step 2: Fetch unmasked keys via POST /api/token/batch/keys for masked tokens
+    if masked_ids:
+        try:
+            batch_url = f"{base}/api/token/batch/keys"
+            batch_resp = client.post(batch_url, headers=auth_headers, json={"ids": masked_ids}, timeout=5.0)
+            if batch_resp.is_success:
+                b_data = batch_resp.json() or {}
+                keys_dict = (b_data.get("data") or {}).get("keys") or {}
+                if isinstance(keys_dict, dict):
+                    for k in keys_dict.values():
+                        if isinstance(k, str) and k and "*" not in k:
+                            candidates_to_test.append(k.strip())
+        except Exception as b_exc:
+            logger.debug("Failed to query /api/token/batch/keys: %s", b_exc)
+
+    # Step 3: Test candidate keys against /v1/models
+    for cand in candidates_to_test:
+        valid_key = _format_and_test_key(cand)
+        if valid_key:
+            active_key = valid_key
             break
 
-    # If no active token, create a new one
+    # Step 4: If no existing active key worked, create a fresh token
+    resp_create = None
     if not active_key:
         create_url = f"{base}/api/token/"
         create_payload = {
             "name": "Hermes Agent",
-            "remain_quota": -1,
+            "remain_quota": 500000,
             "expired_time": -1,
             "unlimited_quota": True,
         }
-        resp_create = client.post(create_url, headers=headers, json=create_payload)
-        if resp_create.is_success:
-            c_data = resp_create.json() or {}
-            c_inner = c_data.get("data") or {}
-            if isinstance(c_inner, dict) and c_inner.get("key"):
-                active_key = c_inner["key"]
-            elif isinstance(c_inner, str) and c_inner.startswith("sk-"):
-                active_key = c_inner
+        try:
+            resp_create = client.post(create_url, headers=auth_headers, json=create_payload, timeout=5.0)
+            if resp_create.is_success:
+                c_data = resp_create.json() or {}
+                c_inner = c_data.get("data") or {}
+                if isinstance(c_inner, dict) and c_inner.get("key"):
+                    active_key = _format_and_test_key(str(c_inner["key"]))
+                elif isinstance(c_inner, str) and c_inner:
+                    active_key = _format_and_test_key(c_inner)
+
+                if not active_key:
+                    # Re-query token list to find newly created token ID
+                    re_tokens_resp = client.get(f"{base}/api/token/?p=0&size=10", headers=auth_headers, timeout=5.0)
+                    if re_tokens_resp.is_success:
+                        rt_data = re_tokens_resp.json() or {}
+                        raw_rt = rt_data.get("data")
+                        rt_list = []
+                        if isinstance(raw_rt, list):
+                            rt_list = raw_rt
+                        elif isinstance(raw_rt, dict):
+                            rt_list = raw_rt.get("items") or raw_rt.get("data") or []
+                        if rt_list and isinstance(rt_list[0], dict):
+                            new_id = rt_list[0].get("id")
+                            new_key_raw = str(rt_list[0].get("key") or "").strip()
+                            if new_key_raw and "*" not in new_key_raw:
+                                active_key = _format_and_test_key(new_key_raw)
+                            elif new_id is not None:
+                                b_resp = client.post(f"{base}/api/token/batch/keys", headers=auth_headers, json={"ids": [new_id]}, timeout=5.0)
+                                if b_resp.is_success:
+                                    b_keys = (b_resp.json().get("data") or {}).get("keys") or {}
+                                    for k_val in b_keys.values():
+                                        if isinstance(k_val, str) and k_val and "*" not in k_val:
+                                            valid_k = _format_and_test_key(k_val)
+                                            if valid_k:
+                                                active_key = valid_k
+                                                break
+        except Exception as c_exc:
+            logger.debug("Failed during token creation/unmasking: %s", c_exc)
+
+    # Strictly disallow any masked key
+    if active_key and "*" in active_key:
+        active_key = None
 
     if not active_key:
-        raise AuthError("Login succeeded, but failed to retrieve or create an API token from New API.", code="no_api_token")
+        err_detail = ""
+        if not resp_tokens.is_success:
+            try:
+                err_detail = f" (Query /api/token/ failed {resp_tokens.status_code}: {resp_tokens.json().get('message')})"
+            except Exception:
+                err_detail = f" (Query /api/token/ failed {resp_tokens.status_code})"
+        elif resp_create is not None and not resp_create.is_success:
+            try:
+                err_detail = f" (Create /api/token/ failed {resp_create.status_code}: {resp_create.json().get('message')})"
+            except Exception:
+                err_detail = f" (Create /api/token/ failed {resp_create.status_code})"
+        raise AuthError(f"Login succeeded, but failed to retrieve or create a valid API token from New API.{err_detail}", code="no_api_token")
 
     return active_key, user_info
 
@@ -576,19 +818,38 @@ def _handle_lattice_logout(args: Any) -> bool:
     else:
         print("Not logged in to a LatticeCode account.")
 
-    # Revert to shared anonymous state if available
-    shared = _read_shared_state()
-    if shared and is_lattice_guest_state(shared):
-        auth_store["providers"][LATTICE_PROVIDER] = dict(shared)
-        _save_auth_store(auth_store)
-        print("Reverted to LatticeCode Free (anonymous device tier).")
-    else:
-        auth_store["providers"].pop(LATTICE_PROVIDER, None)
-        _save_auth_store(auth_store)
-        fresh = ensure_lattice_identity(explicit=True, carries_inference=True)
-        if fresh:
-            print("Reverted to LatticeCode Free (anonymous device tier).")
+def logout_lattice() -> bool:
+    """Log out of LatticeCode / New API account, clear credentials, and reset config."""
+    from hermes_cli.auth import _load_auth_store, _save_auth_store, _auth_store_lock
+    try:
+        with _auth_store_lock():
+            auth_store = _load_auth_store()
+            providers = auth_store.get("providers", {})
+            if LATTICE_PROVIDER in providers:
+                providers.pop(LATTICE_PROVIDER, None)
+            if auth_store.get("active_provider") == LATTICE_PROVIDER:
+                auth_store["active_provider"] = None
+            _save_auth_store(auth_store)
+    except Exception as exc:
+        logger.warning("Failed to clear lattice auth store: %s", exc)
 
+    try:
+        from hermes_cli.config import load_config_readonly, set_config_value
+        cfg = load_config_readonly() or {}
+        model_cfg = cfg.get("model") or {}
+        if model_cfg.get("provider") == LATTICE_PROVIDER:
+            set_config_value("model.provider", "")
+            set_config_value("model.default", "")
+            set_config_value("model.base_url", "")
+    except Exception as exc:
+        logger.warning("Failed to reset config after lattice logout: %s", exc)
+
+    return True
+
+
+def _handle_lattice_logout(args: Any) -> bool:
+    logout_lattice()
+    print("Logged out from LatticeCode / New API account.")
     return True
 
 
