@@ -251,10 +251,18 @@ _EARLY_INTERFACE_CACHE: "tuple[str, str] | None" = None
 
 def _early_interface_config_path() -> str:
     """config.yaml of the home this process is currently pointed at."""
-    home = os.environ.get("HERMES_HOME")
-    if home:
-        return os.path.join(home, "config.yaml")
-    return os.path.join(os.path.expanduser("~"), ".hermes", "config.yaml")
+    try:
+        from hermes_constants import get_hermes_home
+        return str(get_hermes_home() / "config.yaml")
+    except Exception:
+        home = os.environ.get("FORX_HOME") or os.environ.get("HERMES_HOME")
+        if home:
+            return os.path.join(home, "config.yaml")
+        if sys.platform == "win32":
+            local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
+            base = local_appdata if local_appdata else os.path.join(os.path.expanduser("~"), "AppData", "Local")
+            return os.path.join(base, "forx", "config.yaml")
+        return os.path.join(os.path.expanduser("~"), ".forx", "config.yaml")
 
 
 def _config_default_interface_early() -> str:

@@ -156,27 +156,20 @@ def is_lattice_welcome_host(base_url: Any) -> bool:
 def get_lattice_allowed_models() -> frozenset[str]:
     """Return currently active allowed models (server-synced if available, else default)."""
     state = current_lattice_state()
-    target = "qwen3.8-27b-5090"
-    if state and isinstance(state.get("allowed_models"), (list, tuple, set, frozenset)) and state["allowed_models"]:
-        raw = list(state["allowed_models"])
-        if target in raw:
-            return frozenset([target])
-        match = next((m for m in raw if "5090" in m or "qwen3.8-27b" in m), None)
-        if match:
-            return frozenset([match])
-        return frozenset(raw)
     if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+        allowed = state.get("allowed_models")
+        if isinstance(allowed, (list, tuple, set, frozenset)) and len(allowed) > 1:
+            return frozenset(allowed)
         try:
             synced = sync_lattice_models_from_server(timeout_seconds=3.0)
             if synced:
-                if target in synced:
-                    return frozenset([target])
-                match = next((m for m in synced if "5090" in m or "qwen3.8-27b" in m), None)
-                if match:
-                    return frozenset([match])
                 return frozenset(synced)
         except Exception:
             pass
+        if isinstance(allowed, (list, tuple, set, frozenset)) and allowed:
+            return frozenset(allowed)
+    elif state and isinstance(state.get("allowed_models"), (list, tuple, set, frozenset)) and state["allowed_models"]:
+        return frozenset(state["allowed_models"])
     return DEFAULT_LATTICE_ALLOWED_MODELS
 
 
@@ -185,6 +178,9 @@ def get_lattice_default_model() -> str:
     state = current_lattice_state()
     if state and isinstance(state.get("default_model"), str) and state["default_model"]:
         return state["default_model"]
+    allowed = get_lattice_allowed_models()
+    if "qwen3.8-27b-5090" in allowed:
+        return "qwen3.8-27b-5090"
     return DEFAULT_LATTICE_MODEL
 
 
@@ -329,15 +325,20 @@ def sync_lattice_models_from_server(*, timeout_seconds: float = 5.0) -> list[str
                 if not models:
                     models, detected_default = fetch_new_api_models(client, portal)
                 if models:
-                    state["allowed_models"] = models
-                    if "qwen3.8-27b-5090" in models:
-                        state["default_model"] = "qwen3.8-27b-5090"
+                    target = "qwen3.8-27b-5090"
+                    if target in models:
+                        state["default_model"] = target
+                        ordered_models = [target] + [m for m in models if m != target]
                     elif detected_default and detected_default in models:
                         state["default_model"] = detected_default
-                    elif state.get("default_model") not in models:
-                        state["default_model"] = models[0]
+                        ordered_models = [detected_default] + [m for m in models if m != detected_default]
+                    else:
+                        if state.get("default_model") not in models:
+                            state["default_model"] = models[0]
+                        ordered_models = models
+                    state["allowed_models"] = ordered_models
                     _save_lattice_state(state, carries_inference=False)
-                    return sorted(models)
+                    return ordered_models
         except Exception as exc:
             logger.debug("Failed to sync models for password state: %s", exc)
         return sorted(list(get_lattice_allowed_models()))
@@ -801,6 +802,10 @@ def _handle_lattice_login(args: Any) -> bool:
         "logged_in": True,
     }
     _save_lattice_state(state, carries_inference=True)
+    try:
+        sync_lattice_models_from_server(timeout_seconds=5.0)
+    except Exception:
+        pass
     mask = f"{api_key[:6]}...{api_key[-4:]}" if len(api_key) > 10 else "***"
     print(f"\nLogin successful! Configured API key: {mask}")
     print("Active provider set to latticecode.")

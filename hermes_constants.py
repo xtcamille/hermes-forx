@@ -109,7 +109,7 @@ def get_hermes_home() -> Path:
     override = get_hermes_home_override()
     if override:
         return _expand_hermes_home(override)
-    if not os.environ.get("FORX_HOME", "").strip():
+    if not (os.environ.get("FORX_HOME", "").strip() or os.environ.get("HERMES_HOME", "").strip()):
         _warn_profile_fallback_once()
     return get_process_hermes_home()
 
@@ -159,7 +159,7 @@ def get_process_hermes_home() -> Path:
     For process-level assets (theme YAML, dashboard plugin manifests) that must stay visible while a
     request is scoped to another profile (e.g. embedded ``/chat`` under ``--open-profile``).
     """
-    val = os.environ.get("FORX_HOME", "").strip()
+    val = os.environ.get("FORX_HOME", "").strip() or os.environ.get("HERMES_HOME", "").strip()
     return _expand_hermes_home(val) if val else _get_platform_default_hermes_home()
 
 
@@ -178,7 +178,7 @@ def get_default_hermes_root() -> Path:
     """Root ForX dir for profile-level ops: ``<root>`` when ``FORX_HOME=<root>/profiles/<name>``."""
     global _default_hermes_root_memo
     native_home = _get_platform_default_hermes_home()
-    env_home = os.environ.get("FORX_HOME", "").strip()
+    env_home = os.environ.get("FORX_HOME", "").strip() or os.environ.get("HERMES_HOME", "").strip()
     env_path = _expand_hermes_home(env_home) if env_home else None
     memo_key = (str(native_home), str(env_path) if env_path is not None else "")
     memo = _default_hermes_root_memo
@@ -877,7 +877,7 @@ def _norm_home_path(path: str | None) -> str:
 
 def _profile_home_path(env: dict[str, str] | None = None) -> str | None:
     """Return ``{HERMES_HOME}/home`` when the profile-home directory exists."""
-    hermes_home = get_hermes_home_override() or (env or {}).get("HERMES_HOME") or os.getenv("HERMES_HOME")
+    hermes_home = get_hermes_home_override() or (env or {}).get("FORX_HOME") or (env or {}).get("HERMES_HOME") or os.getenv("FORX_HOME") or os.getenv("HERMES_HOME")
     if not hermes_home:
         return None
     profile_home = str(_expand_hermes_home(hermes_home) / "home")
@@ -1211,7 +1211,7 @@ def apply_scratch_tmp_env(env: MutableMapping[str, str]) -> bool:
         value = env.get(key, "").strip()
         if value and value != ours:
             return False
-    home = env.get("HERMES_HOME", "").strip()
+    home = env.get("FORX_HOME", "").strip() or env.get("HERMES_HOME", "").strip()
     try:
         scratch = str(get_scratch_dir(_expand_hermes_home(home) if home else get_process_hermes_home()))
     except (RuntimeError, OSError):

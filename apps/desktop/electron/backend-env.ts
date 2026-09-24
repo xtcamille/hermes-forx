@@ -157,7 +157,9 @@ function buildDesktopBackendEnv({
       currentPath: currentPathValue(currentEnv, platform),
       platform,
       pathModule
-    })
+    }),
+    FORX_HOME: hermesHome,
+    HERMES_HOME: hermesHome
   }
 }
 

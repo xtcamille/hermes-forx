@@ -370,9 +370,7 @@ function ModelResults({
             ))}
             {unavailable.size > 0 && (
               <div className="px-6 pb-2 pt-1 text-[0.62rem] leading-relaxed text-muted-foreground">
-                {provider.slug === 'latticecode'
-                  ? '当前平台仅提供 qwen3.8-27b-5090 模型，其他模型暂不可用'
-                  : copy.proNeedsSubscription}
+                {copy.proNeedsSubscription}
               </div>
             )}
           </CommandGroup>

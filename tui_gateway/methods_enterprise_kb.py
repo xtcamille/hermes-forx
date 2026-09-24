@@ -17,14 +17,17 @@ def _(rid, params: dict) -> dict:
     try:
         from hermes_cli.auth_ragflow import (
             RAGFLOW_DEFAULT_URL,
+            RAGFLOW_DEFAULT_USERNAME,
             get_ragflow_auth_state,
             is_ragflow_logged_in,
         )
         logged_in = is_ragflow_logged_in()
         state = get_ragflow_auth_state() or {}
+        username = state.get("username")
+        display_username = "默认账户" if (not username or username == RAGFLOW_DEFAULT_USERNAME) else username
         return _ok(rid, {
             "logged_in": logged_in,
-            "username": state.get("username"),
+            "username": display_username,
             "base_url": state.get("base_url") or RAGFLOW_DEFAULT_URL,
             "datasets": state.get("cached_datasets", []),
         })
@@ -49,9 +52,11 @@ def _(rid, params: dict) -> dict:
         if not username or not password:
             return _err(rid, 5092, "Username and password are required")
         state = login_ragflow(username=username, password=password, base_url=base_url)
+        u = state.get("username")
+        display_username = "默认账户" if (not u or u == RAGFLOW_DEFAULT_USERNAME) else u
         return _ok(rid, {
             "success": True,
-            "username": state.get("username"),
+            "username": display_username,
             "base_url": state.get("base_url"),
             "datasets": state.get("cached_datasets", []),
         })

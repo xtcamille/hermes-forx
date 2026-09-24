@@ -13,7 +13,7 @@ import {
   IconBook as BookOpen,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
-  IconLogout as LogOut,
+  // IconLogout as LogOut,
   IconRefresh as RefreshCw
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
@@ -25,7 +25,7 @@ import {
   refreshEnterpriseKbStatus,
   setSelectedDatasetsForSession
 } from '@/store/enterprise-kb'
-import { logoutEnterpriseKb } from '@/hermes'
+// import { logoutEnterpriseKb } from '@/hermes'
 
 const PILL = cn(
   'h-(--composer-control-size) min-w-0 max-w-44 shrink gap-1 rounded-md px-2 text-xs font-normal',
@@ -80,6 +80,7 @@ export function KbPickerPopover({
     }
   }
 
+  /*
   const handleLogout = async (e: React.MouseEvent) => {
     e.stopPropagation()
     try {
@@ -89,6 +90,7 @@ export function KbPickerPopover({
       console.warn('Logout failed:', err)
     }
   }
+  */
 
   if (!status?.logged_in) {
     return (
@@ -136,6 +138,7 @@ export function KbPickerPopover({
             >
               <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
             </button>
+            {/*
             <button
               className="hover:text-destructive cursor-pointer px-1 py-0.5 rounded"
               onClick={handleLogout}
@@ -143,11 +146,14 @@ export function KbPickerPopover({
             >
               <LogOut className="size-3" />
             </button>
+            */}
           </div>
         </div>
 
         <div className="flex items-center justify-between px-2 pb-1.5 text-[11px] text-muted-foreground border-b border-border/50">
-          <span className="truncate max-w-[120px]">账号: {status.username}</span>
+          <span className="truncate max-w-[120px]" title={(!status.username || status.username === 'admin@zkjg.com') ? '默认账户' : status.username}>
+            账号: {(!status.username || status.username === 'admin@zkjg.com') ? '默认账户' : status.username}
+          </span>
           <div className="flex items-center gap-1 text-[10px]">
             <button
               className="text-primary hover:underline cursor-pointer"

@@ -45,9 +45,11 @@ async def api_enterprise_kb_login(req: LoginRequest):
             password=req.password,
             base_url=req.base_url,
         )
+        u = state.get("username")
+        display_username = "默认账户" if (not u or u == RAGFLOW_DEFAULT_USERNAME) else u
         return {
             "success": True,
-            "username": state.get("username"),
+            "username": display_username,
             "base_url": state.get("base_url"),
             "datasets": state.get("cached_datasets", []),
         }
@@ -61,9 +63,11 @@ async def api_enterprise_kb_status():
     """Check enterprise knowledge base authentication status."""
     logged_in = is_ragflow_logged_in()
     state = get_ragflow_auth_state() or {}
+    username = state.get("username")
+    display_username = "默认账户" if (not username or username == RAGFLOW_DEFAULT_USERNAME) else username
     return {
         "logged_in": logged_in,
-        "username": state.get("username"),
+        "username": display_username,
         "base_url": state.get("base_url") or RAGFLOW_DEFAULT_URL,
         "datasets": state.get("cached_datasets", []),
         "logged_in_at": state.get("logged_in_at"),

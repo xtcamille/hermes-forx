@@ -508,7 +508,12 @@ def _free_tier_lattice_row(row: dict) -> dict | None:
         out = dict(row)
         username = state.get("username", "")
         out["name"] = f"New API ({username})" if username else "New API / 自定义模型平台"
-        models = sorted(list(auth_lattice.get_lattice_allowed_models()))
+        models = list(auth_lattice.get_lattice_allowed_models())
+        target = "qwen3.8-27b-5090"
+        if target in models:
+            models = [target] + sorted([m for m in models if m != target])
+        else:
+            models = sorted(models)
         out["models"] = models
         out["total_models"] = len(models)
         out["unavailable_models"] = []

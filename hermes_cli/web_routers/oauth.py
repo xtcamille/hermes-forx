@@ -830,9 +830,10 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
 
         if "qwen3.8-27b-5090" in models:
             default_model = "qwen3.8-27b-5090"
-            models = ["qwen3.8-27b-5090"]
+            models = [default_model] + [m for m in models if m != default_model]
         elif detected_default and detected_default in models:
             default_model = detected_default
+            models = [default_model] + [m for m in models if m != default_model]
         else:
             default_model = models[0] if models else get_lattice_default_model()
         state = {

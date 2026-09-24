@@ -833,47 +833,37 @@ if (INSTALL_STAMP) {
 // HERMES_HOME beneath the throwaway userData dir so a fresh-install run never
 // touches the user's real ~/.hermes / %LOCALAPPDATA%\hermes.
 function resolveHermesHome() {
-  if (process.env.HERMES_HOME) {
-    return normalizeHermesHomeRoot(process.env.HERMES_HOME)
+  if (process.env.FORX_HOME) {
+    return normalizeHermesHomeRoot(process.env.FORX_HOME)
   }
 
   if (USER_DATA_OVERRIDE) {
-    return path.join(path.resolve(USER_DATA_OVERRIDE), 'hermes-home')
+    return path.join(path.resolve(USER_DATA_OVERRIDE), 'forx-home')
   }
 
   if (IS_WINDOWS) {
-    // Portable mode: if a "data" directory exists alongside Hermes.exe (e.g. portable green release)
+    // Portable mode: if a "data" directory exists alongside the executable
     const portableData = path.join(path.dirname(process.execPath), 'data')
     if (directoryExists(portableData)) {
       return normalizeHermesHomeRoot(portableData)
     }
 
-    // A GUI app launched from Explorer inherits the environment block captured
-    // at login, so a HERMES_HOME set via `setx` AFTER login is invisible in
-    // process.env even though the CLI (a fresh shell) sees it. Without this the
-    // backend silently falls back to %LOCALAPPDATA%\hermes and reports "No
-    // inference provider configured" despite a valid configured home (#45471).
-    // Consult the live User-scoped registry value before the default below.
-    const fromRegistry = readWindowsUserEnvVar('HERMES_HOME')
+    const fromRegistry = readWindowsUserEnvVar('FORX_HOME')
 
     if (fromRegistry) {
       return normalizeHermesHomeRoot(fromRegistry)
     }
-  }
 
-  if (process.env.FORX_HOME) {
-    return normalizeHermesHomeRoot(process.env.FORX_HOME)
-  }
+    if (process.env.LOCALAPPDATA) {
+      const localappdata = path.join(process.env.LOCALAPPDATA, 'forx')
+      const legacy = path.join(app.getPath('home'), '.forx')
 
-  if (IS_WINDOWS && process.env.LOCALAPPDATA) {
-    const localappdata = path.join(process.env.LOCALAPPDATA, 'forx')
-    const legacy = path.join(app.getPath('home'), '.forx')
+      if (!directoryExists(localappdata) && directoryExists(legacy)) {
+        return legacy
+      }
 
-    if (!directoryExists(localappdata) && directoryExists(legacy)) {
-      return legacy
+      return localappdata
     }
-
-    return localappdata
   }
 
   return path.join(app.getPath('home'), '.forx')
@@ -887,10 +877,20 @@ function pathWithHermesManagedNode(...entries) {
   return [...managed, ...entries, process.env.PATH].filter(Boolean).join(path.delimiter)
 }
 
-// ACTIVE_HERMES_ROOT — the canonical mutable Hermes install. Same path
-// install.ps1 / install.sh use, so a desktop-only user and a CLI-only user end
-// up with identical layouts and can share one install.
-const ACTIVE_HERMES_ROOT = path.join(HERMES_HOME, 'hermes-agent')
+function resolveActiveHermesRoot(home: string): string {
+  const forxAgent = path.join(home, 'forx-agent')
+  if (directoryExists(forxAgent)) {
+    return forxAgent
+  }
+  const hermesAgent = path.join(home, 'hermes-agent')
+  if (directoryExists(hermesAgent)) {
+    return hermesAgent
+  }
+  return forxAgent
+}
+
+// ACTIVE_HERMES_ROOT — the canonical mutable Hermes/ForX install.
+const ACTIVE_HERMES_ROOT = resolveActiveHermesRoot(HERMES_HOME)
 // VENV_ROOT — venv lives inside the repo, exactly like install.ps1 does it.
 const VENV_ROOT = path.join(ACTIVE_HERMES_ROOT, 'venv')
 // BOOTSTRAP_COMPLETE_MARKER — written by the first-launch bootstrap runner
@@ -13158,14 +13158,10 @@ async function runHermesStart() {
         env: desktopBackendSpawnEnv(
           {
             ...process.env,
-            // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
-            // resolves to the SAME location our resolveHermesHome() picked. Without
-            // this pin, Python falls back to ~/.hermes on every platform — fine on
-            // mac/linux (where our default matches), but on Windows our default is
-            // %LOCALAPPDATA%\hermes, which differs from C:\Users\<u>\.hermes.
-            // Mismatch would split config / sessions / .env / logs across two
-            // directories. install.ps1 sets HERMES_HOME via setx; the desktop
-            // can't reliably do that, so we set it inline for every spawn.
+            // Explicitly pin FORX_HOME and HERMES_HOME for the child so Python's get_hermes_home()
+            // resolves to the SAME location our resolveHermesHome() picked, overriding any
+            // system HERMES_HOME left by official Hermes.
+            FORX_HOME: HERMES_HOME,
             HERMES_HOME,
             ...backend.env,
             TERMINAL_CWD: hermesCwd,

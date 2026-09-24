@@ -45,7 +45,7 @@ BOLD='\033[1m'
 # Configuration
 REPO_URL_SSH="git@github.com:xtcamille/hermes-forX.git"
 REPO_URL_HTTPS="https://github.com/xtcamille/hermes-forX.git"
-HERMES_HOME="${FORX_HOME:-${HERMES_HOME:-$HOME/.forx}}"
+HERMES_HOME="${FORX_HOME:-$HOME/.forx}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.

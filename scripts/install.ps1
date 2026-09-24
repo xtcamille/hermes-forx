@@ -30,8 +30,8 @@ param(
     # existing tree pass -ForceCommit.
     [switch]$ForceCommit,
     [string]$Tag = "",
-    [string]$HermesHome = $(if ($env:FORX_HOME) { $env:FORX_HOME } elseif ($env:HERMES_HOME) { $env:HERMES_HOME } else { "$env:LOCALAPPDATA\forx" }),
-    [string]$InstallDir = $(if ($env:FORX_HOME) { "$env:FORX_HOME\forx-agent" } elseif ($env:HERMES_HOME) { "$env:HERMES_HOME\forx-agent" } else { "$env:LOCALAPPDATA\forx\forx-agent" }),
+    [string]$HermesHome = $(if ($env:FORX_HOME) { $env:FORX_HOME } else { "$env:LOCALAPPDATA\forx" }),
+    [string]$InstallDir = $(if ($env:FORX_HOME) { "$env:FORX_HOME\forx-agent" } else { "$env:LOCALAPPDATA\forx\forx-agent" }),
 
     # --- Stage protocol (additive; default invocation behaves as before) ----
     # See the "Stage protocol" section near the bottom of the file for the
@@ -345,14 +345,14 @@ if ($PSBoundParameters.ContainsKey('HermesHome')) {
     $HermesHome = ConvertTo-LongPath $HermesHome
 } else {
     $HermesHome = ConvertTo-LongPath $(
-        if ($env:HERMES_HOME) { $env:HERMES_HOME } else { "$env:LOCALAPPDATA\hermes" }
+        if ($env:FORX_HOME) { $env:FORX_HOME } else { "$env:LOCALAPPDATA\forx" }
     )
 }
 if ($PSBoundParameters.ContainsKey('InstallDir')) {
     $InstallDir = ConvertTo-LongPath $InstallDir
 } else {
     $InstallDir = ConvertTo-LongPath $(
-        if ($env:HERMES_HOME) { "$env:HERMES_HOME\hermes-agent" } else { "$env:LOCALAPPDATA\hermes\hermes-agent" }
+        if ($env:FORX_HOME) { "$env:FORX_HOME\forx-agent" } else { "$env:LOCALAPPDATA\forx\forx-agent" }
     )
 }
 if ($script:NormalizedProfilePaths) {
@@ -3346,14 +3346,15 @@ function Set-PathVariable {
         Write-Info "PATH already configured"
     }
     
-    # Set HERMES_HOME so the Python code finds config/data in the right place.
-    # Only needed on Windows where we install to %LOCALAPPDATA%\hermes instead
-    # of the Unix default ~/.hermes
-    $currentHermesHome = [Environment]::GetEnvironmentVariable("HERMES_HOME", "User")
-    if (-not $currentHermesHome -or $currentHermesHome -ne $HermesHome) {
-        [Environment]::SetEnvironmentVariable("HERMES_HOME", $HermesHome, "User")
-        Write-Success "Set HERMES_HOME=$HermesHome"
+    # Set FORX_HOME so the Python code finds config/data in the right place.
+    # Only needed on Windows where we install to %LOCALAPPDATA%\forx instead
+    # of the Unix default ~/.forx
+    $currentForxHome = [Environment]::GetEnvironmentVariable("FORX_HOME", "User")
+    if (-not $currentForxHome -or $currentForxHome -ne $HermesHome) {
+        [Environment]::SetEnvironmentVariable("FORX_HOME", $HermesHome, "User")
+        Write-Success "Set FORX_HOME=$HermesHome"
     }
+    $env:FORX_HOME = $HermesHome
     $env:HERMES_HOME = $HermesHome
     
     # Update current session

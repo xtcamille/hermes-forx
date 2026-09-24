@@ -656,15 +656,8 @@ def _apply_pricing(rows: list[dict], *, force_fresh_nous_tier: bool = False, cac
             elif slug == "latticecode":
                 target = "qwen3.8-27b-5090"
                 if target in models:
-                    row["models"] = [target]
-                    row["total_models"] = 1
-                    row["unavailable_models"] = []
-                else:
-                    match = next((m for m in models if "5090" in m or "qwen3.8-27b" in m), None)
-                    if match:
-                        row["models"] = [match]
-                        row["total_models"] = 1
-                        row["unavailable_models"] = []
+                    row["models"] = [target] + [m for m in models if m != target]
+                row["unavailable_models"] = []
             continue
 
         formatted: dict[str, dict] = {}
@@ -711,15 +704,8 @@ def _apply_pricing(rows: list[dict], *, force_fresh_nous_tier: bool = False, cac
         elif slug == "latticecode":
             target = "qwen3.8-27b-5090"
             if target in models:
-                row["models"] = [target]
-                row["total_models"] = 1
-                row["unavailable_models"] = []
-            else:
-                match = next((m for m in models if "5090" in m or "qwen3.8-27b" in m), None)
-                if match:
-                    row["models"] = [match]
-                    row["total_models"] = 1
-                    row["unavailable_models"] = []
+                row["models"] = [target] + [m for m in models if m != target]
+            row["unavailable_models"] = []
 
 
 def _local_runtime_row(ctx: "ConfigContext") -> dict | None:

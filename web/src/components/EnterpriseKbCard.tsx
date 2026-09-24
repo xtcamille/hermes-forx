@@ -9,7 +9,7 @@ import {
   type EnterpriseKbStatusResponse,
 } from "@/lib/api";
 import { EnterpriseKbLoginModal } from "./EnterpriseKbLoginModal";
-import { BookOpen, CheckSquare, LogOut, RefreshCw, Square } from "lucide-react";
+import { BookOpen, CheckSquare, RefreshCw, Square } from "lucide-react";
 
 interface Props {
   sessionId?: string;
@@ -63,6 +63,7 @@ export function EnterpriseKbCard({ sessionId }: Props) {
     }
   };
 
+  /*
   const handleLogout = async () => {
     try {
       await api.logoutEnterpriseKb();
@@ -72,6 +73,7 @@ export function EnterpriseKbCard({ sessionId }: Props) {
       console.warn("Logout failed", e);
     }
   };
+  */
 
   const toggleDataset = (id: string) => {
     setSelectedIds((prev) =>
@@ -114,6 +116,7 @@ export function EnterpriseKbCard({ sessionId }: Props) {
               >
                 <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
               </button>
+              {/*
               <button
                 onClick={handleLogout}
                 title="退出知识库登录"
@@ -121,6 +124,7 @@ export function EnterpriseKbCard({ sessionId }: Props) {
               >
                 <LogOut className="h-3 w-3" />
               </button>
+              */}
             </div>
           ) : null}
         </div>
@@ -146,8 +150,8 @@ export function EnterpriseKbCard({ sessionId }: Props) {
         ) : (
           <div className="pt-2">
             <div className="flex items-center justify-between text-[11px] text-text-secondary mb-1.5">
-              <span className="truncate max-w-[120px]" title={status.username}>
-                账号: {status.username}
+              <span className="truncate max-w-[120px]" title={(!status.username || status.username === "admin@zkjg.com") ? "默认账户" : status.username}>
+                账号: {(!status.username || status.username === "admin@zkjg.com") ? "默认账户" : status.username}
               </span>
               <div className="flex items-center gap-1 text-[10px]">
                 <button
