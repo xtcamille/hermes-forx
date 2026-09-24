@@ -20,7 +20,7 @@ _ORPHAN_RESCUE_REF_MAX_AGE_DAYS = 30
 
 _GIT_TEXT_KW = dict(capture_output=True, text=True, encoding="utf-8", errors="replace")
 _BAR = "=" * 68
-_UPSTREAM_ADD_CMD = "git remote add upstream https://github.com/NousResearch/hermes-agent.git"
+_UPSTREAM_ADD_CMD = "git remote add upstream https://github.com/xtcamille/hermes-forX.git"
 
 
 def _git_ok(git_cmd, args, cwd, **kw) -> bool:
