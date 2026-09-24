@@ -105,8 +105,8 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
   const termRef = useRef<XtermTerminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const lineRef = useRef("");
-  const promptRef = useRef("hermes> ");
-  const inputPromptRef = useRef("hermes> ");
+  const promptRef = useRef("forx> ");
+  const inputPromptRef = useRef("forx> ");
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number | null>(null);
   const activeCommandRef = useRef(false);
@@ -277,7 +277,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
       if (!term) return;
 
       if (frame.type === "ready") {
-        const nextPrompt = frame.prompt || "hermes> ";
+        const nextPrompt = frame.prompt || "forx> ";
         promptRef.current = nextPrompt;
         inputPromptRef.current = nextPrompt;
         hasReadyFrameRef.current = true;
@@ -399,7 +399,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
     setConnectionState("connecting");
     setConsoleProfile(profile || "current");
     hasReadyFrameRef.current = false;
-    writeLine(term, "\x1b[2mConnecting to Hermes Console...\x1b[0m");
+    writeLine(term, "\x1b[2mConnecting to ForX Console...\x1b[0m");
 
     void (async () => {
       try {
@@ -440,7 +440,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
           console.warn(`[console] websocket closed code=${ev.code}${ev.reason ? ` reason=${ev.reason}` : ""}`);
           const message =
             ev.code === 1006 && !hasReadyFrameRef.current
-              ? "Console could not connect to the dashboard server. Check that `hermes dashboard` is running, then click Reconnect."
+              ? "Console could not connect to the dashboard server. Check that `forx dashboard` is running, then click Reconnect."
               : ev.code === 1000
                 ? "Console closed."
                 : "Console disconnected from the dashboard server. Click Reconnect to try again.";
@@ -452,7 +452,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
         console.warn(`[console] connect failed: ${errorMessage(err)}`);
         writeLine(
           term,
-          "\x1b[31mConsole could not connect to the dashboard server. Check that `hermes dashboard` is running, then click Reconnect.\x1b[0m",
+          "\x1b[31mConsole could not connect to the dashboard server. Check that `forx dashboard` is running, then click Reconnect.\x1b[0m",
         );
       }
     })();
@@ -518,7 +518,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
               id="hermes-console-title"
               className="font-mondwest text-display text-base tracking-wider"
             >
-              Hermes Console
+              ForX Console
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge tone={statusTone}>{connectionState}</Badge>

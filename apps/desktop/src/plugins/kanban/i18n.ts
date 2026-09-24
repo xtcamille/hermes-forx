@@ -422,9 +422,9 @@ export const en: KanbanMessages = {
     blockedTitle: 'Task blocked — needs your input',
     blockLoopTitle: 'Task routed to triage — needs a decision',
     gaveUpTitle: 'Task stopped',
-    gaveUpBody: 'Hermes couldn’t finish this task. Open Kanban to see why and reassign it.',
-    crashedTitle: 'Task hit a problem — Hermes will retry it automatically',
-    timedOutTitle: 'Task took too long — Hermes will retry it automatically',
+    gaveUpBody: 'ForX couldn’t finish this task. Open Kanban to see why and reassign it.',
+    crashedTitle: 'Task hit a problem — ForX will retry it automatically',
+    timedOutTitle: 'Task took too long — ForX will retry it automatically',
     openKanban: 'Open Kanban',
     artifacts: (n: number) => `${n} artifacts`
   }
@@ -845,9 +845,9 @@ const zh: KanbanMessages = {
     blockedTitle: '任务受阻 — 需要你的输入',
     blockLoopTitle: '任务已转入分类 — 需要人工决定',
     gaveUpTitle: '任务已停止',
-    gaveUpBody: 'Hermes 无法完成这个任务。打开看板查看原因并重新分配。',
-    crashedTitle: '任务遇到问题 — Hermes 将自动重试',
-    timedOutTitle: '任务耗时过长 — Hermes 将自动重试',
+    gaveUpBody: 'ForX 无法完成这个任务。打开看板查看原因并重新分配。',
+    crashedTitle: '任务遇到问题 — ForX 将自动重试',
+    timedOutTitle: '任务耗时过长 — ForX 将自动重试',
     openKanban: '打开看板',
     artifacts: (n: number) => `${n} 个产物`
   }
