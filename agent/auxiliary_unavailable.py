@@ -99,10 +99,18 @@ def missing_provider_credentials_message(provider_id: str) -> str:
     cooldown = pool_cooldown_message(provider_id)
     if cooldown:
         return cooldown
+    if provider_id in ("latticecode", "lattice"):
+        return (f"Provider '{provider_id}' is set in config.yaml but no credentials were found. "
+                "未检测到 New API 平台登录凭证，请先在桌面端登录账号，或在终端执行 `forx auth login` 进行登录。"
+                " (Please log in with your New API account via Desktop or run `forx auth login`.)")
     pconfig = None
     with contextlib.suppress(Exception):
-        from hermes_cli.auth import PROVIDER_REGISTRY
-        pconfig = PROVIDER_REGISTRY.get(provider_id)
+        from hermes_cli.auth_plugin_providers import registry_lookup
+        pconfig = registry_lookup(provider_id)
+    if pconfig is None:
+        with contextlib.suppress(Exception):
+            from hermes_cli.auth import PROVIDER_REGISTRY
+            pconfig = PROVIDER_REGISTRY.get(provider_id)
     env_vars = tuple(getattr(pconfig, "api_key_env_vars", None) or ())
     problem, remedy = "no API key was found", ""
     if env_vars:

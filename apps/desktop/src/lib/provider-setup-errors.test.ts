@@ -10,6 +10,11 @@ describe('isProviderSetupErrorMessage', () => {
     expect(isProviderSetupErrorMessage('No inference provider is configured.')).toBe(true)
     expect(isProviderSetupErrorMessage('No Hermes provider is configured.')).toBe(true)
     expect(isProviderSetupErrorMessage('set an API key (OPENROUTER_API_KEY) in ~/.hermes/.env')).toBe(true)
+    expect(isProviderSetupErrorMessage("Provider 'latticecode' is set in config.yaml but no API key was found.")).toBe(true)
+    expect(isProviderSetupErrorMessage("Provider 'latticecode' is set in config.yaml but no credentials were found.")).toBe(true)
+    expect(isProviderSetupErrorMessage("Hermes is not connected to any AI provider yet. Run `hermes model` to pick one")).toBe(true)
+    expect(isProviderSetupErrorMessage("ForX is not connected to any AI provider yet.")).toBe(true)
+    expect(isProviderSetupErrorMessage("模型服务商 'latticecode' (New API) 尚未登录或未配置有效凭证。")).toBe(true)
   })
 
   it('matches the exact empty-key warning emitted in session.info', () => {

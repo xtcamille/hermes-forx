@@ -216,12 +216,14 @@ export function handleStatusEvent(ctx: GatewayEventContext): boolean {
       flashPetActivity({ error: true })
     }
 
-    dispatchNativeNotification({
-      body: toastMessage,
-      kind: 'turnError',
-      sessionId,
-      title: translateNow('notifications.native.turnErrorTitle')
-    })
+    if (!looksLikeProviderSetup) {
+      dispatchNativeNotification({
+        body: toastMessage,
+        kind: 'turnError',
+        sessionId,
+        title: translateNow('notifications.native.turnErrorTitle')
+      })
+    }
 
     if (looksLikeProviderSetup) {
       requestDesktopOnboarding(errorMessage)

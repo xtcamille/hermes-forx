@@ -1449,10 +1449,10 @@ def resolve_provider(
     profile_name = profile_name_for_home(get_hermes_home()) if sel else None
     where = f"Profile '{profile_name}' is" if profile_name else "Hermes is"
     raise AuthError(
-        f"{where} not connected to any AI provider yet. Run `hermes {sel}model` to pick one (the free "
-        f"Nous tier needs no API key), type `/login` in chat, or add a key with "
-        f"`hermes {sel}auth add <provider>`. (Advanced: put an API key such as OPENROUTER_API_KEY in "
-        f"{display_hermes_home()}/.env.)",
+        f"{where} not connected to any AI provider yet. (系统当前尚未连接到任何 AI 模型服务商)\n"
+        f"请先登录 New API 平台账号（在桌面端登录或运行 `forx auth login`），或在设置中配置模型服务商。\n"
+        f"Run `hermes {sel}model` to pick one, type `/login` in chat, or add a key with "
+        f"`hermes {sel}auth add <provider>`. (Advanced: put an API key in {display_hermes_home()}/.env.)",
         code="no_provider_configured")
 
 

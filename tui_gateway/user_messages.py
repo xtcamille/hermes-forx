@@ -92,8 +92,10 @@ def busy_message(command: str) -> str:
 
 
 def agent_init_failed_message(exc: Any) -> str:
-    return (f"Hermes could not start the assistant for this session. Details: {exc}. "
-            "Check the model and provider with /model, or run `hermes setup` in a terminal to reconfigure.")
+    return (f"ForX 无法启动当前会话的助手服务。详情: {exc}。"
+            " 请检查模型配置，使用 /model 或运行 `forx setup` (hermes setup) 重新配置。"
+            f" (ForX could not start the assistant for this session. Details: {exc}. "
+            "Check the model and provider with /model, or run `hermes setup` in a terminal to reconfigure.)")
 
 
 AGENT_STILL_STARTING = (
