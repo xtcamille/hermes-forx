@@ -534,7 +534,11 @@ def _lattice_credentials_present() -> bool:
     try:
         from hermes_cli.auth_lattice import current_lattice_state
         state = current_lattice_state()
-        return bool(state and (state.get("auth_method") == "password" or state.get("logged_in") or state.get("api_key")))
+        if not state:
+            return False
+        if state.get("auth_method") == "password" or state.get("logged_in"):
+            return bool(state.get("api_key") and state.get("allowed_models") and not state.get("token_error"))
+        return bool(state.get("api_key") or state.get("anon_token"))
     except Exception:
         return False
 

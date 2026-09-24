@@ -353,7 +353,7 @@ class TestLatticeAccountAuth:
 
         assert is_anonymous_request("latticecode", "sk-existing-new-api-key") is False
 
-    def test_login_auto_provisions_token_when_none_exists(self, fake_lattice, tmp_path, monkeypatch):
+    def test_login_fails_when_no_token_exists(self, fake_lattice, tmp_path, monkeypatch):
         home = tmp_path / "hermes_home"
         home.mkdir(parents=True, exist_ok=True)
         monkeypatch.setenv("HERMES_HOME", str(home))
@@ -367,11 +367,11 @@ class TestLatticeAccountAuth:
         monkeypatch.setattr("getpass.getpass", lambda prompt: "pass123")
 
         handled = lattice_auth_handler("add", Namespace())
-        assert handled is True
+        assert handled is False
 
         state = current_lattice_state()
-        assert state["api_key"].startswith("sk-created-test-")
-        assert len(fake_lattice.user_tokens) == 1
+        assert not state or state.get("auth_method") != "password"
+        assert len(fake_lattice.user_tokens) == 0
 
     def test_login_fails_with_invalid_credentials(self, fake_lattice, tmp_path, monkeypatch):
         home = tmp_path / "hermes_home"
@@ -434,7 +434,7 @@ class TestLatticeAccountAuth:
         assert "Invalid password" in bad_res["message"]
 
     @pytest.mark.anyio
-    async def test_api_login_auto_creates_token_when_empty(self, fake_lattice, tmp_path, monkeypatch):
+    async def test_api_login_fails_when_no_token(self, fake_lattice, tmp_path, monkeypatch):
         home = tmp_path / "hermes_home"
         home.mkdir(parents=True, exist_ok=True)
         monkeypatch.setenv("HERMES_HOME", str(home))
@@ -442,14 +442,46 @@ class TestLatticeAccountAuth:
         from hermes_cli.web_routers.oauth import latticecode_login_endpoint
         from hermes_cli.web_models import LatticeLoginRequest
 
-        fake_lattice.user_tokens = []  # No tokens exist yet
+        fake_lattice.user_tokens = []  # No tokens exist
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is False
+        assert "该账户没有有效token，无可用模型" in res["message"]
+        assert len(fake_lattice.user_tokens) == 0  # Does NOT create a token!
+
+    @pytest.mark.anyio
+    async def test_api_login_fails_when_all_tokens_disabled(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+
+        fake_lattice.user_tokens = [{"id": 1, "key": "sk-disabled", "status": 0}]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is False
+        assert "当前token不可用，无可用模型，检查new api账户是否创建了有效token" in res["message"]
+        assert len(fake_lattice.user_tokens) == 1  # Does NOT create a token!
+
+    @pytest.mark.anyio
+    async def test_api_login_prioritizes_qwen3_8_27b_5090(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+
+        fake_lattice.user_tokens = [{"id": 1, "key": "sk-good-key", "status": 1}]
+        fake_lattice.models_endpoint_models = ["deepseek-chat", "qwen3.8-27b-5090", "gpt-4o"]
         req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
         res = await latticecode_login_endpoint(req)
         assert res["ok"] is True
-        assert res["username"] == "alice"
-        assert res["model"] == "deepseek-v4.1-flash"
-        assert len(fake_lattice.user_tokens) == 1
-        assert fake_lattice.user_tokens[0]["key"].startswith("sk-created-test-")
+        assert res["model"] == "qwen3.8-27b-5090"
+        assert res["models"][0] == "qwen3.8-27b-5090"
+        assert set(res["models"]) == {"qwen3.8-27b-5090", "deepseek-chat", "gpt-4o"}
 
     @pytest.mark.anyio
     async def test_api_login_unmasks_masked_token(self, fake_lattice, tmp_path, monkeypatch):
@@ -479,4 +511,58 @@ class TestLatticeAccountAuth:
         st = current_lattice_state()
         assert st["api_key"] == "sk-J6phuuS0Mu7Cx5OGxmVH1Xpd0daP6biLF2JMaUoQU1NTFYYm"
         assert "*" not in st["api_key"]
+
+    @pytest.mark.anyio
+    async def test_refresh_lattice_token_switches_to_next_valid(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+        from hermes_cli.auth_lattice import refresh_lattice_token, current_lattice_state, resolve_lattice_runtime_credentials
+
+        fake_lattice.user_tokens = [
+            {"id": 1, "key": "sk-token-1", "status": 1},
+            {"id": 2, "key": "sk-token-2", "status": 1},
+        ]
+        fake_lattice.models_endpoint_models = ["model-a", "qwen3.8-27b-5090"]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+
+        st = current_lattice_state()
+        assert st["api_key"] == "sk-token-1"
+        assert st["default_model"] == "qwen3.8-27b-5090"
+
+        # Now token-1 is revoked/disabled
+        fake_lattice.user_tokens[0]["status"] = 0
+        refreshed = refresh_lattice_token(force=True)
+        assert refreshed["api_key"] == "sk-token-2"
+
+        creds = resolve_lattice_runtime_credentials(force_refresh=True)
+        assert creds["api_key"] == "sk-token-2"
+
+    @pytest.mark.anyio
+    async def test_refresh_lattice_token_fails_when_all_revoked(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+        from hermes_cli.auth_lattice import refresh_lattice_token
+        from hermes_cli.auth_constants import AuthError
+
+        fake_lattice.user_tokens = [{"id": 1, "key": "sk-token-1", "status": 1}]
+        fake_lattice.models_endpoint_models = ["model-a"]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+
+        # Now all tokens are disabled
+        fake_lattice.user_tokens[0]["status"] = 0
+        with pytest.raises(AuthError) as exc_info:
+            refresh_lattice_token(force=True)
+        assert "当前token不可用，无可用模型，检查new api账户是否创建了有效token" in str(exc_info.value)
 

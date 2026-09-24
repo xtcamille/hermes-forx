@@ -657,6 +657,31 @@ class ClientLifecycleMixin:
             return False
         return self._adopt_openai_credentials(api_key, base_url, reason="latticecode_credential_refresh")
 
+    def _adopt_lattice_key_periodically(self) -> bool:
+        """Periodically refresh the first valid token for LatticeCode / New API if interval elapsed."""
+        if self.provider != "latticecode":
+            return False
+        try:
+            from hermes_cli.auth_lattice import current_lattice_state, resolve_lattice_runtime_credentials, LATTICE_TOKEN_REFRESH_INTERVAL_SECONDS
+            state = current_lattice_state()
+            if not state or (state.get("auth_method") != "password" and not state.get("logged_in")):
+                return False
+            import time
+            last_refreshed = float(state.get("token_refreshed_at") or 0)
+            now = time.time()
+            if now - last_refreshed < LATTICE_TOKEN_REFRESH_INTERVAL_SECONDS:
+                return False
+            creds = resolve_lattice_runtime_credentials(force_refresh=True)
+            api_key, base_url = creds.get("api_key"), creds.get("base_url")
+            if not _valid_credential_pair(api_key, base_url):
+                return False
+            if str(api_key).strip() == str(self.api_key or "").strip():
+                return False
+            return self._adopt_openai_credentials(api_key, base_url, reason="latticecode_periodic_token_refresh")
+        except Exception as exc:
+            logger.debug("Lattice periodic token refresh failed: %s", exc)
+            return False
+
     # Adopt a fresh key this many seconds before the one in hand expires. Wider than the store's
     # own refresh skew (120 s) so the keepalive has normally already minted the replacement.
     _NOUS_KEY_ADOPT_SKEW_S = 180

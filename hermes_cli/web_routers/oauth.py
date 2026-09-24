@@ -815,35 +815,24 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
         portal = (payload.portal_url or "").strip() or _portal_url()
         with httpx.Client(timeout=15.0) as client:
             api_key, user_info = login_new_api(client, portal, payload.username.strip(), payload.password)
-            models = []
-            detected_default = ""
-            if api_key:
-                try:
-                    m_resp = client.get(f"{_inference_url()}/models", headers={"Authorization": f"Bearer {api_key}"})
-                    if m_resp.is_success:
-                        raw = m_resp.json().get("data") or []
-                        models = [m["id"] if isinstance(m, dict) and "id" in m else str(m) for m in raw]
-                except Exception:
-                    pass
-            if not models:
-                models, detected_default = fetch_new_api_models(client, portal)
+            models = user_info.get("models") or []
+            default_model = user_info.get("default_model") or (models[0] if models else "")
 
-        if "qwen3.8-27b-5090" in models:
-            default_model = "qwen3.8-27b-5090"
-            models = [default_model] + [m for m in models if m != default_model]
-        elif detected_default and detected_default in models:
-            default_model = detected_default
-            models = [default_model] + [m for m in models if m != default_model]
-        else:
-            default_model = models[0] if models else get_lattice_default_model()
+        if not models:
+            from hermes_cli.auth_constants import AuthError
+            raise AuthError("该账户没有有效token，无可用模型", code="no_models")
+
         state = {
             "auth_method": "password",
             "api_key": api_key,
             "username": payload.username.strip(),
+            "password": payload.password,
             "user_info": user_info,
+            "access_token": user_info.get("access_token"),
             "inference_base_url": _inference_url(),
-            "allowed_models": models or [default_model],
+            "allowed_models": models,
             "default_model": default_model,
+            "token_refreshed_at": time.time(),
             "logged_in": True,
         }
         _save_lattice_state(state, carries_inference=True)

@@ -130,6 +130,12 @@ def prepare_iteration(
     except Exception:
         logger.debug("Nous key pre-expiry adoption failed", exc_info=True)
 
+    try:
+        if hasattr(agent, "_adopt_lattice_key_periodically"):
+            agent._adopt_lattice_key_periodically()
+    except Exception:
+        logger.debug("Lattice periodic token refresh failed", exc_info=True)
+
     # Drain a /steer sent during the last API call so it lands THIS iteration. Delivered as a
     # standalone user row after the newest tool result (never smeared onto the tool row: that
     # row is already persisted append-only, so replay would diverge from the live request and
