@@ -11,7 +11,7 @@
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
 
-**Hermes-forX** 是一套面向生产力场景的**企业级自进化 AI 智能体系统**。它基于 Nous Research 的 Hermes 架构深度研发与增强，不仅保留了强大的闭环学习能力（自主提炼技能、自演化记忆、跨会话回溯）与全终端环境执行能力，更深度融入了 **New API 统一模型网关认证** 与 **RAGFlow 企业私有知识库系统**，支持会话级知识库配对与严格的数据集隔离机制，提供 CLI、Electron 桌面端、Web 控制台与多平台网关的一致体验。
+**Hermes-forX** 是由 [zkjg.com](https://zkjg.com) 研发的一套面向生产力场景的**企业级自进化 AI 智能体系统**。它具备强大的闭环学习能力（自主提炼技能、自演化记忆、跨会话回溯）与全终端环境执行能力，并深度融入了 **New API 统一模型网关认证** 与 **RAGFlow 企业私有知识库系统**，支持会话级知识库配对与严格的数据集隔离机制，提供 CLI、Electron 桌面端、Web 控制台与多平台网关的一致体验。
 
 ---
 
@@ -109,7 +109,7 @@ enterprise_kb:
   enabled: true
   base_url: "http://your-ragflow-server"
   official_account:
-    username: "your-account@corp.com"
+    username: "admin@zkjg.com"
     password: "your-password"
 ```
 
@@ -208,4 +208,4 @@ pytest tests/hermes_cli/test_auth_ragflow.py tests/tools/test_enterprise_kb_tool
 
 ## 📄 开源许可证
 
-本项目基于 [MIT License](LICENSE) 开源发布。核心架构由 [Nous Research](https://nousresearch.com) 开创，企业级定制与增强功能由 [CamilleZxt](https://github.com/xtcamille) 持续维护与演进。
+本项目基于 [MIT License](LICENSE) 开源发布，由 [zkjg.com](https://zkjg.com) 研发、维护与持续演进。

@@ -534,6 +534,7 @@ def _oauth_wire_namer(anthropic_tools: List[Dict[str, Any]]):
 
 _OAUTH_SYSTEM_REPLACEMENTS = (
     ("Hermes Agent", "Claude Code"), ("Hermes agent", "Claude Code"), ("Nous Research", "Anthropic"),
+    ("ForX Agent", "Claude Code"), ("ForX agent", "Claude Code"), ("zkjg.com", "Anthropic"),
 )
 # The slug is rewritten only as a standalone prose word. Joined to a host, path, repo, mailbox
 # or quoted as an identifier (``hermes-agent.nousresearch.com``, ``~/.hermes/hermes-agent/venv``,

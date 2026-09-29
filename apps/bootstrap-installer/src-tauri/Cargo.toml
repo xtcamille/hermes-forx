@@ -2,7 +2,7 @@
 name = "hermes-bootstrap"
 version = "0.21.1"
 description = "Hermes Setup — signed installer that drives scripts/install.ps1"
-authors = ["Nous Research <info@nousresearch.com>"]
+authors = ["zkjg.com <support@zkjg.com>"]
 edition = "2021"
 rust-version = "1.77"
 

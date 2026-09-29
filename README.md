@@ -11,7 +11,7 @@
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
 
-**Hermes-forX** is an enterprise-grade, self-improving AI agent system built for real-world productivity. Deeply customized and enhanced from Nous Research's Hermes architecture, it preserves the industry-leading closed learning loop (autonomous skill synthesis, self-improving memory, and cross-session recall) and real terminal execution, while deeply integrating **New API centralized model authentication** and **RAGFlow enterprise knowledge base** with strict dataset session isolation.
+**Hermes-forX** is an enterprise-grade, self-improving AI agent system developed by [zkjg.com](https://zkjg.com) for real-world productivity. It preserves the closed learning loop (autonomous skill synthesis, self-improving memory, and cross-session recall) and real terminal execution, while deeply integrating **New API centralized model authentication** and **RAGFlow enterprise knowledge base** with strict dataset session isolation.
 
 ---
 
@@ -111,7 +111,7 @@ enterprise_kb:
   enabled: true
   base_url: "http://your-ragflow-server"
   official_account:
-    username: "your-account@corp.com"
+    username: "admin@zkjg.com"
     password: "your-password"
 ```
 
@@ -202,4 +202,4 @@ pytest tests/hermes_cli/test_auth_ragflow.py tests/tools/test_enterprise_kb_tool
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE). Built upon the pioneering agent architecture by [Nous Research](https://nousresearch.com), with enterprise customizations maintained by [CamilleZxt](https://github.com/xtcamille).
+This project is licensed under the [MIT License](LICENSE). Developed and maintained by [zkjg.com](https://zkjg.com).

@@ -4,10 +4,10 @@
   "private": true,
   "version": "0.1.0",
   "description": "Native desktop shell for ForX Agent.",
-  "author": "Nous Research",
+  "author": "zkjg.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/hermes-agent.git"
+    "url": "git+https://github.com/xtcamille/hermes-forX.git"
   },
   "type": "module",
   "main": "dist/electron-main.mjs",
@@ -296,7 +296,7 @@
     },
     "linux": {
       "category": "Development",
-      "maintainer": "Nous Research <support@nousresearch.com>",
+      "maintainer": "zkjg.com <support@zkjg.com>",
       "synopsis": "Native desktop shell for ForX Agent.",
       "target": [
         "AppImage",

