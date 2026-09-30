@@ -2287,6 +2287,75 @@ export const en: Translations = {
       savedRestarting: 'Telegram saved; gateway restarting…',
       savedRestartFailed: detail => `Telegram saved; gateway restart failed${detail}`
     },
+    weixinQr: {
+      sectionTitle: 'WeChat setup wizard',
+      title: 'Connect personal WeChat with QR scan',
+      recommended: 'Recommended',
+      subtitle:
+        'Install required dependencies, scan the Tencent iLink Bot QR code with your personal WeChat, and configure private chat access for ForX.',
+      step1DepsTitle: '1. Dependencies',
+      step1DepsReady: 'All required WeChat dependencies are installed.',
+      step1DepsMissing: pkgs => `Missing required packages: ${pkgs}. Click Install to set them up automatically.`,
+      step1OptionalMissing: pkgs => `Optional packages not installed: ${pkgs} (voice decoding / TLS CA bundle).`,
+      installDeps: 'Install required dependencies',
+      installAllDeps: 'Install dependencies',
+      installingDeps: 'Installing dependencies…',
+      recheckDeps: 'Recheck',
+      depsInstalledSuccess: 'WeChat dependencies are ready.',
+      pkgRequired: 'required',
+      pkgOptionalVoice: 'voice',
+      pkgOptionalTls: 'TLS',
+      step2QrTitle: '2. Scan QR Code with WeChat',
+      startQrScan: 'Scan with WeChat',
+      rescanQr: 'Scan new QR code',
+      startingQr: 'Generating QR code…',
+      replaceWarning:
+        'WeChat credentials are already configured. Scanning a new QR code will replace the current iLink Bot session when you save.',
+      waitingForScan: 'Waiting for WeChat scan…',
+      scannedConfirmHint: 'QR code scanned — please tap Confirm on your phone in WeChat.',
+      scanHint: 'Open WeChat on your phone, scan this QR code, and confirm login to connect with ForX.',
+      connectedBadge: 'WeChat confirmed',
+      accountConnected: accountId => `Connected bot: ${accountId}`,
+      ownerDetected: userId => `Your WeChat ID: ${userId}`,
+      expiresIn: remaining => `Expires in ${remaining}`,
+      expired: 'Expired',
+      refreshCount: count => `Auto-refreshed (${count}/3)`,
+      step3WizardTitle: '3. Private Chat & Access Wizard',
+      step3WizardSubtitle:
+        'Configure how your personal WeChat messages ForX directly. Your scanned WeChat ID is pre-filled so you can start chatting right away.',
+      dmPolicyLabel: 'Direct message (DM) policy',
+      dmPolicyHelp: 'Controls who can privately chat with your ForX Agent on WeChat.',
+      dmPolicies: {
+        pairing: 'Pairing approval (Recommended — pre-approves your WeChat ID)',
+        allowlist: 'Allowlist only (Only listed WeChat user IDs can DM)',
+        open: 'Open (Anyone who adds the bot can DM)',
+        disabled: 'Disabled (Ignore direct messages)'
+      },
+      allowedUsersLabel: 'Allowed WeChat user IDs',
+      allowedUsersHelp: 'Your personal iLink user ID is added automatically when you scan the QR code.',
+      allowedUsersPlaceholder: 'WeChat iLink user ID (e.g. xxx@im.wechat)',
+      add: 'Add',
+      addAtLeastOneUser: 'Add at least one WeChat user ID when DM policy is Allowlist.',
+      groupPolicyLabel: 'Group chat policy',
+      groupPolicyHelp: 'Note: Tencent iLink Bot accounts primarily support 1-on-1 private chat.',
+      groupPolicies: {
+        disabled: 'Disabled (Recommended)',
+        allowlist: 'Allowlist only (Only listed group chat IDs)',
+        open: 'Open (Allow all group chats delivered by iLink)'
+      },
+      groupAllowedLabel: 'Allowed group chat IDs',
+      groupAllowedPlaceholder: 'Group chat ID (e.g. xxx@chatroom)',
+      addAtLeastOneGroup: 'Add at least one group chat ID when group policy is Allowlist.',
+      homeChannelLabel: 'Set my WeChat DM as default notification channel',
+      homeChannelHelp: 'Delivers scheduled tasks (cron) and proactive ForX notifications to your WeChat DM.',
+      saveAndConnect: 'Save & connect WeChat',
+      saveWizardConfig: 'Save wizard settings & restart',
+      applying: 'Saving…',
+      pairingExpired: 'WeChat QR code expired. Start a new QR scan to try again.',
+      stillWaiting: detail => `Waiting for WeChat confirmation (${detail})`,
+      savedRestarting: 'WeChat configured; ForX gateway restarting…',
+      savedRestartFailed: detail => `WeChat saved; gateway restart failed${detail}`
+    },
     fieldCopy: {
       TELEGRAM_BOT_TOKEN: {
         label: 'Bot token',
@@ -2367,9 +2436,40 @@ export const en: Translations = {
       WHATSAPP_ALLOWED_USERS: {
         label: 'Allowed WhatsApp users',
         help: 'Recommended. Comma-separated phone numbers or WhatsApp IDs.'
+      },
+      WEIXIN_ACCOUNT_ID: {
+        label: 'iLink Bot account ID',
+        help: 'Populated automatically by scanning the WeChat QR code above.'
+      },
+      WEIXIN_TOKEN: {
+        label: 'iLink Bot token',
+        help: 'Populated automatically by scanning the WeChat QR code above.'
+      },
+      WEIXIN_ALLOWED_USERS: {
+        label: 'Allowed WeChat user IDs',
+        help: 'Comma-separated WeChat iLink user IDs allowed to privately message ForX.'
+      },
+      WEIXIN_DM_POLICY: {
+        label: 'WeChat DM policy',
+        help: 'pairing (default), allowlist, open, or disabled.'
+      },
+      WEIXIN_GROUP_POLICY: {
+        label: 'WeChat group policy',
+        help: 'disabled (default), allowlist, or open.'
+      },
+      WEIXIN_GROUP_ALLOWED_USERS: {
+        label: 'Allowed WeChat group IDs',
+        help: 'Comma-separated group chat IDs when group policy is allowlist.'
+      },
+      WEIXIN_BASE_URL: {
+        label: 'iLink API base URL',
+        help: 'Default: https://ilinkai.weixin.qq.com'
       }
     },
-    platformIntro: {}
+    platformIntro: {
+      weixin:
+        'Use the WeChat setup wizard above to install dependencies, scan the QR code with your personal WeChat, and start chatting privately with your ForX Agent.'
+    }
   },
 
   webhooks: {

@@ -2442,6 +2442,72 @@ export const zh = defineLocale({
       savedRestarting: 'Telegram 已保存；网关正在重启…',
       savedRestartFailed: detail => `Telegram 已保存；网关重启失败${detail}`
     },
+    weixinQr: {
+      sectionTitle: '微信接入与配置向导',
+      title: '个人微信扫码连接 ForX',
+      recommended: '推荐',
+      subtitle: '一键检查并安装依赖，使用个人微信扫描腾讯 iLink Bot 二维码，完成私聊权限配置即可直接与 ForX Agent 对话。',
+      step1DepsTitle: '1. 依赖环境检查与安装',
+      step1DepsReady: '微信接入所需的全部核心依赖均已安装。',
+      step1DepsMissing: pkgs => `缺少必需依赖：${pkgs}。请点击右侧按钮一键自动安装。`,
+      step1OptionalMissing: pkgs => `未安装可选依赖：${pkgs}（用于语音消息解码 / TLS 证书校验）。`,
+      installDeps: '一键安装必需依赖',
+      installAllDeps: '一键安装全部依赖',
+      installingDeps: '正在安装依赖…',
+      recheckDeps: '重新检测',
+      depsInstalledSuccess: '微信依赖环境已就绪。',
+      pkgRequired: '必需',
+      pkgOptionalVoice: '语音解码',
+      pkgOptionalTls: 'TLS 证书',
+      step2QrTitle: '2. 微信扫码连接',
+      startQrScan: '生成二维码并扫码连接',
+      rescanQr: '重新扫码连接',
+      startingQr: '正在生成二维码…',
+      replaceWarning: '当前已配置微信凭据。重新扫码并在下方保存后，将替换为新的个人微信连接会话。',
+      waitingForScan: '等待微信扫码…',
+      scannedConfirmHint: '已扫码 — 请在手机微信中点击「确认登录」。',
+      scanHint: '请打开手机个人微信扫描右侧二维码，并在微信内确认授权以连接 ForX Agent。',
+      connectedBadge: '微信已确认连接',
+      accountConnected: accountId => `已绑定 Bot 账号：${accountId}`,
+      ownerDetected: userId => `已识别你的微信 ID：${userId}`,
+      expiresIn: remaining => `${remaining} 后过期`,
+      expired: '二维码已过期',
+      refreshCount: count => `已自动刷新 (${count}/3)`,
+      step3WizardTitle: '3. 私聊与权限配置向导',
+      step3WizardSubtitle: '配置个人微信与 ForX Agent 的私聊授权策略。扫码后会自动填入你的微信 ID，保存后即可直接私聊对话。',
+      dmPolicyLabel: '私聊（DM）访问策略',
+      dmPolicyHelp: '控制哪些微信用户可以私聊你的 ForX Agent。',
+      dmPolicies: {
+        pairing: '配对审批模式（推荐 — 自动放行你的扫码微信号，陌生人需配对码）',
+        allowlist: '白名单模式（仅允许下方列表中的微信 ID 私聊）',
+        open: '开放模式（允许所有添加机器人的微信用户私聊）',
+        disabled: '禁用私聊（忽略所有私聊消息）'
+      },
+      allowedUsersLabel: '允许私聊的微信用户 ID（白名单）',
+      allowedUsersHelp: '扫码确认后会自动填入你本人的微信 iLink ID，确保你可以直接私聊 ForX Agent。',
+      allowedUsersPlaceholder: '输入微信 iLink 用户 ID（如 xxx@im.wechat）',
+      add: '添加',
+      addAtLeastOneUser: '当私聊策略为「白名单模式」时，请至少添加一个允许的微信用户 ID。',
+      groupPolicyLabel: '群聊访问策略',
+      groupPolicyHelp: '注：腾讯 iLink Bot 账号主要用于个人微信一对一私聊，普通微信群通常不支持拉入 @im.bot 账号。',
+      groupPolicies: {
+        disabled: '禁用群聊（推荐）',
+        allowlist: '群白名单模式（仅允许指定群聊 ID）',
+        open: '开放群聊（允许 iLink 投递的所有群聊消息）'
+      },
+      groupAllowedLabel: '允许的微信群聊 ID',
+      groupAllowedPlaceholder: '输入群聊 ID（如 xxx@chatroom）',
+      addAtLeastOneGroup: '当群聊策略为「群白名单模式」时，请至少添加一个群聊 ID。',
+      homeChannelLabel: '将我的微信私聊设为默认通知通道（Home Channel）',
+      homeChannelHelp: '开启后，ForX 的定时任务（Cron）与主动提醒将默认发送到你的个人微信私聊。',
+      saveAndConnect: '保存配置并启动微信连接',
+      saveWizardConfig: '保存向导配置并重启网关',
+      applying: '正在保存…',
+      pairingExpired: '微信二维码已过期，请点击重新生成二维码。',
+      stillWaiting: detail => `正在等待微信确认（${detail}）`,
+      savedRestarting: '微信配置已保存；ForX 消息网关正在重启…',
+      savedRestartFailed: detail => `微信配置已保存；网关重启失败${detail}`
+    },
     fieldCopy: {
       TELEGRAM_BOT_TOKEN: {
         label: 'Bot 令牌',
@@ -2495,7 +2561,35 @@ export const zh = defineLocale({
       SIGNAL_ALLOWED_USERS: { label: '允许的 Signal 用户', help: '推荐。逗号分隔的 Signal 标识符。' },
       WHATSAPP_ENABLED: { label: '启用 WhatsApp 桥接', help: '由下方开关自动设置。除非确知需要，否则请勿改动。' },
       WHATSAPP_MODE: { label: '桥接模式' },
-      WHATSAPP_ALLOWED_USERS: { label: '允许的 WhatsApp 用户', help: '推荐。逗号分隔的电话号码或 WhatsApp ID。' }
+      WHATSAPP_ALLOWED_USERS: { label: '允许的 WhatsApp 用户', help: '推荐。逗号分隔的电话号码或 WhatsApp ID。' },
+      WEIXIN_ACCOUNT_ID: {
+        label: 'iLink Bot 账号 ID',
+        help: '通过上方微信扫码登录自动获取并保存。'
+      },
+      WEIXIN_TOKEN: {
+        label: 'iLink Bot 令牌',
+        help: '通过上方微信扫码登录自动获取并保存。'
+      },
+      WEIXIN_ALLOWED_USERS: {
+        label: '允许私聊的微信用户 ID',
+        help: '逗号分隔的微信 iLink 用户 ID，扫码后会自动填入你的个人微信 ID。'
+      },
+      WEIXIN_DM_POLICY: {
+        label: '微信私聊策略',
+        help: '可选：pairing（默认配对）、allowlist（白名单）、open（开放）或 disabled（禁用）。'
+      },
+      WEIXIN_GROUP_POLICY: {
+        label: '微信群聊策略',
+        help: '可选：disabled（默认禁用）、allowlist（白名单）或 open（开放）。'
+      },
+      WEIXIN_GROUP_ALLOWED_USERS: {
+        label: '允许的微信群聊 ID',
+        help: '群聊策略为 allowlist 时允许的群聊 ID（逗号分隔）。'
+      },
+      WEIXIN_BASE_URL: {
+        label: 'iLink API 基础地址',
+        help: '默认：https://ilinkai.weixin.qq.com'
+      }
     },
     platformIntro: {
       telegram:
@@ -2517,7 +2611,7 @@ export const zh = defineLocale({
       wecom: '在企业微信中添加群机器人，复制其 webhook key 作为 WECOM_BOT_ID。仅可发送——双向请用企业微信 (应用) 选项。',
       wecom_callback: '设置一个企业微信自建应用，暴露其回调 URL，并提供 corp ID、secret、agent ID 和 AES key。',
       weixin:
-        '运行 `forx gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。ForX 会通过腾讯 iLink Bot API 连接并保存凭据。',
+        '使用上方「微信接入与配置向导」一键安装依赖、用个人微信扫描二维码并确认授权，即可直接通过微信私聊与 ForX Agent 对话。',
       qqbot: '在 QQ 开放平台 (q.qq.com) 注册一个应用，复制 App ID 和 Client Secret。',
       api_server:
         '把 ForX 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',

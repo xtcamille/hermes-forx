@@ -322,6 +322,7 @@ export interface MessagingPlatformInfo {
   name: string
   state?: null | string
   updated_at?: null | string
+  weixin_setup?: null | WeixinSetupInfo
 }
 
 export interface MessagingPlatformsResponse {
@@ -383,6 +384,93 @@ export interface TelegramOnboardingApplyResponse {
   restart_pid?: null | number
   restart_started?: boolean
 }
+
+// -- Weixin / WeChat QR onboarding & setup wizard -----------------------------
+
+export type WeixinDmPolicy = 'allowlist' | 'disabled' | 'open' | 'pairing'
+export type WeixinGroupPolicy = 'allowlist' | 'disabled' | 'open'
+
+export interface WeixinDependenciesStatus {
+  install_command: string
+  installed_required?: boolean
+  missing_optional: string[]
+  missing_required: string[]
+  ok: boolean
+  packages: {
+    aiohttp: boolean
+    certifi: boolean
+    cryptography: boolean
+    pilk: boolean
+  }
+}
+
+export interface WeixinSetupInfo {
+  account_id: string
+  allowed_users: string
+  base_url: string
+  dependencies: WeixinDependenciesStatus
+  dm_policy: WeixinDmPolicy
+  group_allowed_users: string
+  group_policy: WeixinGroupPolicy
+  home_channel: string
+  home_channel_set: boolean
+}
+
+export interface WeixinOnboardingStartPayload {
+  allowed_users?: string
+  bot_type?: string
+  dm_policy?: WeixinDmPolicy
+  group_allowed_users?: string
+  group_policy?: WeixinGroupPolicy
+  set_home_channel?: boolean
+}
+
+export interface WeixinOnboardingStatusResponse {
+  account_id?: null | string
+  allowed_users: string
+  base_url?: null | string
+  dm_policy: WeixinDmPolicy
+  error?: null | string
+  expires_at: string
+  group_allowed_users: string
+  group_policy: WeixinGroupPolicy
+  pairing_id: string
+  qr_payload?: null | string
+  refresh_count: number
+  set_home_channel: boolean
+  status: 'cancelled' | 'connected' | 'error' | 'expired' | 'scanned' | 'starting' | 'waiting'
+  user_id?: null | string
+}
+
+export interface WeixinOnboardingApplyPayload {
+  allowed_users?: string
+  dm_policy?: WeixinDmPolicy
+  group_allowed_users?: string
+  group_policy?: WeixinGroupPolicy
+  set_home_channel?: boolean
+}
+
+export interface WeixinOnboardingApplyResponse {
+  account_id?: null | string
+  needs_restart: boolean
+  ok: boolean
+  platform: 'weixin'
+  restart_action?: string
+  restart_error?: string
+  restart_pid?: null | number
+  restart_started?: boolean
+  user_id?: null | string
+}
+
+export interface WeixinConfigUpdatePayload {
+  allowed_users?: string
+  dm_policy?: WeixinDmPolicy
+  group_allowed_users?: string
+  group_policy?: WeixinGroupPolicy
+  home_channel_id?: string
+  set_home_channel?: boolean
+}
+
 
 // -- Webhooks (subscription CRUD) --------------------------------------------
 // Incoming HTTP event routes served by the webhook gateway platform. Backed by

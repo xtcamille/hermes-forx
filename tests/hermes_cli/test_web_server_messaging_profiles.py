@@ -339,3 +339,189 @@ def test_credential_write_on_default_profile_is_not_hot_served(client, isolated_
                       json={"enabled": True, "env": {"TELEGRAM_BOT_TOKEN": _VALID_WORKER_BOT_TOKEN}})
     assert resp.status_code == 200
     assert resp.json()["hot_served"] is False
+
+
+class TestWeixinOnboardingAndDependencies:
+    def test_weixin_dependencies_and_profile_scoped_qr_onboarding(
+        self, client, isolated_profiles, monkeypatch
+    ):
+        import contextlib
+        import gateway.platforms.weixin as wx_mod
+        import hermes_cli.web_server_messaging as wsm
+        import hermes_cli.web_routers.messaging as msg_router
+        import tools.lazy_deps as lazy_deps
+
+        with wsm._weixin_onboarding_lock:
+            wsm._weixin_onboarding_sessions.clear()
+
+        installed_calls = []
+        state = {
+            "aiohttp": False,
+            "cryptography": False,
+            "certifi": False,
+            "pilk": False,
+        }
+
+        def fake_refresh():
+            return dict(state)
+
+        def fake_install_specs(specs, label=""):
+            installed_calls.append(list(specs))
+            for spec in specs:
+                pkg = spec.split("==", 1)[0]
+                state[pkg] = True
+            wx_mod.AIOHTTP_AVAILABLE = True
+            wx_mod.CRYPTO_AVAILABLE = True
+            return True
+
+        monkeypatch.setattr(wx_mod, "refresh_weixin_requirements", fake_refresh)
+        monkeypatch.setattr(lazy_deps, "install_specs", fake_install_specs)
+
+        dep_resp = client.get(
+            "/api/messaging/weixin/dependencies", params={"profile": "worker_alpha"}
+        )
+        assert dep_resp.status_code == 200
+        assert dep_resp.json()["ok"] is False
+        assert set(dep_resp.json()["missing_required"]) == {"aiohttp", "cryptography"}
+
+        inst_resp = client.post(
+            "/api/messaging/weixin/dependencies/install",
+            params={"profile": "worker_alpha"},
+            json={"include_optional": False, "profile": "worker_alpha"},
+        )
+        assert inst_resp.status_code == 200
+        assert inst_resp.json()["ok"] is True
+        assert installed_calls == [["aiohttp==3.14.3", "cryptography==50.0.0"]]
+
+        @contextlib.asynccontextmanager
+        async def fake_new_session():
+            yield object()
+
+        async def fake_fetch_qr(session, bot_type="3"):
+            return ("wx-qr-ticket-1", "https://ilinkai.weixin.qq.com/qr/wx-qr-ticket-1")
+
+        async def fake_api_get(session, *, base_url, endpoint, timeout_ms):
+            assert "wx-qr-ticket-1" in endpoint
+            return {
+                "status": "confirmed",
+                "bot_token": "wx-secret-bot-token",
+                "ilink_bot_id": "wx_bot_acct_42",
+                "ilink_user_id": "wxid_owner_888",
+                "baseurl": "https://ilinkai.weixin.qq.com",
+            }
+
+        monkeypatch.setattr(wx_mod, "_new_session", fake_new_session)
+        monkeypatch.setattr(wx_mod, "_fetch_qr", fake_fetch_qr)
+        monkeypatch.setattr(wx_mod, "_api_get", fake_api_get)
+        monkeypatch.setattr(
+            msg_router,
+            "_restart_gateway_after_weixin_onboarding",
+            lambda profile=None: {"restart_started": True, "restart_error": None},
+        )
+
+        start_resp = client.post(
+            "/api/messaging/weixin/onboarding/start",
+            params={"profile": "worker_alpha"},
+            json={
+                "bot_type": "3",
+                "dm_policy": "allowlist",
+                "allowed_users": "",
+                "group_policy": "disabled",
+                "group_allowed_users": "",
+                "set_home_channel": True,
+                "profile": "worker_alpha",
+            },
+        )
+        assert start_resp.status_code == 200
+        start_data = start_resp.json()
+        pairing_id = start_data["pairing_id"]
+
+        # Wait briefly for the background onboarding thread to complete the mocked poll
+        import time as _time
+        for _ in range(40):
+            poll_resp = client.get(
+                f"/api/messaging/weixin/onboarding/{pairing_id}",
+                params={"profile": "worker_alpha"},
+            )
+            assert poll_resp.status_code == 200
+            poll_data = poll_resp.json()
+            if poll_data["status"] == "connected":
+                break
+            _time.sleep(0.05)
+
+        assert poll_data["status"] == "connected"
+        assert poll_data["account_id"] == "wx_bot_acct_42"
+        assert poll_data["user_id"] == "wxid_owner_888"
+        assert "token" not in poll_data
+
+        apply_resp = client.post(
+            f"/api/messaging/weixin/onboarding/{pairing_id}/apply",
+            params={"profile": "worker_alpha"},
+            json={
+                "dm_policy": "allowlist",
+                "allowed_users": "wxid_owner_888",
+                "group_policy": "disabled",
+                "group_allowed_users": "",
+                "set_home_channel": True,
+                "profile": "worker_alpha",
+            },
+        )
+        assert apply_resp.status_code == 200
+        apply_data = apply_resp.json()
+        assert apply_data["ok"] is True
+        assert apply_data["account_id"] == "wx_bot_acct_42"
+        assert apply_data["user_id"] == "wxid_owner_888"
+        assert apply_data["restart_started"] is True
+
+        worker_home = isolated_profiles["worker_alpha"]
+        worker_env = (worker_home / ".env").read_text(encoding="utf-8")
+        assert "WEIXIN_ACCOUNT_ID=wx_bot_acct_42" in worker_env
+        assert "WEIXIN_TOKEN=wx-secret-bot-token" in worker_env
+        assert "WEIXIN_DM_POLICY=allowlist" in worker_env
+        assert "WEIXIN_ALLOWED_USERS=wxid_owner_888" in worker_env
+        assert "WEIXIN_HOME_CHANNEL=wxid_owner_888" in worker_env
+
+        # Root profile .env must remain untouched
+        root_env = (isolated_profiles["default"] / ".env").read_text(encoding="utf-8")
+        assert "wx-secret-bot-token" not in root_env
+
+        # Account file saved inside worker_alpha's HERMES_HOME
+        acct_file = worker_home / "weixin" / "accounts" / "wx_bot_acct_42.json"
+        assert acct_file.exists()
+
+        # Platform payload includes weixin_setup metadata
+        platforms_resp = client.get(
+            "/api/messaging/platforms", params={"profile": "worker_alpha"}
+        )
+        weixin_plat = next(
+            p for p in platforms_resp.json()["platforms"] if p["id"] == "weixin"
+        )
+        assert weixin_plat["enabled"] is True
+        assert weixin_plat["configured"] is True
+        assert weixin_plat["weixin_setup"]["account_id"] == "wx_bot_acct_42"
+        assert weixin_plat["weixin_setup"]["dm_policy"] == "allowlist"
+        assert weixin_plat["weixin_setup"]["allowed_users"] == "wxid_owner_888"
+        assert weixin_plat["weixin_setup"]["home_channel"] == "wxid_owner_888"
+
+        # Policy update via /api/messaging/weixin/config
+        cfg_resp = client.post(
+            "/api/messaging/weixin/config",
+            params={"profile": "worker_alpha"},
+            json={
+                "dm_policy": "pairing",
+                "allowed_users": "wxid_owner_888,wxid_friend_2",
+                "group_policy": "allowlist",
+                "group_allowed_users": "wxid_owner_888",
+                "set_home_channel": True,
+                "home_channel_id": "wxid_owner_888",
+                "profile": "worker_alpha",
+            },
+        )
+        assert cfg_resp.status_code == 200
+        assert cfg_resp.json()["ok"] is True
+        worker_env_after = (worker_home / ".env").read_text(encoding="utf-8")
+        assert "WEIXIN_DM_POLICY=pairing" in worker_env_after
+        assert "WEIXIN_ALLOWED_USERS=wxid_owner_888,wxid_friend_2" in worker_env_after
+        assert "WEIXIN_GROUP_POLICY=allowlist" in worker_env_after
+
+

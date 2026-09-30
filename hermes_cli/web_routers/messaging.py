@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import subprocess
+import sys
 import threading
 import time
 import urllib.parse
@@ -30,11 +31,15 @@ from hermes_constants import get_process_hermes_home
 from hermes_cli.web_deps import LateState, late
 from hermes_cli.web_server_gateway import _restart_gateway_after
 from hermes_cli.web_server_messaging import (
-    _TelegramOnboardingPairing, _WhatsAppOnboardingSession, _messaging_platform_catalog, _telegram_onboarding_error_message, _telegram_onboarding_lock, _telegram_onboarding_pairings, _whatsapp_onboarding_payload, _whatsapp_onboarding_sessions,
+    _TelegramOnboardingPairing, _WeixinOnboardingSession, _WhatsAppOnboardingSession,
+    _messaging_platform_catalog, _telegram_onboarding_error_message, _telegram_onboarding_lock,
+    _telegram_onboarding_pairings, _weixin_onboarding_lock, _weixin_onboarding_payload,
+    _weixin_onboarding_sessions, _whatsapp_onboarding_payload, _whatsapp_onboarding_sessions,
 )
 from hermes_cli.web_routers._common import http_failure
 from hermes_cli.web_models import (
     MessagingPlatformUpdate, TelegramOnboardingApply, TelegramOnboardingStart,
+    WeixinConfigUpdate, WeixinDependenciesInstall, WeixinOnboardingApply, WeixinOnboardingStart,
     WhatsAppOnboardingApply, WhatsAppOnboardingStart,
 )
 
@@ -45,6 +50,7 @@ router = APIRouter()
 _config_profile_scope = late("_config_profile_scope", "hermes_cli.web_server_profiles")
 _profile_scope = late("_profile_scope", "hermes_cli.web_server_profiles")
 _resolve_profile_dir = late("_resolve_profile_dir", "hermes_cli.web_server_profiles")
+_restart_gateway_after_weixin_onboarding = late("_restart_gateway_after_weixin_onboarding", "hermes_cli.web_server_messaging")
 _restart_gateway_after_whatsapp_onboarding = late("_restart_gateway_after_whatsapp_onboarding", "hermes_cli.web_server_messaging")
 _telegram_onboarding_request_sync = late("_telegram_onboarding_request_sync", "hermes_cli.web_server_messaging")
 _whatsapp_session_path = late("_whatsapp_session_path", "hermes_cli.web_server_messaging")
@@ -86,9 +92,13 @@ _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
         ("WECOM_CALLBACK_AGENT_ID", "WeCom app agent ID", "WeCom Agent ID", {}),
         ("WECOM_CALLBACK_TOKEN", "WeCom callback verification token", "WeCom Token", {}),
         ("WECOM_CALLBACK_ENCODING_AES_KEY", "WeCom callback AES encoding key", "WeCom AES Key", {"password": True}),
-        ("WEIXIN_ACCOUNT_ID", "iLink Bot account ID obtained through QR login in hermes gateway setup", "iLink Bot account ID", {}),
-        ("WEIXIN_TOKEN", "iLink Bot token obtained through QR login in hermes gateway setup", "iLink Bot token", {"password": True}),
-        ("WEIXIN_BASE_URL", "iLink API base URL saved by QR login (default: https://ilinkai.weixin.qq.com)", "iLink API base URL", {}),
+        ("WEIXIN_ACCOUNT_ID", "iLink Bot account ID obtained through WeChat QR login in ForX", "iLink Bot account ID", {}),
+        ("WEIXIN_TOKEN", "iLink Bot token obtained through WeChat QR login in ForX", "iLink Bot token", {"password": True}),
+        ("WEIXIN_ALLOWED_USERS", "Comma-separated WeChat user IDs allowed to DM ForX", "Allowed WeChat user IDs", {}),
+        ("WEIXIN_DM_POLICY", "How WeChat direct messages are authorized (pairing, allowlist, open, disabled)", "WeChat DM policy", {"advanced": True}),
+        ("WEIXIN_GROUP_POLICY", "How WeChat group messages are authorized (disabled, allowlist, open)", "WeChat group policy", {"advanced": True}),
+        ("WEIXIN_GROUP_ALLOWED_USERS", "Comma-separated WeChat group chat IDs allowed when group policy is allowlist", "Allowed WeChat group IDs", {"advanced": True}),
+        ("WEIXIN_BASE_URL", "iLink API base URL saved by QR login (default: https://ilinkai.weixin.qq.com)", "iLink API base URL", {"advanced": True}),
         ("FEISHU_APP_ID", "Feishu / Lark app ID", "App ID", {}),
         ("FEISHU_APP_SECRET", "Feishu / Lark app secret", "App secret", {"password": True}),
         ("FEISHU_ENCRYPT_KEY", "Feishu / Lark encrypt key", "Encrypt key", {"password": True}),
@@ -273,7 +283,25 @@ def _messaging_platform_payload(
             "allowed_users_set": bool(env_value("WHATSAPP_ALLOWED_USERS").strip()),
             "home_channel_set": bool(home_channel),
         }
+    elif platform_id == "weixin":
+        dm_policy = env_value("WEIXIN_DM_POLICY").strip().lower()
+        group_policy = env_value("WEIXIN_GROUP_POLICY").strip().lower()
+        weixin_home = env_value("WEIXIN_HOME_CHANNEL").strip() or (
+            str(home_channel.get("chat_id") or "").strip() if isinstance(home_channel, dict) else ""
+        )
+        payload["weixin_setup"] = {
+            "dependencies": _weixin_dependencies_status(refresh=False),
+            "dm_policy": dm_policy if dm_policy in {"pairing", "allowlist", "open", "disabled"} else "pairing",
+            "allowed_users": env_value("WEIXIN_ALLOWED_USERS").strip(),
+            "group_policy": group_policy if group_policy in {"disabled", "allowlist", "open"} else "disabled",
+            "group_allowed_users": env_value("WEIXIN_GROUP_ALLOWED_USERS").strip(),
+            "home_channel": weixin_home,
+            "home_channel_set": bool(weixin_home),
+            "account_id": env_value("WEIXIN_ACCOUNT_ID").strip(),
+            "base_url": env_value("WEIXIN_BASE_URL").strip() or "https://ilinkai.weixin.qq.com",
+        }
     return payload
+
 
 
 def _platform_payloads(scoped_dir: Optional[Path], entries) -> list[dict[str, Any]]:
@@ -784,6 +812,564 @@ async def cancel_telegram_onboarding(pairing_id: str):
     with _telegram_onboarding_lock:
         _telegram_onboarding_pairings.pop(pairing_id, None)
     return {"ok": True}
+
+
+# ── Weixin / WeChat QR onboarding & setup wizard ───────────────
+
+_WEIXIN_ONBOARDING_TTL_SECONDS = 480
+_WEIXIN_ONBOARDING_TERMINAL_STATUSES = {"connected", "error", "expired", "cancelled"}
+_WEIXIN_SESSION_NOT_FOUND = "WeChat setup session was not found. Start a new scan."
+_WEIXIN_DM_POLICIES = {"pairing", "allowlist", "open", "disabled"}
+_WEIXIN_GROUP_POLICIES = {"disabled", "allowlist", "open"}
+_WEIXIN_REQUIRED_SPECS = ("aiohttp==3.14.3", "cryptography==50.0.0")
+
+
+def _weixin_dependencies_status(refresh: bool = False) -> dict[str, Any]:
+    import importlib.util
+    from gateway.platforms import weixin as _wx
+
+    if refresh:
+        req = _wx.refresh_weixin_requirements()
+    else:
+        req = {
+            "aiohttp": bool(_wx.AIOHTTP_AVAILABLE),
+            "cryptography": bool(_wx.CRYPTO_AVAILABLE),
+            "certifi": importlib.util.find_spec("certifi") is not None,
+            "pilk": importlib.util.find_spec("pilk") is not None,
+        }
+    missing_required = [pkg for pkg in ("aiohttp", "cryptography") if not req.get(pkg)]
+    missing_optional = [pkg for pkg in ("certifi", "pilk") if not req.get(pkg)]
+    return {
+        "ok": len(missing_required) == 0,
+        "packages": {
+            "aiohttp": bool(req.get("aiohttp")),
+            "cryptography": bool(req.get("cryptography")),
+            "certifi": bool(req.get("certifi")),
+            "pilk": bool(req.get("pilk")),
+        },
+        "missing_required": missing_required,
+        "missing_optional": missing_optional,
+        "install_command": "pip install aiohttp cryptography certifi pilk",
+    }
+
+
+def _normalize_weixin_dm_policy(value: Any) -> str:
+    policy = str(value or "pairing").strip().lower()
+    if policy not in _WEIXIN_DM_POLICIES:
+        raise HTTPException(
+            status_code=400,
+            detail="WeChat DM policy must be 'pairing', 'allowlist', 'open', or 'disabled'.",
+        )
+    return policy
+
+
+def _normalize_weixin_group_policy(value: Any) -> str:
+    policy = str(value or "disabled").strip().lower()
+    if policy not in _WEIXIN_GROUP_POLICIES:
+        raise HTTPException(
+            status_code=400,
+            detail="WeChat group policy must be 'disabled', 'allowlist', or 'open'.",
+        )
+    return policy
+
+
+def _normalize_weixin_allowed_users(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return ",".join(part.strip() for part in raw.split(",") if part.strip())
+
+
+def _save_weixin_policy_env(
+    *,
+    dm_policy: str,
+    allowed_users: str,
+    group_policy: str,
+    group_allowed_users: str,
+    set_home_channel: bool,
+    home_channel_candidate: str = "",
+) -> None:
+    save_env_value("WEIXIN_DM_POLICY", dm_policy)
+    save_env_value("WEIXIN_ALLOW_ALL_USERS", "true" if dm_policy == "open" else "false")
+    if allowed_users:
+        save_env_value("WEIXIN_ALLOWED_USERS", allowed_users)
+    else:
+        remove_env_value("WEIXIN_ALLOWED_USERS")
+    save_env_value("WEIXIN_GROUP_POLICY", group_policy)
+    if group_policy == "allowlist" and group_allowed_users:
+        save_env_value("WEIXIN_GROUP_ALLOWED_USERS", group_allowed_users)
+    else:
+        remove_env_value("WEIXIN_GROUP_ALLOWED_USERS")
+    if set_home_channel and home_channel_candidate:
+        save_env_value("WEIXIN_HOME_CHANNEL", home_channel_candidate)
+    elif not set_home_channel:
+        remove_env_value("WEIXIN_HOME_CHANNEL")
+
+
+def _prune_weixin_onboarding_sessions() -> None:
+    now = time.time()
+    remove_ids: list[str] = []
+    for pairing_id, record in _weixin_onboarding_sessions.items():
+        if record.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES and record.expires_at_ts <= now:
+            record.status = "expired"
+            record.error = "WeChat QR setup expired. Start a new scan."
+        if record.status in _WEIXIN_ONBOARDING_TERMINAL_STATUSES and record.expires_at_ts + 300 <= now:
+            remove_ids.append(pairing_id)
+    for pairing_id in remove_ids:
+        _weixin_onboarding_sessions.pop(pairing_id, None)
+
+
+def _weixin_record_or_404(pairing_id: str) -> _WeixinOnboardingSession:
+    """Call with ``_weixin_onboarding_lock`` held."""
+    _prune_weixin_onboarding_sessions()
+    record = _weixin_onboarding_sessions.get(pairing_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=_WEIXIN_SESSION_NOT_FOUND)
+    return record
+
+
+async def _refresh_expired_weixin_qr(
+    session, record: _WeixinOnboardingSession, bot_type: str, _wx
+) -> tuple[str, str] | None:
+    with _weixin_onboarding_lock:
+        record.refresh_count += 1
+        refresh_count = record.refresh_count
+    if refresh_count > 3:
+        with _weixin_onboarding_lock:
+            record.status = "expired"
+            record.error = "WeChat QR code expired multiple times. Start a new scan."
+        return None
+    try:
+        qrcode_value, qrcode_url = await _wx._fetch_qr(session, bot_type)
+        if not qrcode_value:
+            raise RuntimeError("Empty QR code returned on refresh")
+        with _weixin_onboarding_lock:
+            if not record.cancelled and record.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                record.qrcode_value = qrcode_value
+                record.qr_payload = qrcode_url or qrcode_value
+                record.status = "waiting"
+                record.error = None
+        return qrcode_value, _wx.ILINK_BASE_URL
+    except Exception as exc:
+        with _weixin_onboarding_lock:
+            record.status = "error"
+            record.error = f"Failed to refresh expired WeChat QR code: {exc}"
+        return None
+
+
+def _confirm_weixin_onboarding(record: _WeixinOnboardingSession, status_resp: dict[str, Any], _wx) -> None:
+    account_id = str(status_resp.get("ilink_bot_id") or "").strip()
+    token = str(status_resp.get("bot_token") or "").strip()
+    base_url = str(status_resp.get("baseurl") or _wx.ILINK_BASE_URL).strip()
+    user_id = str(status_resp.get("ilink_user_id") or "").strip()
+    if not account_id or not token:
+        with _weixin_onboarding_lock:
+            record.status = "error"
+            record.error = "WeChat login confirmed, but returned incomplete credentials."
+        return
+    try:
+        with _config_profile_scope(record.profile):
+            from hermes_constants import get_hermes_home
+            _wx.save_weixin_account(
+                str(get_hermes_home()),
+                account_id=account_id,
+                token=token,
+                base_url=base_url,
+                user_id=user_id,
+            )
+    except Exception:
+        _log.warning("Failed to persist WeChat account snapshot file", exc_info=True)
+    with _weixin_onboarding_lock:
+        record.account_id = account_id
+        record.token = token
+        record.base_url = base_url
+        record.user_id = user_id or None
+        if user_id and not record.allowed_users:
+            record.allowed_users = user_id
+        record.status = "connected"
+        record.error = None
+
+
+async def _run_weixin_onboarding_async(pairing_id: str) -> None:
+    from gateway.platforms import weixin as _wx
+
+    with _weixin_onboarding_lock:
+        record = _weixin_onboarding_sessions.get(pairing_id)
+        if not record or record.cancelled or record.status in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+            return
+        bot_type = record.bot_type or "3"
+
+    if not _wx.AIOHTTP_AVAILABLE:
+        _wx.refresh_weixin_requirements()
+    if not _wx.AIOHTTP_AVAILABLE:
+        with _weixin_onboarding_lock:
+            record = _weixin_onboarding_sessions.get(pairing_id)
+            if record:
+                record.status = "error"
+                record.error = "Missing required dependency 'aiohttp'. Install dependencies first."
+        return
+
+    try:
+        async with _wx._new_session() as session:
+            qrcode_value, qrcode_url = await _wx._fetch_qr(session, bot_type)
+            if not qrcode_value:
+                with _weixin_onboarding_lock:
+                    record = _weixin_onboarding_sessions.get(pairing_id)
+                    if record:
+                        record.status = "error"
+                        record.error = "WeChat iLink service did not return a QR code."
+                return
+
+            with _weixin_onboarding_lock:
+                record = _weixin_onboarding_sessions.get(pairing_id)
+                if not record or record.cancelled or record.status in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                    return
+                record.qrcode_value = qrcode_value
+                record.qr_payload = qrcode_url or qrcode_value
+                record.status = "waiting"
+                record.error = None
+
+            current_base_url = _wx.ILINK_BASE_URL
+            while True:
+                with _weixin_onboarding_lock:
+                    record = _weixin_onboarding_sessions.get(pairing_id)
+                    if not record or record.cancelled or record.status in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                        return
+                    if time.time() >= record.expires_at_ts:
+                        record.status = "expired"
+                        record.error = "WeChat QR login timed out. Start a new scan."
+                        return
+
+                try:
+                    status_resp = await _wx._api_get(
+                        session,
+                        base_url=current_base_url,
+                        endpoint=f"{_wx.EP_GET_QR_STATUS}?qrcode={urllib.parse.quote(qrcode_value, safe='')}",
+                        timeout_ms=_wx.QR_TIMEOUT_MS,
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                except Exception as exc:
+                    _log.debug("weixin QR poll error: %s", exc)
+                    await asyncio.sleep(1)
+                    continue
+
+                status = str(status_resp.get("status") or "wait").strip()
+                if status in {"scaned", "scanned", "scaned_but_redirect"}:
+                    redirect_host = str(status_resp.get("redirect_host") or "").strip()
+                    if status == "scaned_but_redirect" and redirect_host:
+                        current_base_url = f"https://{redirect_host}"
+                    with _weixin_onboarding_lock:
+                        if not record.cancelled and record.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                            record.status = "scanned"
+                elif status == "expired":
+                    refreshed = await _refresh_expired_weixin_qr(session, record, bot_type, _wx)
+                    if refreshed is None:
+                        return
+                    qrcode_value, current_base_url = refreshed
+                elif status == "confirmed":
+                    _confirm_weixin_onboarding(record, status_resp, _wx)
+                    return
+
+                await asyncio.sleep(1)
+    except Exception as exc:
+        with _weixin_onboarding_lock:
+            record = _weixin_onboarding_sessions.get(pairing_id)
+            if record and not record.cancelled and record.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                record.status = "error"
+                record.error = f"WeChat QR login failed: {exc}"
+
+
+def _run_weixin_onboarding(pairing_id: str) -> None:
+    try:
+        asyncio.run(_run_weixin_onboarding_async(pairing_id))
+    except Exception as exc:
+        with _weixin_onboarding_lock:
+            record = _weixin_onboarding_sessions.get(pairing_id)
+            if record and not record.cancelled and record.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                record.status = "error"
+                record.error = str(exc)
+
+
+@router.get("/api/messaging/weixin/dependencies")
+async def get_weixin_dependencies():
+    return await asyncio.to_thread(_weixin_dependencies_status, True)
+
+
+def _install_weixin_specs(specs: tuple[str, ...]) -> tuple[bool, str]:
+    """Install WeChat pip specs via ``install_specs``, falling back to ``sys.executable -m pip`` with
+    ``--break-system-packages`` (and ``--user`` if ``sys.executable`` lives in a read-only directory like
+    ``C:\\Program Files\\ForX``)."""
+    import importlib
+    import site
+    from hermes_cli._subprocess_compat import windows_hide_flags
+    from tools.lazy_deps import install_specs
+
+    if not specs:
+        return True, ""
+    res = install_specs(specs)
+    if isinstance(res, bool):
+        if res:
+            return True, ""
+        err = ""
+    else:
+        if getattr(res, "ok", False):
+            return True, ""
+        err = (getattr(res, "stderr", "") or getattr(res, "reason", "") or getattr(res, "stdout", "")).strip()
+
+    for extra_flags in (
+        ("--break-system-packages", "--no-warn-script-location"),
+        ("--user", "--break-system-packages", "--no-warn-script-location"),
+    ):
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "pip", "install", *extra_flags, *specs],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                stdin=subprocess.DEVNULL,
+                timeout=180,
+                creationflags=windows_hide_flags(),
+            )
+            if proc.returncode == 0:
+                try:
+                    user_site = site.getusersitepackages()
+                    if user_site and os.path.isdir(user_site) and user_site not in sys.path:
+                        site.addsitedir(user_site)
+                except Exception:
+                    pass
+                importlib.invalidate_caches()
+                return True, ""
+            pip_err = (proc.stderr or proc.stdout or "").strip()
+            if pip_err:
+                err = pip_err
+        except Exception as exc:
+            err = f"{err}; fallback pip failed: {exc}" if err else str(exc)
+    return False, err[-500:] if err else "unknown pip error"
+
+
+@router.post("/api/messaging/weixin/dependencies/install")
+async def install_weixin_dependencies(body: WeixinDependenciesInstall):
+    def _install() -> dict[str, Any]:
+        status = _weixin_dependencies_status(refresh=True)
+        required_to_install = tuple(
+            spec for spec in _WEIXIN_REQUIRED_SPECS
+            if spec.split("==", 1)[0] in status["missing_required"]
+        )
+        installed_required = True
+        errors: list[str] = []
+        if required_to_install:
+            installed_required, err = _install_weixin_specs(required_to_install)
+            if not installed_required and err:
+                errors.append(err)
+        if body.include_optional and "certifi" in status["missing_optional"]:
+            ok_cert, err = _install_weixin_specs(("certifi==2026.5.20",))
+            if not ok_cert and err:
+                errors.append(f"certifi: {err}")
+        if body.include_optional and "pilk" in status["missing_optional"]:
+            ok_pilk, err = _install_weixin_specs(("pilk==0.2.4",))
+            if not ok_pilk and err:
+                errors.append(f"pilk: {err}")
+
+        updated = _weixin_dependencies_status(refresh=True)
+        if not updated["ok"]:
+            detail_suffix = f" ({'; '.join(errors)})" if errors else ""
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Failed to install required WeChat dependencies: {', '.join(updated['missing_required'])}{detail_suffix}. "
+                    f"Try running: {updated['install_command']}"
+                ),
+            )
+        if body.include_optional and updated["missing_optional"] and errors:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Failed to install optional WeChat dependencies ({', '.join(updated['missing_optional'])}): "
+                    f"{'; '.join(errors)}"
+                ),
+            )
+        return {**updated, "installed_required": installed_required}
+
+    return await asyncio.to_thread(_install)
+
+
+@router.post("/api/messaging/weixin/onboarding/start")
+async def start_weixin_onboarding(body: WeixinOnboardingStart):
+    deps = await asyncio.to_thread(_weixin_dependencies_status, False)
+    if not deps["ok"]:
+        deps = await asyncio.to_thread(_weixin_dependencies_status, True)
+    if not deps["ok"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required dependencies ({', '.join(deps['missing_required'])}). Install dependencies first.",
+        )
+
+    dm_policy = _normalize_weixin_dm_policy(body.dm_policy)
+    allowed_users = _normalize_weixin_allowed_users(body.allowed_users)
+    group_policy = _normalize_weixin_group_policy(body.group_policy)
+    group_allowed_users = _normalize_weixin_allowed_users(body.group_allowed_users)
+    bot_type = (body.bot_type or "3").strip() or "3"
+    expires_at_ts = time.time() + _WEIXIN_ONBOARDING_TTL_SECONDS
+    expires_at = datetime.fromtimestamp(expires_at_ts, timezone.utc).isoformat().replace("+00:00", "Z")
+
+    record = _WeixinOnboardingSession(
+        expires_at=expires_at,
+        expires_at_ts=expires_at_ts,
+        bot_type=bot_type,
+        dm_policy=dm_policy,
+        allowed_users=allowed_users,
+        group_policy=group_policy,
+        group_allowed_users=group_allowed_users,
+        set_home_channel=bool(body.set_home_channel),
+        profile=body.profile,
+        status="starting",
+    )
+    pairing_id = secrets.token_urlsafe(16)
+    with _weixin_onboarding_lock:
+        _prune_weixin_onboarding_sessions()
+        for existing in _weixin_onboarding_sessions.values():
+            if existing.profile == body.profile and existing.status not in _WEIXIN_ONBOARDING_TERMINAL_STATUSES:
+                existing.cancelled = True
+                existing.status = "cancelled"
+                existing.error = "Superseded by a newer WeChat setup session."
+        _weixin_onboarding_sessions[pairing_id] = record
+
+    threading.Thread(target=_run_weixin_onboarding, args=(pairing_id,), daemon=True).start()
+    return _weixin_onboarding_payload(pairing_id, record)
+
+
+@router.get("/api/messaging/weixin/onboarding/{pairing_id}")
+async def get_weixin_onboarding_status(pairing_id: str):
+    with _weixin_onboarding_lock:
+        record = _weixin_record_or_404(pairing_id)
+        if record.status == "expired":
+            raise HTTPException(status_code=410, detail=record.error or "WeChat QR setup expired.")
+        return _weixin_onboarding_payload(pairing_id, record)
+
+
+@router.post("/api/messaging/weixin/onboarding/{pairing_id}/apply")
+async def apply_weixin_onboarding(pairing_id: str, body: WeixinOnboardingApply, profile: Optional[str] = None):
+    with _weixin_onboarding_lock:
+        record = _weixin_record_or_404(pairing_id)
+        if record.status != "connected" or not record.account_id or not record.token:
+            raise HTTPException(status_code=409, detail="WeChat QR login is not connected yet.")
+        dm_policy = _normalize_weixin_dm_policy(record.dm_policy if body.dm_policy is None else body.dm_policy)
+        allowed_users = _normalize_weixin_allowed_users(
+            record.allowed_users if body.allowed_users is None else body.allowed_users
+        )
+        if not allowed_users and record.user_id and dm_policy in {"pairing", "allowlist"}:
+            allowed_users = record.user_id
+        if dm_policy == "allowlist" and not allowed_users:
+            raise HTTPException(status_code=400, detail="Add at least one allowed WeChat user ID when DM policy is 'allowlist'.")
+        group_policy = _normalize_weixin_group_policy(
+            record.group_policy if body.group_policy is None else body.group_policy
+        )
+        group_allowed_users = _normalize_weixin_allowed_users(
+            record.group_allowed_users if body.group_allowed_users is None else body.group_allowed_users
+        )
+        if group_policy == "allowlist" and not group_allowed_users:
+            raise HTTPException(status_code=400, detail="Add at least one allowed group chat ID when group policy is 'allowlist'.")
+        set_home_channel = record.set_home_channel if body.set_home_channel is None else bool(body.set_home_channel)
+        account_id = record.account_id
+        token = record.token
+        base_url = record.base_url or "https://ilinkai.weixin.qq.com"
+        user_id = record.user_id or ""
+        record_profile = record.profile
+
+    effective_profile = body.profile or profile or record_profile
+    first_allowed = allowed_users.split(",")[0].strip() if allowed_users else ""
+    home_candidate = user_id or first_allowed
+
+    def _apply() -> None:
+        with _config_profile_scope(effective_profile):
+            save_env_value("WEIXIN_ACCOUNT_ID", account_id)
+            save_env_value("WEIXIN_TOKEN", token)
+            if base_url:
+                save_env_value("WEIXIN_BASE_URL", base_url)
+            existing_env = load_env()
+            if not existing_env.get("WEIXIN_CDN_BASE_URL"):
+                save_env_value("WEIXIN_CDN_BASE_URL", "https://novac2c.cdn.weixin.qq.com/c2c")
+            _save_weixin_policy_env(
+                dm_policy=dm_policy,
+                allowed_users=allowed_users,
+                group_policy=group_policy,
+                group_allowed_users=group_allowed_users,
+                set_home_channel=set_home_channel,
+                home_channel_candidate=home_candidate,
+            )
+            _write_platform_enabled("weixin", True)
+
+    with _onboarding_save_errors("WeChat onboarding apply failed", "Failed to save WeChat setup."):
+        await asyncio.to_thread(_apply)
+
+    with _weixin_onboarding_lock:
+        _weixin_onboarding_sessions.pop(pairing_id, None)
+
+    await asyncio.to_thread(_notify_multiplexer_hot_serve, effective_profile)
+    restart_result = _restart_gateway_after_weixin_onboarding(effective_profile)
+    return {
+        "ok": True,
+        "platform": "weixin",
+        "account_id": account_id,
+        "user_id": user_id or None,
+        "needs_restart": not restart_result["restart_started"],
+        **restart_result,
+    }
+
+
+@router.delete("/api/messaging/weixin/onboarding/{pairing_id}")
+async def cancel_weixin_onboarding(pairing_id: str):
+    with _weixin_onboarding_lock:
+        record = _weixin_onboarding_sessions.pop(pairing_id, None)
+        if record:
+            record.cancelled = True
+            record.status = "cancelled"
+    return {"ok": True}
+
+
+@router.post("/api/messaging/weixin/config")
+async def update_weixin_config(body: WeixinConfigUpdate, profile: Optional[str] = None):
+    dm_policy = _normalize_weixin_dm_policy(body.dm_policy)
+    allowed_users = _normalize_weixin_allowed_users(body.allowed_users)
+    if dm_policy == "allowlist" and not allowed_users:
+        raise HTTPException(status_code=400, detail="Add at least one allowed WeChat user ID when DM policy is 'allowlist'.")
+    group_policy = _normalize_weixin_group_policy(body.group_policy)
+    group_allowed_users = _normalize_weixin_allowed_users(body.group_allowed_users)
+    if group_policy == "allowlist" and not group_allowed_users:
+        raise HTTPException(status_code=400, detail="Add at least one allowed group chat ID when group policy is 'allowlist'.")
+
+    effective_profile = body.profile or profile
+    first_allowed = allowed_users.split(",")[0].strip() if allowed_users else ""
+    home_candidate = (body.home_channel_id or "").strip() or first_allowed
+
+    def _apply() -> None:
+        with _config_profile_scope(effective_profile):
+            existing_env = load_env()
+            candidate = home_candidate or existing_env.get("WEIXIN_HOME_CHANNEL", "").strip()
+            _save_weixin_policy_env(
+                dm_policy=dm_policy,
+                allowed_users=allowed_users,
+                group_policy=group_policy,
+                group_allowed_users=group_allowed_users,
+                set_home_channel=bool(body.set_home_channel),
+                home_channel_candidate=candidate,
+            )
+            if existing_env.get("WEIXIN_ACCOUNT_ID") and existing_env.get("WEIXIN_TOKEN"):
+                _write_platform_enabled("weixin", True)
+
+    with _onboarding_save_errors("WeChat config update failed", "Failed to save WeChat configuration."):
+        await asyncio.to_thread(_apply)
+
+    await asyncio.to_thread(_notify_multiplexer_hot_serve, effective_profile)
+    restart_result = _restart_gateway_after_weixin_onboarding(effective_profile)
+    return {
+        "ok": True,
+        "platform": "weixin",
+        "needs_restart": not restart_result["restart_started"],
+        **restart_result,
+    }
 
 
 # ── platform list / update / test ──────────────────────────────

@@ -1991,6 +1991,72 @@ export interface Translations {
       savedRestarting: string
       savedRestartFailed: (detail: string) => string
     }
+    weixinQr: {
+      sectionTitle: string
+      title: string
+      recommended: string
+      subtitle: string
+      step1DepsTitle: string
+      step1DepsReady: string
+      step1DepsMissing: (pkgs: string) => string
+      step1OptionalMissing: (pkgs: string) => string
+      installDeps: string
+      installAllDeps: string
+      installingDeps: string
+      recheckDeps: string
+      depsInstalledSuccess: string
+      pkgRequired: string
+      pkgOptionalVoice: string
+      pkgOptionalTls: string
+      step2QrTitle: string
+      startQrScan: string
+      rescanQr: string
+      startingQr: string
+      replaceWarning: string
+      waitingForScan: string
+      scannedConfirmHint: string
+      scanHint: string
+      connectedBadge: string
+      accountConnected: (accountId: string) => string
+      ownerDetected: (userId: string) => string
+      expiresIn: (remaining: string) => string
+      expired: string
+      refreshCount: (count: number) => string
+      step3WizardTitle: string
+      step3WizardSubtitle: string
+      dmPolicyLabel: string
+      dmPolicyHelp: string
+      dmPolicies: {
+        pairing: string
+        allowlist: string
+        open: string
+        disabled: string
+      }
+      allowedUsersLabel: string
+      allowedUsersHelp: string
+      allowedUsersPlaceholder: string
+      add: string
+      addAtLeastOneUser: string
+      groupPolicyLabel: string
+      groupPolicyHelp: string
+      groupPolicies: {
+        disabled: string
+        allowlist: string
+        open: string
+      }
+      groupAllowedLabel: string
+      groupAllowedPlaceholder: string
+      addAtLeastOneGroup: string
+      homeChannelLabel: string
+      homeChannelHelp: string
+      saveAndConnect: string
+      saveWizardConfig: string
+      applying: string
+      pairingExpired: string
+      stillWaiting: (detail: string) => string
+      savedRestarting: string
+      savedRestartFailed: (detail: string) => string
+    }
     fieldCopy: Record<string, { label?: string; help?: string; placeholder?: string }>
     platformIntro: Record<string, string>
   }

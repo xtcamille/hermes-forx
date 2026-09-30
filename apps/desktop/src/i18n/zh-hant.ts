@@ -1844,6 +1844,72 @@ export const zhHant = defineLocale({
       savedRestarting: 'Telegram 已儲存；閘道正在重新啟動…',
       savedRestartFailed: detail => `Telegram 已儲存；閘道重新啟動失敗${detail}`
     },
+    weixinQr: {
+      sectionTitle: '微信接入與設定精靈',
+      title: '個人微信掃碼連接 ForX',
+      recommended: '推薦',
+      subtitle: '一鍵檢查並安裝相依套件，使用個人微信掃描騰訊 iLink Bot QR 碼，完成私訊權限設定即可直接與 ForX Agent 對話。',
+      step1DepsTitle: '1. 相依套件檢查與安裝',
+      step1DepsReady: '微信接入所需的全部核心相依套件均已安裝。',
+      step1DepsMissing: pkgs => `缺少必需相依套件：${pkgs}。請點擊右側按鈕一鍵自動安裝。`,
+      step1OptionalMissing: pkgs => `未安裝選用相依套件：${pkgs}（用於語音訊息解碼 / TLS 憑證校驗）。`,
+      installDeps: '一鍵安裝必需相依套件',
+      installAllDeps: '一鍵安裝全部相依套件',
+      installingDeps: '正在安裝相依套件…',
+      recheckDeps: '重新檢測',
+      depsInstalledSuccess: '微信相依環境已就緒。',
+      pkgRequired: '必需',
+      pkgOptionalVoice: '語音解碼',
+      pkgOptionalTls: 'TLS 憑證',
+      step2QrTitle: '2. 微信掃碼連接',
+      startQrScan: '產生 QR 碼並掃碼連接',
+      rescanQr: '重新掃碼連接',
+      startingQr: '正在產生 QR 碼…',
+      replaceWarning: '目前已經設定微信憑證。重新掃碼並在下方儲存後，將取代為新的個人微信連線工作階段。',
+      waitingForScan: '等待微信掃碼…',
+      scannedConfirmHint: '已掃碼 — 請在手機微信中點擊「確認登入」。',
+      scanHint: '請打開手機個人微信掃描右側 QR 碼，並在微信內確認授權以連接 ForX Agent。',
+      connectedBadge: '微信已確認連接',
+      accountConnected: accountId => `已綁定 Bot 帳號：${accountId}`,
+      ownerDetected: userId => `已識別你的微信 ID：${userId}`,
+      expiresIn: remaining => `${remaining} 後到期`,
+      expired: 'QR 碼已到期',
+      refreshCount: count => `已自動重新整理 (${count}/3)`,
+      step3WizardTitle: '3. 私訊與權限設定精靈',
+      step3WizardSubtitle: '設定個人微信與 ForX Agent 的私訊授權策略。掃碼後會自動填入你的微信 ID，儲存後即可直接私訊對話。',
+      dmPolicyLabel: '私訊（DM）存取策略',
+      dmPolicyHelp: '控制哪些微信使用者可以私訊你的 ForX Agent。',
+      dmPolicies: {
+        pairing: '配對審批模式（推薦 — 自動放行你的掃碼微信號，陌生人需配對碼）',
+        allowlist: '白名單模式（僅允許下方清單中的微信 ID 私訊）',
+        open: '開放模式（允許所有新增機器人的微信使用者私訊）',
+        disabled: '停用私訊（忽略所有私訊訊息）'
+      },
+      allowedUsersLabel: '允許私訊的微信使用者 ID（白名單）',
+      allowedUsersHelp: '掃碼確認後會自動填入你本人的微信 iLink ID，確保你可以直接私訊 ForX Agent。',
+      allowedUsersPlaceholder: '輸入微信 iLink 使用者 ID（如 xxx@im.wechat）',
+      add: '新增',
+      addAtLeastOneUser: '當私訊策略為「白名單模式」時，請至少新增一個允許的微信使用者 ID。',
+      groupPolicyLabel: '群組聊天存取策略',
+      groupPolicyHelp: '註：騰訊 iLink Bot 帳號主要用於個人微信一對一私訊，一般微信群通常不支援邀請 @im.bot 帳號。',
+      groupPolicies: {
+        disabled: '停用群組聊天（推薦）',
+        allowlist: '群組白名單模式（僅允許指定群組 ID）',
+        open: '開放群組聊天（允許 iLink 傳遞的所有群組訊息）'
+      },
+      groupAllowedLabel: '允許的微信群組 ID',
+      groupAllowedPlaceholder: '輸入群組 ID（如 xxx@chatroom）',
+      addAtLeastOneGroup: '當群組策略為「群組白名單模式」時，請至少新增一個群組 ID。',
+      homeChannelLabel: '將我的微信私訊設為預設通知通道（Home Channel）',
+      homeChannelHelp: '開啟後，ForX 的排程任務（Cron）與主動提醒將預設傳送到你的個人微信私訊。',
+      saveAndConnect: '儲存設定並啟動微信連線',
+      saveWizardConfig: '儲存精靈設定並重新啟動閘道',
+      applying: '正在儲存…',
+      pairingExpired: '微信 QR 碼已到期，請點擊重新產生 QR 碼。',
+      stillWaiting: detail => `正在等待微信確認（${detail}）`,
+      savedRestarting: '微信設定已儲存；ForX 訊息閘道正在重新啟動…',
+      savedRestartFailed: detail => `微信設定已儲存；閘道重新啟動失敗${detail}`
+    },
     credentialsSet: '憑證已設定',
     needsSetup: '需要設定',
     gatewayStopped: '訊息閘道已停止',
@@ -1947,9 +2013,40 @@ export const zhHant = defineLocale({
       WHATSAPP_ALLOWED_USERS: {
         label: '允許的 WhatsApp 使用者',
         help: '建議設定。逗號分隔的電話號碼或 WhatsApp ID。'
+      },
+      WEIXIN_ACCOUNT_ID: {
+        label: 'iLink Bot 帳號 ID',
+        help: '透過上方微信掃碼登入自動取得並儲存。'
+      },
+      WEIXIN_TOKEN: {
+        label: 'iLink Bot 權杖',
+        help: '透過上方微信掃碼登入自動取得並儲存。'
+      },
+      WEIXIN_ALLOWED_USERS: {
+        label: '允許私訊的微信使用者 ID',
+        help: '逗號分隔的微信 iLink 使用者 ID，掃碼後會自動填入你的個人微信 ID。'
+      },
+      WEIXIN_DM_POLICY: {
+        label: '微信私訊策略',
+        help: '可選：pairing（預設配對）、allowlist（白名單）、open（開放）或 disabled（停用）。'
+      },
+      WEIXIN_GROUP_POLICY: {
+        label: '微信群組策略',
+        help: '可選：disabled（預設停用）、allowlist（白名單）或 open（開放）。'
+      },
+      WEIXIN_GROUP_ALLOWED_USERS: {
+        label: '允許的微信群組 ID',
+        help: '群組策略為 allowlist 時允許的群組 ID（逗號分隔）。'
+      },
+      WEIXIN_BASE_URL: {
+        label: 'iLink API 基礎位址',
+        help: '預設：https://ilinkai.weixin.qq.com'
       }
     },
-    platformIntro: {}
+    platformIntro: {
+      weixin:
+        '使用上方「微信接入與設定精靈」一鍵安裝相依套件、用個人微信掃描 QR 碼並確認授權，即可直接透過微信私訊與 ForX Agent 對話。'
+    }
   },
 
   profiles: {

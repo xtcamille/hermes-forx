@@ -21,7 +21,8 @@ import {
   type PairingUser,
   revokePairing,
   type TelegramOnboardingApplyResponse,
-  updateMessagingPlatform
+  updateMessagingPlatform,
+  type WeixinOnboardingApplyResponse
 } from '@/hermes'
 import { type Translations, useI18n } from '@/i18n'
 import { openExternalLink } from '@/lib/external-link'
@@ -44,6 +45,7 @@ import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 import { PlatformAvatar } from './platform-icon'
 import { TelegramQrSetup } from './telegram-qr-setup'
+import { WeixinQrSetup } from './weixin-qr-setup'
 
 interface MessagingViewProps extends React.ComponentProps<'section'> {
   setStatusbarItemGroup?: SetStatusbarItemGroup
@@ -112,6 +114,10 @@ const FIELD_COPY: Record<string, { advanced?: boolean }> = {
   QQ_ALLOW_ALL_USERS: { advanced: true },
   QQBOT_HOME_CHANNEL: { advanced: true },
   QQBOT_HOME_CHANNEL_NAME: { advanced: true },
+  WEIXIN_DM_POLICY: { advanced: true },
+  WEIXIN_GROUP_POLICY: { advanced: true },
+  WEIXIN_GROUP_ALLOWED_USERS: { advanced: true },
+  WEIXIN_BASE_URL: { advanced: true },
   WHATSAPP_ENABLED: { advanced: true },
   WHATSAPP_MODE: { advanced: true }
 }
@@ -445,6 +451,40 @@ export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
     }
   }
 
+  async function handleWeixinApplied(result: WeixinOnboardingApplyResponse) {
+    await refreshPlatforms(true)
+
+    if (result.restart_started) {
+      notify({ kind: 'success', title: m.setupSaved('Weixin'), message: m.weixinQr.savedRestarting })
+      setRestartNeeded(false)
+      const ok = await watchGatewayRestartOutcome()
+
+      if (!ok) {
+        setRestartNeeded(true)
+        notify({
+          kind: 'error',
+          title: m.restartFailedManual,
+          message: m.restartFailedManualDetail,
+          action: { label: m.restartAgain, onClick: () => void runGatewayRestart() },
+          secondaryAction: { label: m.openLogs, onClick: () => void window.hermesDesktop?.revealLogs?.().catch(() => undefined) }
+        })
+      }
+
+      void refreshPlatforms(true)
+
+      return
+    }
+
+    if (result.needs_restart) {
+      await restartGatewayNow()
+
+      if (result.restart_error) {
+        notifyError(new Error(result.restart_error), m.weixinQr.savedRestartFailed(`: ${result.restart_error}`))
+        setRestartNeeded(true)
+      }
+    }
+  }
+
   // Approve/revoke paint from a snapshot immediately, then let the
   // authoritative refresh have the last word. A failed write restores the
   // snapshot so the row never silently disappears on an error.
@@ -577,6 +617,7 @@ export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
                     }
                     onRevoke={setPendingRevoke}
                     onTelegramApplied={result => void handleTelegramApplied(result)}
+                    onWeixinApplied={result => void handleWeixinApplied(result)}
                     pending={pendingByPlatform[selected.id] ?? []}
                     platform={selected}
                     saving={saving}
@@ -659,6 +700,7 @@ function PlatformDetail({
   onEdit,
   onRevoke,
   onTelegramApplied,
+  onWeixinApplied,
   pending,
   platform,
   saving,
@@ -672,6 +714,7 @@ function PlatformDetail({
   onEdit: (key: string, value: string) => void
   onRevoke: (user: PairingUser) => void
   onTelegramApplied: (result: TelegramOnboardingApplyResponse) => void
+  onWeixinApplied: (result: WeixinOnboardingApplyResponse) => void
   pending: PairingUser[]
   platform: MessagingPlatformInfo
   saving: string | null
@@ -780,103 +823,114 @@ function PlatformDetail({
         </section>
       )}
 
-      <section>
-        <SectionTitle>{m.getCredentials}</SectionTitle>
-        <p className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-          {introCopy(platform, m)}
-        </p>
-        {platform.docs_url && (
+      {platform.id === 'weixin' ? (
+        <section>
+          <SectionTitle>{m.weixinQr.sectionTitle}</SectionTitle>
           <div className="mt-3">
-            <Button asChild size="sm" variant="textStrong">
-              <a
-                href={platform.docs_url}
-                onClick={event => {
-                  // Route through the validated external opener instead of
-                  // letting Electron resolve the anchor. A packaged build's
-                  // empty/relative href resolves to the app's own
-                  // index.html file path, which shell.openPath then fails to
-                  // open ("file not found"). Plugin platforms (Teams, etc.)
-                  // ship no docs_url, so this guard + handler keeps the
-                  // button from ever pointing at a local bundle path.
-                  event.preventDefault()
-                  openExternalLink(platform.docs_url)
-                }}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {m.openSetupGuide}
-                <ExternalLink className="size-3.5" />
-              </a>
-            </Button>
+            <WeixinQrSetup onApplied={onWeixinApplied} platform={platform} scopeProfile={scopeProfile} />
           </div>
-        )}
-      </section>
-
-      <section>
-        <SectionTitle>{m.required}</SectionTitle>
-        <div className="mt-3 grid gap-1">
-          {requiredFields.length > 0 ? (
-            requiredFields.map(field => (
-              <MessagingField
-                edits={edits}
-                field={field}
-                key={field.key}
-                onClear={onClear}
-                onEdit={onEdit}
-                saving={saving}
-              />
-            ))
-          ) : (
-            <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-              {m.noTokenNeeded}
+        </section>
+      ) : (
+        <>
+          <section>
+            <SectionTitle>{m.getCredentials}</SectionTitle>
+            <p className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+              {introCopy(platform, m)}
             </p>
-          )}
-        </div>
-      </section>
+            {platform.docs_url && (
+              <div className="mt-3">
+                <Button asChild size="sm" variant="textStrong">
+                  <a
+                    href={platform.docs_url}
+                    onClick={event => {
+                      // Route through the validated external opener instead of
+                      // letting Electron resolve the anchor. A packaged build's
+                      // empty/relative href resolves to the app's own
+                      // index.html file path, which shell.openPath then fails to
+                      // open ("file not found"). Plugin platforms (Teams, etc.)
+                      // ship no docs_url, so this guard + handler keeps the
+                      // button from ever pointing at a local bundle path.
+                      event.preventDefault()
+                      openExternalLink(platform.docs_url)
+                    }}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {m.openSetupGuide}
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </Button>
+              </div>
+            )}
+          </section>
 
-      {optionalFields.length > 0 && (
-        <section>
-          <SectionTitle>{m.recommended}</SectionTitle>
-          <div className="mt-3 grid gap-1">
-            {optionalFields.map(field => (
-              <MessagingField
-                edits={edits}
-                field={field}
-                key={field.key}
-                onClear={onClear}
-                onEdit={onEdit}
-                saving={saving}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {hiddenCount > 0 && (
-        <section>
-          <button
-            className="flex w-full items-center justify-between gap-2 py-0.5 text-left text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setShowAdvanced(value => !value)}
-            type="button"
-          >
-            <span>{m.advanced(hiddenCount)}</span>
-            <DisclosureCaret open={showAdvanced} size="0.875rem" />
-          </button>
-          {showAdvanced && (
+          <section>
+            <SectionTitle>{m.required}</SectionTitle>
             <div className="mt-3 grid gap-1">
-              {advancedFields.map(field => (
-                <MessagingField
-                  edits={edits}
-                  field={field}
-                  key={field.key}
-                  onClear={onClear}
-                  onEdit={onEdit}
-                  saving={saving}
-                />
-              ))}
+              {requiredFields.length > 0 ? (
+                requiredFields.map(field => (
+                  <MessagingField
+                    edits={edits}
+                    field={field}
+                    key={field.key}
+                    onClear={onClear}
+                    onEdit={onEdit}
+                    saving={saving}
+                  />
+                ))
+              ) : (
+                <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+                  {m.noTokenNeeded}
+                </p>
+              )}
             </div>
+          </section>
+
+          {optionalFields.length > 0 && (
+            <section>
+              <SectionTitle>{m.recommended}</SectionTitle>
+              <div className="mt-3 grid gap-1">
+                {optionalFields.map(field => (
+                  <MessagingField
+                    edits={edits}
+                    field={field}
+                    key={field.key}
+                    onClear={onClear}
+                    onEdit={onEdit}
+                    saving={saving}
+                  />
+                ))}
+              </div>
+            </section>
           )}
-        </section>
+
+          {hiddenCount > 0 && (
+            <section>
+              <button
+                className="flex w-full items-center justify-between gap-2 py-0.5 text-left text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => setShowAdvanced(value => !value)}
+                type="button"
+              >
+                <span>{m.advanced(hiddenCount)}</span>
+                <DisclosureCaret open={showAdvanced} size="0.875rem" />
+              </button>
+              {showAdvanced && (
+                <div className="mt-3 grid gap-1">
+                  {advancedFields.map(field => (
+                    <MessagingField
+                      edits={edits}
+                      field={field}
+                      key={field.key}
+                      onClear={onClear}
+                      onEdit={onEdit}
+                      saving={saving}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
     </>
   )
@@ -909,13 +963,15 @@ function PlatformActionBar({
         size="xs"
       />
 
-      <div className="ml-auto flex items-center gap-2">
-        {hasEdits && <span className="text-xs text-muted-foreground">{m.unsavedChanges}</span>}
-        <Button disabled={!hasEdits || isSavingEnv} onClick={onSave} size="sm">
-          <Save />
-          {isSavingEnv ? m.saving : m.saveChanges}
-        </Button>
-      </div>
+      {platform.id !== 'weixin' && (
+        <div className="ml-auto flex items-center gap-2">
+          {hasEdits && <span className="text-xs text-muted-foreground">{m.unsavedChanges}</span>}
+          <Button disabled={!hasEdits || isSavingEnv} onClick={onSave} size="sm">
+            <Save />
+            {isSavingEnv ? m.saving : m.saveChanges}
+          </Button>
+        </div>
+      )}
     </>
   )
 }
@@ -931,11 +987,11 @@ const PLATFORM_INTRO: Record<string, string> = {
     'On your Mattermost server, create a bot account or personal access token, then paste the server URL and token here.',
   matrix: 'Sign in to your homeserver with the bot account, then copy the access token, user ID, and homeserver URL.',
   signal:
-    'Run a signal-cli REST bridge somewhere reachable, then point Hermes at the URL and the registered phone number.',
+    'Run a signal-cli REST bridge somewhere reachable, then point ForX at the URL and the registered phone number.',
   whatsapp:
-    'Start the WhatsApp bridge that ships with Hermes, scan the QR code on first run, then enable the platform.',
+    'Start the WhatsApp bridge that ships with ForX, scan the QR code on first run, then enable the platform.',
   bluebubbles:
-    'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point Hermes at the URL with the server password.',
+    'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point ForX at the URL with the server password.',
   homeassistant:
     'In Home Assistant, open your profile and create a long-lived access token. Paste it here along with your HA URL.',
   email:
@@ -949,10 +1005,10 @@ const PLATFORM_INTRO: Record<string, string> = {
   wecom_callback:
     'Set up a WeCom self-built app, expose its callback URL, and provide the corp ID, secret, agent ID, and AES key.',
   weixin:
-    "Run `hermes gateway setup`, select Weixin, then scan and confirm the QR code with a personal WeChat account. Hermes connects through Tencent's iLink Bot API and saves the credentials.",
+    "Install the dependencies and scan the QR code in the setup wizard above with your personal WeChat account (or run `forx gateway setup` and select Weixin). ForX connects through Tencent's iLink Bot API and saves the credentials.",
   qqbot: 'Register an app on the QQ Open Platform (q.qq.com) and copy the App ID and Client Secret.',
   api_server:
-    'Expose Hermes as an OpenAI-compatible API. Set an auth key, then point Open WebUI / LobeChat / etc. at the host:port.',
+    'Expose ForX as an OpenAI-compatible API. Set an auth key, then point Open WebUI / LobeChat / etc. at the host:port.',
   webhook:
     'Run an HTTP server that other tools (GitHub, GitLab, custom apps) can POST to. Use the secret to verify signatures.'
 }

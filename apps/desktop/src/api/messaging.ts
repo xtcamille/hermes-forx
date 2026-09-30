@@ -10,7 +10,13 @@ import type {
   WebhookCreatePayload,
   WebhookCreateResponse,
   WebhookEnableResponse,
-  WebhooksResponse
+  WebhooksResponse,
+  WeixinConfigUpdatePayload,
+  WeixinDependenciesStatus,
+  WeixinOnboardingApplyPayload,
+  WeixinOnboardingApplyResponse,
+  WeixinOnboardingStartPayload,
+  WeixinOnboardingStatusResponse
 } from '@/types/hermes'
 
 import { hermesApi, profileScoped } from './client'
@@ -103,6 +109,92 @@ export function cancelTelegramOnboarding(pairingId: string, profile?: null | str
     method: 'DELETE'
   })
 }
+
+// -- Weixin / WeChat QR onboarding & setup wizard -----------------------------
+
+export function getWeixinDependencies(profile?: null | string): Promise<WeixinDependenciesStatus> {
+  return hermesApi<WeixinDependenciesStatus>({
+    ...profileScoped(profile),
+    path: '/api/messaging/weixin/dependencies'
+  })
+}
+
+export function installWeixinDependencies(
+  includeOptional = true,
+  profile?: null | string
+): Promise<WeixinDependenciesStatus> {
+  const scope = profileScoped(profile)
+
+  return hermesApi<WeixinDependenciesStatus>({
+    ...scope,
+    path: '/api/messaging/weixin/dependencies/install',
+    method: 'POST',
+    timeoutMs: 180_000,
+    body: { include_optional: includeOptional, profile: scope.profile }
+  })
+}
+
+export function startWeixinOnboarding(
+  payload: WeixinOnboardingStartPayload = {},
+  profile?: null | string
+): Promise<WeixinOnboardingStatusResponse> {
+  const scope = profileScoped(profile)
+
+  return hermesApi<WeixinOnboardingStatusResponse>({
+    ...scope,
+    path: '/api/messaging/weixin/onboarding/start',
+    method: 'POST',
+    body: { ...payload, profile: scope.profile }
+  })
+}
+
+export function getWeixinOnboardingStatus(
+  pairingId: string,
+  profile?: null | string
+): Promise<WeixinOnboardingStatusResponse> {
+  return hermesApi<WeixinOnboardingStatusResponse>({
+    ...profileScoped(profile),
+    path: `/api/messaging/weixin/onboarding/${encodeURIComponent(pairingId)}`
+  })
+}
+
+export function applyWeixinOnboarding(
+  pairingId: string,
+  payload: WeixinOnboardingApplyPayload = {},
+  profile?: null | string
+): Promise<WeixinOnboardingApplyResponse> {
+  const scope = profileScoped(profile)
+
+  return hermesApi<WeixinOnboardingApplyResponse>({
+    ...scope,
+    path: `/api/messaging/weixin/onboarding/${encodeURIComponent(pairingId)}/apply`,
+    method: 'POST',
+    body: { ...payload, profile: scope.profile }
+  })
+}
+
+export function cancelWeixinOnboarding(pairingId: string, profile?: null | string): Promise<{ ok: boolean }> {
+  return hermesApi<{ ok: boolean }>({
+    ...profileScoped(profile),
+    path: `/api/messaging/weixin/onboarding/${encodeURIComponent(pairingId)}`,
+    method: 'DELETE'
+  })
+}
+
+export function updateWeixinConfig(
+  payload: WeixinConfigUpdatePayload,
+  profile?: null | string
+): Promise<WeixinOnboardingApplyResponse> {
+  const scope = profileScoped(profile)
+
+  return hermesApi<WeixinOnboardingApplyResponse>({
+    ...scope,
+    path: '/api/messaging/weixin/config',
+    method: 'POST',
+    body: { ...payload, profile: scope.profile }
+  })
+}
+
 
 // -- Pairing (who may DM the bot) --------------------------------------------
 // Unknown DMers get a one-time code and land in `pending` until an admin

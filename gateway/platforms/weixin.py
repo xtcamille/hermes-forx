@@ -115,6 +115,49 @@ def check_weixin_requirements() -> bool:
     return AIOHTTP_AVAILABLE and CRYPTO_AVAILABLE
 
 
+def refresh_weixin_requirements() -> Dict[str, bool]:
+    """Re-probe Weixin dependencies after a runtime install and update module bindings."""
+    global aiohttp, AIOHTTP_AVAILABLE, default_backend, Cipher, algorithms, modes, CRYPTO_AVAILABLE
+    import importlib
+    import site
+    try:
+        user_site = site.getusersitepackages()
+        if user_site and os.path.isdir(user_site) and user_site not in sys.path:
+            site.addsitedir(user_site)
+    except Exception:
+        pass
+    importlib.invalidate_caches()
+    if not AIOHTTP_AVAILABLE:
+        try:
+            import aiohttp as _aiohttp
+            aiohttp = _aiohttp
+            AIOHTTP_AVAILABLE = True
+        except ImportError:
+            pass
+    if not CRYPTO_AVAILABLE:
+        try:
+            from cryptography.hazmat.backends import default_backend as _db
+            from cryptography.hazmat.primitives.ciphers import Cipher as _Cipher, algorithms as _alg, modes as _modes
+            default_backend, Cipher, algorithms, modes = _db, _Cipher, _alg, _modes
+            CRYPTO_AVAILABLE = True
+        except ImportError:
+            pass
+    certifi_ok = False
+    with contextlib.suppress(ImportError):
+        import certifi as _certifi  # noqa: F401
+        certifi_ok = True
+    pilk_ok = False
+    with contextlib.suppress(ImportError):
+        import pilk as _pilk  # noqa: F401
+        pilk_ok = True
+    return {
+        "aiohttp": bool(AIOHTTP_AVAILABLE),
+        "cryptography": bool(CRYPTO_AVAILABLE),
+        "certifi": certifi_ok,
+        "pilk": pilk_ok,
+    }
+
+
 def _safe_id(value: Optional[str], keep: int = 8) -> str:
     raw = str(value or "").strip()
     return raw[:keep] if raw else "?"

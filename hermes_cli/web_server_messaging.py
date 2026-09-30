@@ -125,9 +125,13 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "weixin": {
         "name": "Weixin / WeChat (Personal)",
-        "description": "Connect a personal WeChat account through Tencent's iLink Bot API.",
+        "description": "Connect a personal WeChat account to ForX through Tencent's iLink Bot API.",
         "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/weixin/",
-        "env_vars": ("WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN", "WEIXIN_BASE_URL"),
+        "env_vars": (
+            "WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN", "WEIXIN_ALLOWED_USERS",
+            "WEIXIN_DM_POLICY", "WEIXIN_GROUP_POLICY", "WEIXIN_GROUP_ALLOWED_USERS",
+            "WEIXIN_BASE_URL",
+        ),
         "required_env": ("WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN"),
     },
     "bluebubbles": {
@@ -447,3 +451,46 @@ def _telegram_onboarding_request_sync(
     if not isinstance(parsed, dict):
         raise HTTPException(status_code=502, detail=_TELEGRAM_INVALID)
     return parsed
+
+
+@dataclass
+class _WeixinOnboardingSession:
+    expires_at: str
+    expires_at_ts: float
+    bot_type: str = "3"
+    dm_policy: str = "pairing"
+    allowed_users: str = ""
+    group_policy: str = "disabled"
+    group_allowed_users: str = ""
+    set_home_channel: bool = True
+    profile: str | None = None
+    status: str = "starting"
+    qr_payload: str | None = None
+    qrcode_value: str | None = None
+    account_id: str | None = None
+    token: str | None = None
+    base_url: str | None = None
+    user_id: str | None = None
+    refresh_count: int = 0
+    error: str | None = None
+    cancelled: bool = False
+
+
+_weixin_onboarding_sessions: dict[str, _WeixinOnboardingSession] = {}
+_weixin_onboarding_lock = threading.RLock()
+
+_WEIXIN_PAYLOAD_FIELDS = (
+    "status", "qr_payload", "expires_at", "dm_policy", "allowed_users",
+    "group_policy", "group_allowed_users", "set_home_channel",
+    "account_id", "user_id", "base_url", "refresh_count", "error",
+)
+
+
+def _weixin_onboarding_payload(pairing_id: str, record: _WeixinOnboardingSession) -> dict[str, Any]:
+    return {"pairing_id": pairing_id, **{f: getattr(record, f) for f in _WEIXIN_PAYLOAD_FIELDS}}
+
+
+def _restart_gateway_after_weixin_onboarding(profile: Optional[str] = None) -> dict[str, Any]:
+    from hermes_cli.web_server_gateway import _restart_gateway_after
+    return _restart_gateway_after(profile, what="WeChat onboarding", label="WeChat onboarding")
+

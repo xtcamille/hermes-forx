@@ -79,6 +79,36 @@ class WhatsAppOnboardingApply(BaseModel):
     allowed_users: Optional[str] = None
     profile: Optional[str] = None
 
+class WeixinDependenciesInstall(BaseModel):
+    include_optional: bool = True
+    profile: Optional[str] = None
+
+class WeixinOnboardingStart(BaseModel):
+    bot_type: str = "3"
+    dm_policy: Optional[str] = "pairing"
+    allowed_users: Optional[str] = ""
+    group_policy: Optional[str] = "disabled"
+    group_allowed_users: Optional[str] = ""
+    set_home_channel: bool = True
+    profile: Optional[str] = None
+
+class WeixinOnboardingApply(BaseModel):
+    dm_policy: Optional[str] = None
+    allowed_users: Optional[str] = None
+    group_policy: Optional[str] = None
+    group_allowed_users: Optional[str] = None
+    set_home_channel: Optional[bool] = None
+    profile: Optional[str] = None
+
+class WeixinConfigUpdate(BaseModel):
+    dm_policy: Optional[str] = "pairing"
+    allowed_users: Optional[str] = ""
+    group_policy: Optional[str] = "disabled"
+    group_allowed_users: Optional[str] = ""
+    set_home_channel: bool = True
+    home_channel_id: Optional[str] = None
+    profile: Optional[str] = None
+
 class AudioTranscriptionRequest(BaseModel):
     data_url: str
     mime_type: Optional[str] = None

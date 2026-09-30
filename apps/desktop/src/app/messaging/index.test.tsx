@@ -16,6 +16,12 @@ const watchGatewayRestartOutcome = vi.fn()
 const startTelegramOnboarding = vi.fn()
 const getTelegramOnboardingStatus = vi.fn()
 const applyTelegramOnboarding = vi.fn()
+const getWeixinDependencies = vi.fn()
+const installWeixinDependencies = vi.fn()
+const startWeixinOnboarding = vi.fn()
+const getWeixinOnboardingStatus = vi.fn()
+const applyWeixinOnboarding = vi.fn()
+const updateWeixinConfig = vi.fn()
 
 vi.mock('@/hermes', () => ({
   approvePairing: (platformId: string, requestId: string, profile?: null | string) =>
@@ -32,6 +38,16 @@ vi.mock('@/hermes', () => ({
   getTelegramOnboardingStatus: (pairingId: string, profile?: null | string) =>
     getTelegramOnboardingStatus(pairingId, profile),
   startTelegramOnboarding: (botName?: string, profile?: null | string) => startTelegramOnboarding(botName, profile),
+  getWeixinDependencies: (profile?: null | string) => getWeixinDependencies(profile),
+  installWeixinDependencies: (includeOptional?: boolean, profile?: null | string) =>
+    installWeixinDependencies(includeOptional, profile),
+  startWeixinOnboarding: (payload?: unknown, profile?: null | string) => startWeixinOnboarding(payload, profile),
+  getWeixinOnboardingStatus: (pairingId: string, profile?: null | string) =>
+    getWeixinOnboardingStatus(pairingId, profile),
+  applyWeixinOnboarding: (pairingId: string, payload?: unknown, profile?: null | string) =>
+    applyWeixinOnboarding(pairingId, payload, profile),
+  cancelWeixinOnboarding: vi.fn(async () => ({ ok: true })),
+  updateWeixinConfig: (payload: unknown, profile?: null | string) => updateWeixinConfig(payload, profile),
   updateMessagingPlatform: (id: string, body: unknown, profile?: null | string) =>
     updateMessagingPlatform(id, body, profile)
 }))
@@ -357,3 +373,156 @@ describe('MessagingView Telegram quick setup', () => {
     }
   })
 })
+
+describe('MessagingView Weixin setup wizard', () => {
+  it('installs missing dependencies, scans the WeChat QR code, and saves private chat configuration', async () => {
+    const { $settingsScopeOverride } = await import('@/store/settings-scope')
+    $settingsScopeOverride.set('worker')
+
+    getMessagingPlatforms.mockResolvedValue({
+      platforms: [
+        platform({
+          id: 'weixin',
+          name: 'Weixin (WeChat)',
+          state: 'not_configured',
+          weixin_setup: {
+            account_id: '',
+            allowed_users: '',
+            base_url: 'https://ilinkai.weixin.qq.com',
+            dependencies: {
+              install_command: 'pip install aiohttp cryptography certifi pilk',
+              missing_optional: ['certifi', 'pilk'],
+              missing_required: ['aiohttp', 'cryptography'],
+              ok: false,
+              packages: {
+                aiohttp: false,
+                certifi: false,
+                cryptography: false,
+                pilk: false
+              }
+            },
+            dm_policy: 'pairing',
+            group_allowed_users: '',
+            group_policy: 'disabled',
+            home_channel: '',
+            home_channel_set: false
+          }
+        })
+      ]
+    })
+
+    installWeixinDependencies.mockResolvedValue({
+      install_command: 'pip install aiohttp cryptography certifi pilk',
+      installed_required: true,
+      missing_optional: [],
+      missing_required: [],
+      ok: true,
+      packages: {
+        aiohttp: true,
+        certifi: true,
+        cryptography: true,
+        pilk: true
+      }
+    })
+
+    startWeixinOnboarding.mockResolvedValue({
+      account_id: null,
+      allowed_users: '',
+      base_url: 'https://ilinkai.weixin.qq.com',
+      dm_policy: 'pairing',
+      error: null,
+      expires_at: new Date(Date.now() + 300_000).toISOString(),
+      group_allowed_users: '',
+      group_policy: 'disabled',
+      pairing_id: 'wx-pair-1',
+      qr_payload: 'https://ilinkai.weixin.qq.com/qr/12345',
+      refresh_count: 0,
+      set_home_channel: true,
+      status: 'waiting',
+      user_id: null
+    })
+
+    getWeixinOnboardingStatus.mockResolvedValue({
+      account_id: 'wx_bot_account_1',
+      allowed_users: 'wxid_personal_user_99',
+      base_url: 'https://ilinkai.weixin.qq.com',
+      dm_policy: 'pairing',
+      error: null,
+      expires_at: new Date(Date.now() + 300_000).toISOString(),
+      group_allowed_users: '',
+      group_policy: 'disabled',
+      pairing_id: 'wx-pair-1',
+      qr_payload: 'https://ilinkai.weixin.qq.com/qr/12345',
+      refresh_count: 0,
+      set_home_channel: true,
+      status: 'connected',
+      user_id: 'wxid_personal_user_99'
+    })
+
+    applyWeixinOnboarding.mockResolvedValue({
+      account_id: 'wx_bot_account_1',
+      needs_restart: false,
+      ok: true,
+      platform: 'weixin',
+      restart_started: true,
+      user_id: 'wxid_personal_user_99'
+    })
+
+    try {
+      await renderMessaging()
+
+      expect(screen.queryByText('Get your credentials')).toBeNull()
+      expect(screen.queryByText('WEIXIN_ACCOUNT_ID')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull()
+
+      const installBtn = await screen.findByRole('button', { name: /Install required dependencies/ })
+      await act(async () => {
+        fireEvent.click(installBtn)
+      })
+      await waitFor(() => expect(installWeixinDependencies).toHaveBeenCalledWith(true, 'worker'))
+
+      const generateQrBtn = await screen.findByRole('button', { name: /Scan with WeChat/ })
+      await act(async () => {
+        fireEvent.click(generateQrBtn)
+      })
+      await waitFor(() =>
+        expect(startWeixinOnboarding).toHaveBeenCalledWith(
+          {
+            allowed_users: '',
+            dm_policy: 'pairing',
+            group_allowed_users: '',
+            group_policy: 'disabled',
+            set_home_channel: true
+          },
+          'worker'
+        )
+      )
+
+      const saveBtn = await screen.findByRole('button', { name: /Save & connect WeChat/ }, { timeout: 4000 })
+      expect(getWeixinOnboardingStatus).toHaveBeenCalledWith('wx-pair-1', 'worker')
+      expect(screen.getAllByText(/wxid_personal_user_99/).length).toBeGreaterThan(0)
+
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() =>
+        expect(applyWeixinOnboarding).toHaveBeenCalledWith(
+          'wx-pair-1',
+          {
+            allowed_users: 'wxid_personal_user_99',
+            dm_policy: 'pairing',
+            group_allowed_users: '',
+            group_policy: 'disabled',
+            set_home_channel: true
+          },
+          'worker'
+        )
+      )
+      await waitFor(() => expect(watchGatewayRestartOutcome).toHaveBeenCalled())
+    } finally {
+      $settingsScopeOverride.set(null)
+    }
+  })
+})
+
