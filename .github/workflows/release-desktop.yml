@@ -129,12 +129,21 @@ jobs:
         working-directory: apps/desktop
         shell: bash
         env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          RAW_CSC_LINK: ${{ secrets.CSC_LINK }}
+          RAW_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-        run: ${{ matrix.build_cmd }}
+        run: |
+          set -euo pipefail
+          if [ -n "${RAW_CSC_LINK:-}" ]; then
+            export CSC_LINK="$RAW_CSC_LINK"
+            export CSC_KEY_PASSWORD="${RAW_CSC_KEY_PASSWORD:-}"
+          else
+            unset CSC_LINK CSC_KEY_PASSWORD
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          ${{ matrix.build_cmd }}
 
       - name: Upload installer artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
