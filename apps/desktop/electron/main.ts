@@ -440,6 +440,13 @@ import {
 import { updateCheckAgent } from './update-api-proxy'
 import { waitForUpdateClearance } from './update-gate'
 import { readLiveUpdateMarker, updateHandoffConflict, writeUpdateMarker } from './update-marker'
+import {
+  buildMacInstallerHandoff,
+  buildWindowsInstallerHandoff,
+  downloadReleaseAsset,
+  latestReleaseApiUrl,
+  parseReleaseUpdateCheck
+} from './update-release'
 import { isOfficialSshRemote, OFFICIAL_REPO_HTTPS_URL } from './update-remote'
 import {
   collectRelaunchArgs,
@@ -3305,21 +3312,128 @@ async function resolveHealedBranch(updateRoot, branch) {
 // update changes HEAD, which busts the cache immediately). `git fetch` runs only
 // inside applyUpdates. `force` (menu item, Settings "Check now") skips the
 // cache; the renderer's background poller never passes it.
+function hasBundledBackend() {
+  const candidates = [
+    process.resourcesPath ? path.join(process.resourcesPath, 'backend') : null,
+    path.join(path.dirname(process.execPath), 'backend'),
+    path.join(APP_ROOT, 'backend')
+  ].filter(Boolean)
+
+  return candidates.some(candidate => isHermesSourceRoot(candidate))
+}
+
+function usesReleaseUpdater(updateRoot = resolveUpdateRoot()) {
+  if (process.env.HERMES_DESKTOP_HERMES_ROOT) {
+    return !directoryExists(path.join(updateRoot, '.git'))
+  }
+
+  if (IS_PACKAGED && hasBundledBackend()) {
+    return true
+  }
+
+  return !directoryExists(path.join(updateRoot, '.git'))
+}
+
+async function checkReleaseUpdates({ force = false, updateRoot }: { force?: boolean; updateRoot: string }) {
+  const currentVersion = app.getVersion()
+  const normalizedVersion = currentVersion.replace(/^v/i, '')
+  const currentSha = `v${normalizedVersion}`
+  const branch = 'release'
+  const cached = readUpdateCheckCache()
+  const now = Date.now()
+
+  if (!force && cacheIsFresh(cached, { branch, currentSha, now })) {
+    return { ...cached.status, dirty: false, currentBranch: branch }
+  }
+
+  let payload: unknown
+
+  try {
+    payload = await fetchGitHubApi(latestReleaseApiUrl())
+  } catch (error: any) {
+    if (error?.statusCode === 404) {
+      const noReleaseResult = {
+        supported: true,
+        branch,
+        currentBranch: branch,
+        currentSha,
+        currentVersion,
+        dirty: false,
+        hermesRoot: updateRoot,
+        fetchedAt: now,
+        behind: 0,
+        updateAvailable: false,
+        targetSha: currentSha,
+        commits: []
+      }
+
+      writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: noReleaseResult })
+
+      return noReleaseResult
+    }
+
+    const failedResult = {
+      supported: true,
+      branch,
+      currentBranch: branch,
+      currentSha,
+      currentVersion,
+      dirty: false,
+      hermesRoot: updateRoot,
+      fetchedAt: now,
+      error: 'fetch-failed',
+      message: describeUpdateCheckFailure(error)
+    }
+
+    writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: failedResult })
+
+    return failedResult
+  }
+
+  const parsed = parseReleaseUpdateCheck(payload, {
+    currentVersion,
+    platform: process.platform,
+    arch: process.arch
+  })
+
+  if (!parsed) {
+    return {
+      supported: true,
+      branch,
+      currentBranch: branch,
+      currentSha,
+      currentVersion,
+      dirty: false,
+      hermesRoot: updateRoot,
+      fetchedAt: now,
+      error: 'fetch-failed',
+      message: 'GitHub API returned an unrecognized release payload.'
+    }
+  }
+
+  const result = {
+    supported: true,
+    branch,
+    currentBranch: branch,
+    currentSha,
+    currentVersion,
+    dirty: false,
+    hermesRoot: updateRoot,
+    fetchedAt: now,
+    ...parsed
+  }
+
+  writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: result })
+
+  return result
+}
+
 async function checkUpdates({ force = false }: { force?: boolean } = {}) {
   const updateRoot = resolveUpdateRoot()
   let { branch } = readDesktopUpdateConfig()
-  const gitDir = path.join(updateRoot, '.git')
 
-  if (!directoryExists(gitDir)) {
-    return {
-      supported: false,
-      reason: 'not-a-git-checkout',
-      message:
-        "This copy of Hermes can't update itself from inside the app. Download the latest version from the Hermes website, " +
-        `or reinstall Hermes to enable in-app updates. Details: ${updateRoot} has no version-control metadata.`,
-      hermesRoot: updateRoot,
-      branch
-    }
+  if (usesReleaseUpdater(updateRoot)) {
+    return checkReleaseUpdates({ force, updateRoot })
   }
 
   const git = args => runGit(args, { cwd: updateRoot }).then(r => r.stdout.trim())
@@ -4151,6 +4265,150 @@ async function releaseBackendLock(updateRoot, tag) {
 //
 // Detection (checkUpdates / commit changelog / "N behind") stays in the UI;
 // only this apply action changed.
+async function applyReleaseUpdate(updateRoot: string) {
+  emitUpdateProgress({ stage: 'prepare', message: 'Checking latest release…', percent: 2 })
+  const status: any = await checkReleaseUpdates({ force: true, updateRoot })
+
+  if (status?.error) {
+    const message = status.message || 'Could not check for release updates.'
+    emitUpdateProgress({ stage: 'error', message, percent: null })
+
+    return { ok: false, error: status.error, message }
+  }
+
+  if (!status?.updateAvailable) {
+    return { ok: true, message: 'Already on the latest version.' }
+  }
+
+  if (!status.assetUrl || !status.assetName) {
+    if (status.releaseUrl) {
+      void shell.openExternal(status.releaseUrl)
+    }
+
+    const message = `No direct installer package found for ${process.platform}/${process.arch} in release ${status.releaseTag || 'latest'}.`
+    emitUpdateProgress({ stage: 'error', message, percent: null })
+
+    return { ok: false, error: 'missing-asset', message }
+  }
+
+  const downloadDir = path.join(os.tmpdir(), 'forx-updates')
+  const safeAssetName = path.basename(String(status.assetName))
+  const downloadedPath = path.join(downloadDir, safeAssetName)
+
+  emitUpdateProgress({ stage: 'pull', message: `Downloading ${safeAssetName}…`, percent: 5 })
+
+  try {
+    await downloadReleaseAsset({
+      url: String(status.assetUrl),
+      destPath: downloadedPath,
+      expectedSize: typeof status.assetSize === 'number' ? status.assetSize : null,
+      onProgress: ({ message, percent }) => {
+        emitUpdateProgress({ stage: 'pull', message, percent })
+      }
+    })
+  } catch (error: any) {
+    const message = error?.message || String(error)
+    rememberLog(`[updates] release asset download failed: ${message}`)
+    emitUpdateProgress({ stage: 'error', message, percent: null })
+
+    return { ok: false, error: 'download-failed', message }
+  }
+
+  await preflightStateDb(HERMES_HOME, rememberLog)
+
+  emitUpdateProgress({
+    stage: 'restart',
+    message:
+      'Installing update — ForX will close and reopen automatically when the update finishes.',
+    percent: 95
+  })
+
+  if (IS_WINDOWS) {
+    stopBackendTreesForUpdate(backendConnectionState.getProcess(), {
+      forceKillProcessTree,
+      stopAllPoolBackends
+    })
+
+    const handoff = buildWindowsInstallerHandoff({
+      installerPath: downloadedPath,
+      installDir: path.dirname(process.execPath),
+      desktopPid: process.pid,
+      relaunchExe: process.execPath
+    })
+
+    const child = spawnUpdaterProcess(handoff.command, handoff.args, {
+      cwd: os.tmpdir(),
+      env: { ...process.env, ...handoff.env },
+      detached: handoff.detached,
+      stdio: 'ignore'
+    })
+
+    const dwellStartedAt = Date.now()
+    const outcome = await observeUpdaterHandoff(child, UPDATE_HANDOFF_DWELL_MS)
+
+    if (!outcome.ok) {
+      const message = describeUpdaterHandoffFailure(outcome)
+      emitUpdateProgress({ stage: 'error', message, percent: null })
+      startHermes().catch(() => {})
+
+      return { ok: false, error: 'updater-spawn-failed', message }
+    }
+
+    isQuittingForHandoff = true
+    setTimeout(
+      () => {
+        app.quit()
+      },
+      Math.max(0, UPDATE_HANDOFF_DWELL_MS - (Date.now() - dwellStartedAt))
+    )
+
+    return { ok: true, handedOff: true, updater: downloadedPath }
+  }
+
+  if (IS_MAC) {
+    const handoff = buildMacInstallerHandoff({
+      archivePath: downloadedPath,
+      targetAppBundle: runningAppBundle(),
+      desktopPid: process.pid
+    })
+
+    const child = spawnUpdaterProcess(handoff.command, handoff.args, {
+      cwd: os.tmpdir(),
+      env: { ...process.env, ...handoff.env },
+      detached: handoff.detached,
+      stdio: 'ignore'
+    })
+
+    const dwellStartedAt = Date.now()
+    const outcome = await observeUpdaterHandoff(child, UPDATE_HANDOFF_DWELL_MS)
+
+    if (!outcome.ok) {
+      const message = describeUpdaterHandoffFailure(outcome)
+      emitUpdateProgress({ stage: 'error', message, percent: null })
+
+      return { ok: false, error: 'updater-spawn-failed', message }
+    }
+
+    isQuittingForHandoff = true
+    setTimeout(
+      () => {
+        app.quit()
+      },
+      Math.max(0, UPDATE_HANDOFF_DWELL_MS - (Date.now() - dwellStartedAt))
+    )
+
+    return { ok: true, handedOff: true, updater: downloadedPath }
+  }
+
+  void shell.showItemInFolder(downloadedPath)
+
+  return {
+    ok: true,
+    manualRestart: true,
+    message: `Downloaded update package to ${downloadedPath}.`
+  }
+}
+
 async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
   if (updateInFlight) {
     throw new Error('An update is already in progress.')
@@ -4159,6 +4417,12 @@ async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
   updateInFlight = true
 
   try {
+    const initialUpdateRoot = resolveUpdateRoot()
+
+    if (usesReleaseUpdater(initialUpdateRoot)) {
+      return await applyReleaseUpdate(initialUpdateRoot)
+    }
+
     const updater = resolveUpdaterBinary()
 
     if (!updater && !IS_WINDOWS) {
@@ -17751,6 +18015,11 @@ ipcMain.handle('hermes:updates:branch:set', async (_event, name) => {
 function resolveHermesVersion() {
   try {
     const root = resolveUpdateRoot()
+
+    if (usesReleaseUpdater(root)) {
+      return app.getVersion()
+    }
+
     const initPath = path.join(root, 'hermes_cli', '__init__.py')
 
     if (fileExists(initPath)) {

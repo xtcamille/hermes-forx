@@ -91,6 +91,11 @@ jobs:
               const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
               pkg.version = process.argv[1];
               fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + "\n");
+              const initPath = "hermes_cli/__init__.py";
+              if (fs.existsSync(initPath)) {
+                const initSrc = fs.readFileSync(initPath, "utf8");
+                fs.writeFileSync(initPath, initSrc.replace(/__version__\s*=\s*["'][^"']+["']/, `__version__ = "${process.argv[1]}"`));
+              }
             ' "$CLEAN_VER"
           else
             echo "Using existing version from apps/desktop/package.json"
