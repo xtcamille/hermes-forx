@@ -276,6 +276,7 @@ export function WeixinQrSetup({ onApplied, platform, scopeProfile }: WeixinQrSet
         },
         scopeProfile
       )
+
       setSetup(result)
       setPhase(result.status === 'connected' ? 'connected' : result.qr_payload ? 'waiting' : 'starting')
     } catch (startError) {
@@ -360,6 +361,7 @@ export function WeixinQrSetup({ onApplied, platform, scopeProfile }: WeixinQrSet
         },
         scopeProfile
       )
+
       setSetup(null)
       setQrDataUrl('')
       setPhase('idle')
@@ -390,6 +392,7 @@ export function WeixinQrSetup({ onApplied, platform, scopeProfile }: WeixinQrSet
         },
         scopeProfile
       )
+
       setPhase('idle')
       onApplied(result)
     } catch (saveError) {
@@ -435,6 +438,7 @@ export function WeixinQrSetup({ onApplied, platform, scopeProfile }: WeixinQrSet
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {(['aiohttp', 'cryptography', 'certifi', 'pilk'] as const).map(pkg => {
                   const installed = deps.packages[pkg]
+
                   const tag =
                     pkg === 'pilk' ? q.pkgOptionalVoice : pkg === 'certifi' ? q.pkgOptionalTls : q.pkgRequired
 

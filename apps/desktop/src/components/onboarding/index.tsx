@@ -1,4 +1,3 @@
-import type { ModelOptionProvider } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -7,9 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { getGlobalModelOptions } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
+import { Check, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isSubmitEnter } from '@/lib/ime'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { cn } from '@/lib/utils'
@@ -18,7 +16,6 @@ import { $freeTierStatus, FREE_TIER_MODEL, freeTierSetupFailure } from '@/store/
 import { openFreeTierSignIn } from '@/store/free-tier-sign-in'
 import { $introReveal, shouldPlayFirstRunIntro } from '@/store/intro-reveal'
 import { $setupReadyTick } from '@/store/live-sync'
-import { $localModelsEnabled } from '@/store/local-models-flag'
 import {
   $desktopOnboarding,
   ackFreeTierIntro,
@@ -34,25 +31,15 @@ import {
   refreshOnboarding,
   saveOnboardingApiKey,
   saveOnboardingLatticeLogin,
-  setOnboardingLocalEndpoint,
-  setOnboardingMode,
   startManualOnboarding,
   startProviderOAuth
 } from '@/store/onboarding'
 import { $onboardingSurfaces, onboardingSurfaceActive } from '@/store/onboarding-presence'
-import type { OAuthProvider } from '@/types/hermes'
 
-import { DocsLink, FlowPanel, Status } from './flow'
-import { FreeTierSetupNotice } from './free-tier-setup-notice'
+import { DocsLink, FlowPanel } from './flow'
 import { DecodedLabel } from './glyph'
-import {
-  FeaturedProviderRow,
-  FireworksProviderRow,
-  LocalModelsProviderRow,
-  OpenRouterProviderRow,
-  ProviderRow,
-  sortProviders
-} from './providers'
+
+
 
 export {
   FeaturedProviderRow,
@@ -581,6 +568,7 @@ export function ApiKeyForm({
   // For New API, strictly username & password login mode
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+
   const [portalUrl, setPortalUrl] = useState(() => {
     try {
       return window.localStorage.getItem('hermes-newapi-portal-url-v1') || 'http://192.168.1.206:3000'
@@ -631,20 +619,26 @@ export function ApiKeyForm({
     if (isLocal) {
       if (!username.trim() || !password.trim()) {
         setError('请输入用户名和密码')
+
         return
       }
+
       try {
         window.localStorage.setItem('hermes-newapi-portal-url-v1', portalUrl.trim())
       } catch {
         // ignore
       }
+
       setSaving(true)
       setError(null)
       const result = await onLatticeLogin?.(username.trim(), password.trim(), portalUrl.trim())
+
       if (result && !result.ok) {
         setError(result.message ?? '登录失败，请检查账号密码或服务器连接')
       }
+
       setSaving(false)
+
       return
     }
 

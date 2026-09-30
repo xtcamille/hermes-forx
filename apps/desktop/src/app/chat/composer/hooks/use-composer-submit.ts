@@ -2,15 +2,15 @@ import { SLASH_COMMAND_RE } from '@hermes/shared'
 import { type RefObject, useLayoutEffect, useRef } from 'react'
 
 import { usePaneVisible } from '@/components/pane-shell/pane-visibility'
+import { setSessionEnterpriseKbDatasets } from '@/hermes'
 import { triggerHaptic } from '@/lib/haptics'
 import { hasClarifyRequest, skipClarifyRequest } from '@/store/clarify'
 import { clearSessionDraft, type ComposerAttachment } from '@/store/composer'
 import { resetBrowseState } from '@/store/composer-input-history'
 import { enqueueQueuedPrompt, type QueuedPromptEntry } from '@/store/composer-queue'
 import { hasConnectionRequest, skipConnectionRequest } from '@/store/connection-request'
-import { hasBlockingPromptRequest } from '@/store/prompts'
 import { getSelectedDatasetsForSession } from '@/store/enterprise-kb'
-import { setSessionEnterpriseKbDatasets } from '@/hermes'
+import { hasBlockingPromptRequest } from '@/store/prompts'
 
 import { cloneAttachments, type QueueEditState } from '../composer-utils'
 import { onComposerSubmitRequest } from '../focus'
@@ -289,10 +289,12 @@ export function useComposerSubmit({
       resetBrowseState(sessionId)
       clearDraft()
       scope.attachments.clear()
+
       if (sessionId) {
         const selectedKbIds = getSelectedDatasetsForSession(sessionId)
         void setSessionEnterpriseKbDatasets(sessionId, selectedKbIds)
       }
+
       dispatchSubmit(text, submittedAttachments)
     }
 
