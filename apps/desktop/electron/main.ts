@@ -2941,6 +2941,10 @@ function venvRootForPython(python: string, root: string) {
   }
 
   const candidate = path.dirname(parent)
+  if (path.basename(candidate).toLowerCase() === 'python') {
+    return null
+  }
+
   const relative = path.relative(root, candidate)
 
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
