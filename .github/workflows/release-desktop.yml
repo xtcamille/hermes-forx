@@ -106,17 +106,23 @@ jobs:
             uv.lock
 
       - name: Install standalone Python 3.11
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
         uses: ./.github/actions/retry
         with:
-          command: uv python install 3.11 --managed-python
+          command: uv python install 3.11
 
       - name: Sync Python dependencies into .venv
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
         uses: ./.github/actions/retry
         with:
-          command: uv sync --locked --python 3.11 --managed-python --extra all
+          command: uv sync --locked --python 3.11 --extra all
 
       - name: Assemble embedded Python backend
         shell: bash
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
         run: uv run --no-sync python scripts/bundle_embedded_backend.py
 
       - name: Build and package Electron Desktop installer

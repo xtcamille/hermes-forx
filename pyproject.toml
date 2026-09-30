@@ -1,8 +1,8 @@
 
 
 [project]
-name = "forx-agent"
-version = "0.1.0"
+name = "hermes-agent"
+version = "0.21.3"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
 # Upper bound is load-bearing, not cosmetic. uv resolves the project's
@@ -431,6 +431,9 @@ build-backend = "setuptools.build_meta"
 forx = "hermes_cli.main:main"
 forx-agent = "run_agent:main"
 forx-acp = "acp_adapter.entry:main"
+hermes = "hermes_cli.main:main"
+hermes-agent = "run_agent:main"
+hermes-acp = "acp_adapter.entry:main"
 
 [tool.uv]
 override-dependencies = [
