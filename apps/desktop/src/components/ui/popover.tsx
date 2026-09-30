@@ -20,14 +20,13 @@ function PopoverAnchor({ ...props }: React.ComponentProps<typeof PopoverPrimitiv
 // Both variants are the same box, and `--popover-surface` is what the arrow
 // fills itself with — so a variant only ever has to restate the surface.
 const popoverContentVariants = cva(
-  'z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-lg p-2 outline-hidden data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+  'z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-xl p-3 shadow-md outline-hidden data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
   {
     variants: {
       variant: {
         // Themed glass surface, viewport-aware (Radix flips/shifts off edges).
-        // Border-only (no shadow).
         default:
-          'border border-(--ui-stroke-secondary) bg-(--popover-surface) text-popover-foreground backdrop-blur-md [--popover-surface:color-mix(in_srgb,var(--ui-bg-elevated)_92%,transparent)]',
+          'border border-(--ui-stroke-secondary) bg-(--popover-surface) text-popover-foreground backdrop-blur-xl [--popover-surface:color-mix(in_srgb,var(--ui-bg-elevated)_94%,transparent)]',
         // Solid accent. For a surface that has to read as the app SPEAKING
         // rather than as chrome the user opened — it is loud on purpose, so
         // it earns its place by being rare. No border: at full-strength fill

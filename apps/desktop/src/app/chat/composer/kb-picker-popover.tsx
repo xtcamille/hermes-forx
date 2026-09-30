@@ -28,7 +28,7 @@ import {
 // import { logoutEnterpriseKb } from '@/hermes'
 
 const PILL = cn(
-  'h-(--composer-control-size) min-w-0 max-w-44 shrink gap-1 rounded-md px-2 text-xs font-normal',
+  'h-(--composer-control-size) min-w-0 max-w-44 shrink gap-1 rounded-lg px-2 text-xs font-normal',
   'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
 )
 
@@ -55,7 +55,7 @@ export function KbPickerPopover({
   const handleToggle = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const next = selectedIds.includes(id)
-      ? selectedIds.filter(x => x !== id)
+      ? selectedIds.filter(x => id !== x)
       : [...selectedIds, id]
     setSelectedDatasetsForSession(sessionId, next, alternateSessionId)
   }
@@ -79,18 +79,6 @@ export function KbPickerPopover({
       setRefreshing(false)
     }
   }
-
-  /*
-  const handleLogout = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    try {
-      await logoutEnterpriseKb()
-      $enterpriseKbStatus.set({ logged_in: false, datasets: [] })
-    } catch (err) {
-      console.warn('Logout failed:', err)
-    }
-  }
-  */
 
   if (!status?.logged_in) {
     return (
@@ -131,22 +119,16 @@ export function KbPickerPopover({
             <span className="truncate">企业知识库</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
-            <button
-              className="hover:text-foreground cursor-pointer px-1 py-0.5 rounded"
-              onClick={handleRefresh}
-              title="刷新知识库"
-            >
-              <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
-            </button>
-            {/*
-            <button
-              className="hover:text-destructive cursor-pointer px-1 py-0.5 rounded"
-              onClick={handleLogout}
-              title="退出登录"
-            >
-              <LogOut className="size-3" />
-            </button>
-            */}
+            <Tip label="刷新知识库">
+              <button
+                aria-label="刷新知识库"
+                className="cursor-pointer rounded-md px-1 py-0.5 transition-colors hover:bg-(--ui-control-hover-background) hover:text-foreground"
+                onClick={handleRefresh}
+                type="button"
+              >
+                <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
+              </button>
+            </Tip>
           </div>
         </div>
 
@@ -158,6 +140,7 @@ export function KbPickerPopover({
             <button
               className="text-primary hover:underline cursor-pointer"
               onClick={handleSelectAll}
+              type="button"
             >
               全选
             </button>
@@ -165,6 +148,7 @@ export function KbPickerPopover({
             <button
               className="hover:underline cursor-pointer"
               onClick={handleClearAll}
+              type="button"
             >
               清空
             </button>
@@ -182,7 +166,7 @@ export function KbPickerPopover({
               return (
                 <div
                   className={cn(
-                    'flex items-center justify-between gap-2 px-2 py-1.5 text-xs rounded-md cursor-pointer select-none',
+                    'flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer select-none transition-colors',
                     selected
                       ? 'bg-accent text-accent-foreground font-medium'
                       : 'hover:bg-muted text-foreground'

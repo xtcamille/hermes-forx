@@ -85,12 +85,12 @@ export function ConnectorRow({
         <span aria-label={markLabel} className="grid size-4 shrink-0 place-items-center" role="img">
           <Icon aria-hidden className={cn('size-3.5', className)} />
         </span>
-        <ConnectorLogo className="size-6 rounded-md text-[0.6875rem]" connector={connector} />
+        <ConnectorLogo className="size-6 rounded-lg text-[0.6875rem]" connector={connector} />
         <span className="truncate leading-(--conversation-line-height)">{connector.title || connector.name}</span>
         <span className="min-w-0 flex-1 truncate text-[0.6875rem] text-(--ui-text-tertiary)">{cue}</span>
         <span className="flex w-22 shrink-0 justify-end">
           {action ? (
-            <span className="inline-flex h-6 w-full items-stretch overflow-hidden rounded-md border border-primary/25 bg-primary/10 text-primary">
+            <span className="inline-flex h-6 w-full items-stretch overflow-hidden rounded-lg border border-primary/25 bg-primary/10 text-primary">
               <Button
                 className="h-full w-full rounded-none px-2 text-xs font-medium text-primary hover:bg-primary/15 hover:text-primary"
                 disabled={action.disabled}
@@ -142,7 +142,7 @@ export function ConnectorSummary({
   return (
     <div data-conversation-scaffold="" data-slot="connector-card">
       <ScaffoldRow>
-        <ConnectorLogo className="size-4 rounded-[0.25rem]" connector={connector} />
+        <ConnectorLogo className="size-4 rounded-sm" connector={connector} />
         <span className="truncate text-[length:var(--conversation-tool-font-size)] text-(--ui-text-primary)">
           {connector.title || connector.name}
         </span>

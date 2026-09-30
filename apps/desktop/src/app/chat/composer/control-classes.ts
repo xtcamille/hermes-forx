@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 // so both the row (`controls.tsx`) and the menus it renders can wear them
 // without importing each other in a cycle.
 
-export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
+export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-lg'
 
 export const GHOST_ICON_BTN = cn(
   ICON_BTN,
@@ -17,7 +17,7 @@ export const GHOST_ICON_BTN = cn(
 // neutral and lets the action visually dominate the row.
 export const PRIMARY_ICON_BTN = cn(
   'size-(--composer-control-primary-size,var(--composer-control-size)) shrink-0 rounded-full p-0',
-  'bg-foreground text-background hover:bg-foreground/90',
+  'bg-foreground text-background shadow-xs transition-transform duration-150 hover:bg-foreground/90 active:scale-95',
   'disabled:bg-foreground/30 disabled:text-background disabled:opacity-100'
 )
 

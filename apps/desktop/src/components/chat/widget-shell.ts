@@ -9,4 +9,5 @@
  * over nothing. One radius one rung above the composer, one mode-derived fill,
  * no border — the surface reads as a surface on the fill alone.
  */
-export const WIDGET_SHELL_CLASS = 'rounded-3xl bg-(--ui-widget-surface-background) px-3.5 py-3'
+export const WIDGET_SHELL_CLASS =
+  'rounded-2xl border border-(--ui-stroke-tertiary)/50 bg-(--ui-widget-surface-background) px-4 py-3.5 shadow-2xs'

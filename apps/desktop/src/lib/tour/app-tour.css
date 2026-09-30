@@ -14,18 +14,18 @@
    guest page where none of these variables exist. */
 
 .driver-popover {
-  --tour-surface: color-mix(in srgb, var(--ui-bg-elevated) 92%, transparent);
+  --tour-surface: color-mix(in srgb, var(--ui-bg-elevated) 94%, transparent);
 
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
   background-color: var(--tour-surface);
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: var(--radius-lg);
-  box-shadow: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   color: var(--foreground);
   font-family: var(--font-sans);
   max-width: 20rem;
   min-width: 15rem;
-  padding: 0.75rem;
+  padding: 0.875rem;
 }
 
 .driver-popover-title {
@@ -66,17 +66,17 @@
   color: var(--foreground);
 }
 
-/* Matches the Button `secondary` + `xs` shape: 12px/1rem medium, 2.5px radius. */
+/* Matches the Button `secondary` + `xs` shape: 12px/1rem medium, var(--radius-md) radius. */
 .driver-popover-footer-btn {
   background-color: var(--ui-bg-quaternary);
   border: none;
-  border-radius: 2.5px;
+  border-radius: var(--radius-md);
   color: var(--foreground);
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1rem;
-  padding: 0.1875rem 0.5rem;
+  padding: 0.25rem 0.625rem;
   text-shadow: none;
   transition: background-color 100ms;
 }

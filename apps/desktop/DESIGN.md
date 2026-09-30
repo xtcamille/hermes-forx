@@ -188,7 +188,7 @@ trigger within 300ms opens instantly. The cooldown starts on close, so a
 hover a second later waits again. Once triggered, entrance has no animation.
 Exit fades over 100ms and moves 0.125rem toward the anchor; reduced motion
 disables the exit animation. `OverflowTip` stays on its own longer delay
-(list titles must not trail while scanning). Bubbles use a 0.25rem radius.
+(list titles must not trail while scanning). Bubbles use `var(--radius-md)`.
 
 **Tooltip placement.** Choose intent through `placement`: `control` above (default), `toolbar` below, `row` to the right, and `left-rail` / `right-rail` inward. Explicit `side` and `align` override the preference. Radix flips and shifts for collisions, keeps the arrow attached, and hides detached triggers. Controls and toolbars use their owning pane as a boundary; row descriptions and rails may extend into the window. Use `boundary="viewport"` for an intentional escape. Short labels size to content; descriptions wrap within 24rem and the available space, in one rounded bubble.
 
@@ -204,7 +204,7 @@ context-dependent (e.g. "Show" / "Hide"). Never hardcode combos; always use
 
 Notes:
 - Text buttons are square (no radius) and sized by padding + line-height (no
-  fixed heights). Only icon buttons carry the shared 4px radius.
+  fixed heights). Boxed and icon buttons use the shared `rounded-md` / `rounded-lg` / `rounded-xl` token scale.
 - SVGs inherit `size-3.5` (`size-3` at `xs`). Don't re-set icon size.
 - Polymorph with `asChild` when the button must render as a link/Slot.
 

@@ -78,7 +78,7 @@ export function EnterpriseKbLoginDialog({
         </DialogHeader>
 
         {errorMsg && (
-          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
             {errorMsg}
           </div>
         )}

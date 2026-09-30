@@ -4,10 +4,10 @@ import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-// Small status/metadata tag. App radius (not a full pill); tones map to the
+// Small status/metadata tag. Soft pill radius; tones map to the
 // shared accent/muted/destructive surfaces so badges read consistently.
 const badgeVariants = cva(
-  'inline-flex w-fit shrink-0 items-center gap-1 rounded-[3px] font-medium leading-none whitespace-nowrap [&_svg]:pointer-events-none',
+  'inline-flex w-fit shrink-0 items-center gap-1 rounded-full font-medium leading-none whitespace-nowrap [&_svg]:pointer-events-none',
   {
     variants: {
       variant: {
@@ -21,9 +21,9 @@ const badgeVariants = cva(
         solid: 'bg-primary text-primary-foreground'
       },
       size: {
-        default: 'px-1.5 py-0.5 text-[0.65rem] [&_svg]:size-3',
-        xs: 'px-1 py-px text-[0.6rem] [&_svg]:size-2.5',
-        overlay: 'h-2 min-w-2 justify-center rounded-[2px] px-px text-[7px] font-semibold tabular-nums'
+        default: 'px-2 py-0.5 text-[0.65rem] [&_svg]:size-3',
+        xs: 'px-1.5 py-0.5 text-[0.6rem] [&_svg]:size-2.5',
+        overlay: 'h-2.5 min-w-2.5 justify-center rounded-full px-0.5 text-[7px] font-semibold tabular-nums'
       }
     },
     defaultVariants: { variant: 'default', size: 'default' }

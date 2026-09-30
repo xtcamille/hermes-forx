@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
+import { BrandMark } from '@/components/brand-mark'
 import { capitalize, normalize } from '@/lib/text'
 
 import introCopyJsonl from './intro-copy.jsonl?raw'
-import { Wordmark } from './wordmark'
 
 type IntroCopy = {
   headline: string
@@ -163,14 +163,32 @@ export function Intro({ personality, seed }: IntroProps) {
 
   return (
     <div
-      className="pointer-events-none flex w-full min-w-0 flex-col items-center justify-center px-0.5 py-6 text-center text-muted-foreground sm:px-6 lg:px-8"
+      className="pointer-events-none flex w-full min-w-0 flex-col items-center justify-center px-3 py-8 text-center text-muted-foreground sm:px-6 lg:px-8"
       data-slot="aui_intro"
     >
-      <div className="w-full min-w-0">
-        <Wordmark className="mb-1" text={WORDMARK} />
+      <div className="flex max-w-md flex-col items-center gap-3.5">
+        <div className="relative flex items-center justify-center">
+          <div
+            aria-hidden
+            className="absolute -inset-3 rounded-full bg-primary/10 blur-xl dark:bg-primary/15"
+          />
+          <BrandMark className="relative size-12 rounded-2xl shadow-sm ring-1 ring-(--ui-stroke-secondary)/70" />
+        </div>
 
-        <p className="m-0 text-center leading-normal tracking-tight">{copy.body}</p>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-secondary)/70 px-2.5 py-0.5 text-[0.65rem] font-medium tracking-[0.14em] text-(--ui-text-tertiary) uppercase">
+          {WORDMARK}
+        </span>
+
+        <div className="flex flex-col items-center gap-1.5">
+          <h2 className="m-0 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+            {copy.headline}
+          </h2>
+          <p className="m-0 max-w-sm text-center text-[length:var(--conversation-text-font-size)] leading-relaxed text-(--ui-text-secondary)">
+            {copy.body}
+          </p>
+        </div>
       </div>
     </div>
   )
 }
+

@@ -207,7 +207,7 @@ const DETAIL_PANE_COLLAPSED_PX = 4
 // isn't size-merge-aware, so Button's icon size would leak and blow it up.
 // Compose extra state (data-[state=open], hover:text-destructive) with cn().
 export const ICON_BUTTON =
-  'size-5 cursor-pointer rounded-[4px] text-muted-foreground/70 hover:bg-(--ui-control-active-background) hover:text-foreground'
+  'size-5 cursor-pointer rounded-md text-muted-foreground/70 hover:bg-(--ui-control-active-background) hover:text-foreground'
 
 export function DetailPane({
   actions,
