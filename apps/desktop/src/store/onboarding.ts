@@ -1291,7 +1291,10 @@ export async function saveOnboardingLatticeLogin(
   flowProfile = ctx.profile
   const u = username.trim()
   const p = password.trim()
-  const url = portalUrl.trim() || 'http://192.168.1.206:3000'
+  let url = portalUrl.trim() || 'http://192.168.1.206:3000'
+  if (url && !/^https?:\/\//i.test(url)) {
+    url = `http://${url}`
+  }
 
   if (!u || !p) {
     return { ok: false, message: '请输入账号和密码' }

@@ -566,3 +566,68 @@ class TestLatticeAccountAuth:
             refresh_lattice_token(force=True)
         assert "当前token不可用，无可用模型，检查new api账户是否创建了有效token" in str(exc_info.value)
 
+    def test_normalize_lattice_urls(self):
+        from hermes_cli.auth_lattice import normalize_lattice_urls
+
+        assert normalize_lattice_urls("192.168.1.100:4000") == (
+            "http://192.168.1.100:4000",
+            "http://192.168.1.100:4000/v1",
+        )
+        assert normalize_lattice_urls("http://192.168.1.100:4000/") == (
+            "http://192.168.1.100:4000",
+            "http://192.168.1.100:4000/v1",
+        )
+        assert normalize_lattice_urls("http://192.168.1.100:4000/v1") == (
+            "http://192.168.1.100:4000",
+            "http://192.168.1.100:4000/v1",
+        )
+        assert normalize_lattice_urls("https://custom.api.test:8000/v1/") == (
+            "https://custom.api.test:8000",
+            "https://custom.api.test:8000/v1",
+        )
+
+    @pytest.mark.anyio
+    async def test_api_login_persists_custom_portal_and_inference_urls(self, fake_lattice, tmp_path, monkeypatch):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from hermes_cli.web_routers.oauth import latticecode_login_endpoint
+        from hermes_cli.web_models import LatticeLoginRequest
+        from hermes_cli.auth_lattice import (
+            current_lattice_state,
+            _portal_url,
+            _inference_url,
+            resolve_lattice_runtime_credentials,
+            logout_lattice,
+        )
+        from hermes_cli.config import load_config_readonly
+
+        fake_lattice.user_tokens = [{"id": 1, "key": "sk-endpoint-key", "status": 1}]
+        req = LatticeLoginRequest(username="alice", password="pwd", portal_url="https://api.latticecode.test:9000")
+        res = await latticecode_login_endpoint(req)
+        assert res["ok"] is True
+        assert res["portal_url"] == "https://api.latticecode.test:9000"
+        assert res["inference_base_url"] == "https://api.latticecode.test:9000/v1"
+
+        st = current_lattice_state()
+        assert st["portal_url"] == "https://api.latticecode.test:9000"
+        assert st["inference_base_url"] == "https://api.latticecode.test:9000/v1"
+
+        cfg = load_config_readonly()
+        assert cfg["model"]["base_url"] == "https://api.latticecode.test:9000/v1"
+        assert cfg["free_tier"]["portal_url"] == "https://api.latticecode.test:9000"
+        assert cfg["free_tier"]["inference_url"] == "https://api.latticecode.test:9000/v1"
+
+        assert _portal_url() == "https://api.latticecode.test:9000"
+        assert _inference_url() == "https://api.latticecode.test:9000/v1"
+
+        creds = resolve_lattice_runtime_credentials()
+        assert creds["base_url"] == "https://api.latticecode.test:9000/v1"
+
+        logout_lattice()
+        cleared_cfg = load_config_readonly()
+        assert cleared_cfg.get("model", {}).get("base_url", "") == ""
+        assert cleared_cfg.get("free_tier", {}).get("portal_url", "") == ""
+
+

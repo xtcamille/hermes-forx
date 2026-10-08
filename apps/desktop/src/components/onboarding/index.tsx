@@ -633,14 +633,18 @@ export function ApiKeyForm({
         setError('请输入用户名和密码')
         return
       }
+      let cleanUrl = portalUrl.trim()
+      if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = `http://${cleanUrl}`
+      }
       try {
-        window.localStorage.setItem('hermes-newapi-portal-url-v1', portalUrl.trim())
+        window.localStorage.setItem('hermes-newapi-portal-url-v1', cleanUrl)
       } catch {
         // ignore
       }
       setSaving(true)
       setError(null)
-      const result = await onLatticeLogin?.(username.trim(), password.trim(), portalUrl.trim())
+      const result = await onLatticeLogin?.(username.trim(), password.trim(), cleanUrl)
       if (result && !result.ok) {
         setError(result.message ?? '登录失败，请检查账号密码或服务器连接')
       }

@@ -808,11 +808,13 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
         import httpx
         from hermes_cli.auth_lattice import (
             login_new_api, fetch_new_api_models, _portal_url, _inference_url, _save_lattice_state,
-            get_lattice_default_model, LATTICE_PROVIDER
+            get_lattice_default_model, normalize_lattice_urls, LATTICE_PROVIDER
         )
         from hermes_cli.config import set_config_value
 
-        portal = (payload.portal_url or "").strip() or _portal_url()
+        portal_input = (payload.portal_url or "").strip() or _portal_url()
+        portal, inference_url = normalize_lattice_urls(portal_input)
+
         with httpx.Client(timeout=15.0) as client:
             api_key, user_info = login_new_api(client, portal, payload.username.strip(), payload.password)
             models = user_info.get("models") or []
@@ -827,9 +829,10 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
             "api_key": api_key,
             "username": payload.username.strip(),
             "password": payload.password,
+            "portal_url": portal,
             "user_info": user_info,
             "access_token": user_info.get("access_token"),
-            "inference_base_url": _inference_url(),
+            "inference_base_url": inference_url,
             "allowed_models": models,
             "default_model": default_model,
             "token_refreshed_at": time.time(),
@@ -840,7 +843,9 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
         set_config_value("model.provider", LATTICE_PROVIDER)
         if default_model:
             set_config_value("model.default", default_model)
-        set_config_value("model.base_url", _inference_url())
+        set_config_value("model.base_url", inference_url)
+        set_config_value("free_tier.portal_url", portal)
+        set_config_value("free_tier.inference_url", inference_url)
 
         return {
             "ok": True,
@@ -848,6 +853,8 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
             "provider": LATTICE_PROVIDER,
             "model": default_model,
             "models": models,
+            "portal_url": portal,
+            "inference_base_url": inference_url,
         }
 
     try:

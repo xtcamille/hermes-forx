@@ -57,6 +57,22 @@ class MintFailure:
 _mint_memos: Dict[str, MintFailure] = {}
 
 
+def normalize_lattice_urls(portal_or_inference_url: str) -> tuple[str, str]:
+    """Given a portal or inference URL, normalize to (portal_url, inference_url)."""
+    url = (portal_or_inference_url or "").strip().rstrip("/")
+    if not url:
+        return _portal_url(), _inference_url()
+    if not (url.startswith("http://") or url.startswith("https://")):
+        url = f"http://{url}"
+    if url.endswith("/v1"):
+        portal = url[:-3].rstrip("/")
+        inference = f"{portal}/v1"
+    else:
+        portal = url
+        inference = f"{portal}/v1"
+    return portal, inference
+
+
 def _portal_url() -> str:
     try:
         from hermes_cli.config import load_config_readonly
@@ -71,6 +87,9 @@ def _portal_url() -> str:
                 return str(p_url).rstrip("/")
     except Exception:
         pass
+    state = current_lattice_state()
+    if state and state.get("portal_url"):
+        return str(state["portal_url"]).rstrip("/")
     from agent.secret_scope import get_secret_str
     return (get_secret_str("LATTICE_PORTAL_URL") or DEFAULT_LATTICE_PORTAL_URL).rstrip("/")
 
@@ -87,8 +106,14 @@ def _inference_url() -> str:
             i_url = providers_cfg["latticecode"].get("base_url")
             if i_url:
                 return str(i_url).rstrip("/")
+        model_cfg = cfg.get("model") or {}
+        if isinstance(model_cfg, dict) and model_cfg.get("provider") == LATTICE_PROVIDER and model_cfg.get("base_url"):
+            return str(model_cfg["base_url"]).rstrip("/")
     except Exception:
         pass
+    state = current_lattice_state()
+    if state and state.get("inference_base_url"):
+        return str(state["inference_base_url"]).rstrip("/")
     from agent.secret_scope import get_secret_str
     return (get_secret_str("LATTICE_INFERENCE_URL") or DEFAULT_LATTICE_INFERENCE_URL).rstrip("/")
 
@@ -437,7 +462,7 @@ def refresh_lattice_token(state: Optional[Dict[str, Any]] = None, *, force: bool
     if not force and current_key and "*" not in current_key and (now - last_refreshed < LATTICE_TOKEN_REFRESH_INTERVAL_SECONDS):
         return state
 
-    portal_url = _portal_url()
+    portal_url = str(state.get("portal_url") or _portal_url()).rstrip("/")
     inference_url = str(state.get("inference_base_url") or _inference_url()).rstrip("/")
     base_v1 = inference_url if inference_url.endswith("/v1") else f"{inference_url}/v1"
     access_token = state.get("access_token") or (state.get("user_info") or {}).get("access_token")
@@ -755,7 +780,7 @@ def login_new_api(
     password: str,
 ) -> tuple[str, Dict[str, Any]]:
     """Log in to New API via /api/user/login, query /api/token, and return (api_key, user_info)."""
-    base = portal_base_url.rstrip("/")
+    base, base_v1 = normalize_lattice_urls(portal_base_url)
     login_url = f"{base}/api/user/login"
     headers = {"Accept": "application/json", "User-Agent": "hermes-agent"}
 
@@ -797,10 +822,8 @@ def login_new_api(
     elif client.cookies:
         auth_headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in client.cookies.items()])
 
-    base_v1 = f"{base}/v1" if not base.endswith("/v1") else base
-
     active_key, ordered_models, default_model = probe_first_valid_new_api_token(
-        client, portal_base_url, auth_headers, base_v1
+        client, base, auth_headers, base_v1
     )
 
     user_info["access_token"] = access_token
@@ -826,7 +849,8 @@ def lattice_auth_handler(action: str, args: Any) -> bool:
 
 def _handle_lattice_login(args: Any) -> bool:
     api_key = getattr(args, "api_key", None) or getattr(args, "token", None)
-    portal_url = _portal_url()
+    portal_input = getattr(args, "portal_url", None) or _portal_url()
+    portal_url, inference_url = normalize_lattice_urls(portal_input)
 
     password = ""
     if not api_key:
@@ -860,7 +884,7 @@ def _handle_lattice_login(args: Any) -> bool:
     if not models and api_key:
         with httpx.Client(timeout=5.0) as client:
             try:
-                test_resp = client.get(f"{_inference_url()}/models", headers={"Authorization": f"Bearer {api_key}"})
+                test_resp = client.get(f"{inference_url}/models", headers={"Authorization": f"Bearer {api_key}"})
                 if test_resp.is_success:
                     raw = test_resp.json().get("data") or []
                     models = [
@@ -884,9 +908,10 @@ def _handle_lattice_login(args: Any) -> bool:
         "api_key": api_key,
         "username": username,
         "password": password,
+        "portal_url": portal_url,
         "user_info": user_info,
         "access_token": user_info.get("access_token"),
-        "inference_base_url": _inference_url(),
+        "inference_base_url": inference_url,
         "allowed_models": models,
         "default_model": default_model,
         "token_refreshed_at": time.time(),
@@ -898,7 +923,9 @@ def _handle_lattice_login(args: Any) -> bool:
     set_config_value("model.provider", LATTICE_PROVIDER)
     if default_model:
         set_config_value("model.default", default_model)
-    set_config_value("model.base_url", _inference_url())
+    set_config_value("model.base_url", inference_url)
+    set_config_value("free_tier.portal_url", portal_url)
+    set_config_value("free_tier.inference_url", inference_url)
 
     mask = f"{api_key[:6]}...{api_key[-4:]}" if len(api_key) > 10 else "***"
     print(f"\nLogin successful! Configured API key: {mask}")
@@ -941,6 +968,10 @@ def logout_lattice() -> bool:
             set_config_value("model.provider", "")
             set_config_value("model.default", "")
             set_config_value("model.base_url", "")
+        ft_cfg = cfg.get("free_tier") or {}
+        if isinstance(ft_cfg, dict) and (ft_cfg.get("portal_url") or ft_cfg.get("inference_url")):
+            set_config_value("free_tier.portal_url", "")
+            set_config_value("free_tier.inference_url", "")
     except Exception as exc:
         logger.warning("Failed to reset config after lattice logout: %s", exc)
 
