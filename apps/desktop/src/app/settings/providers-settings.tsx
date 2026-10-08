@@ -452,6 +452,7 @@ export function ProvidersSettings({
         message: t.settings.providers.removedMessage(name)
       })
       await refreshOAuthProviders().catch(() => undefined)
+
       if (provider.id === 'latticecode') {
         resetDesktopOnboarding(scopeProfile)
       }

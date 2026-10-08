@@ -292,6 +292,7 @@ export function ModelCatalogMenu({
 
   const selectFamily = async (family: ModelFamily, provider: ModelOptionProvider) => {
     const unavail = new Set(provider.unavailable_models ?? [])
+
     if (unavail.has(family.id) || (family.fastId && unavail.has(family.fastId))) {
       return
     }
@@ -391,6 +392,7 @@ export function ModelCatalogMenu({
 
     if (row.kind === 'family') {
       const unavail = new Set(row.provider.unavailable_models ?? [])
+
       if (unavail.has(row.family.id) || (row.family.fastId && unavail.has(row.family.fastId))) {
         return
       }
@@ -517,6 +519,7 @@ export function ModelCatalogMenu({
 
                     if (isLocked) {
                       const lockedLabel = group.provider.slug === 'latticecode' ? '暂不提供' : copyPicker.pro
+
                       return (
                         <DropdownMenuItem
                           disabled
@@ -653,13 +656,16 @@ export function ModelCatalogMenu({
                       )}
                       onSelect={async event => {
                         event.preventDefault()
+
                         const ok = await confirm({
                           title: '退出登录',
                           description: '确定退出 New API 账号？退出后将清除已保存的登录凭据。',
                           confirmLabel: '退出登录',
                           destructive: true
                         })
-                        if (!ok) return
+
+                        if (!ok) {return}
+
                         try {
                           await logoutLattice(profile)
                           notify({

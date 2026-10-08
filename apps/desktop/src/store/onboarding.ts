@@ -1292,6 +1292,7 @@ export async function saveOnboardingLatticeLogin(
   const u = username.trim()
   const p = password.trim()
   let url = portalUrl.trim() || 'http://192.168.1.206:3000'
+
   if (url && !/^https?:\/\//i.test(url)) {
     url = `http://${url}`
   }

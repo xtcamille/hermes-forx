@@ -796,10 +796,13 @@ const ErrorRecoveryActions: FC = () => {
 
     triggerHaptic('submit')
     const key = normalizeProfileKey(gatewayProfile)
+
     if (surface.provider === 'latticecode') {
       resetDesktopOnboarding(key === 'default' ? undefined : key)
+
       return
     }
+
     startManualProviderOAuth(surface.provider, key === 'default' ? undefined : key)
   }, [gatewayProfile, surface])
 

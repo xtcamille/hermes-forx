@@ -1,5 +1,7 @@
 import { useStore } from '@nanostores/react'
 
+import { EnterpriseKbLoginDialog } from '@/app/chat/enterprise-kb-login-dialog'
+import { useSessionView } from '@/app/chat/session-view'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
@@ -7,12 +9,10 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { Ear, EarOff, iconSize, Layers3, Loader2, Square } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { $showKbLoginDialog, closeKbLoginDialog } from '@/store/enterprise-kb'
 import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
-import { useSessionView } from '@/app/chat/session-view'
-import { EnterpriseKbLoginDialog } from '@/app/chat/enterprise-kb-login-dialog'
-import { $showKbLoginDialog, closeKbLoginDialog } from '@/store/enterprise-kb'
 import { ACTIVE_ICON_BTN, GHOST_ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { KbPickerPopover } from './kb-picker-popover'
@@ -193,8 +193,8 @@ export function ComposerControls({
           things you can press. */}
       {hudMode ? <HudWindowButtons /> : null}
       <EnterpriseKbLoginDialog
-        open={showKbDialog}
         onOpenChange={open => !open && closeKbLoginDialog()}
+        open={showKbDialog}
       />
     </div>
   )

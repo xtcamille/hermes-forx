@@ -18,6 +18,7 @@ export {
 export type { ProfileScope } from './api/client'
 export * from './api/config'
 export * from './api/cron'
+export * from './api/enterprise-kb'
 export * from './api/local-models'
 export * from './api/mcp'
 export * from './api/messaging'
@@ -28,7 +29,6 @@ export * from './api/sessions'
 export * from './api/skills'
 export * from './api/system'
 export * from './api/toolsets'
-export * from './api/enterprise-kb'
 
 export type {
   ActionResponse,

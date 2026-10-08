@@ -1,3 +1,4 @@
+import { IconBook as BookOpen } from '@tabler/icons-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { loginEnterpriseKb } from '@/hermes'
-import { IconBook as BookOpen } from '@tabler/icons-react'
 import { Loader2 } from '@/lib/icons'
 import { $enterpriseKbStatus } from '@/store/enterprise-kb'
 import { notify, notifyError } from '@/store/notifications'
@@ -31,13 +31,16 @@ export function EnterpriseKbLoginDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!username.trim() || !password.trim()) {
       setErrorMsg('请输入账号与密码')
+
       return
     }
 
     setLoading(true)
     setErrorMsg(null)
+
     try {
       const res = await loginEnterpriseKb(username.trim(), password.trim(), baseUrl.trim())
       $enterpriseKbStatus.set({
@@ -53,13 +56,17 @@ export function EnterpriseKbLoginDialog({
       onOpenChange(false)
     } catch (err: any) {
       let msg = err?.message || '登录失败，请检查服务器地址与账号密码'
+
       try {
         const jsonMatch = msg.match(/\{.*\}$/)
+
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0])
-          if (parsed.detail) msg = parsed.detail
+
+          if (parsed.detail) {msg = parsed.detail}
         }
       } catch {}
+
       setErrorMsg(msg)
       notifyError(new Error(msg), '企业知识库登录失败')
     } finally {

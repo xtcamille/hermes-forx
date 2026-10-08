@@ -71,6 +71,7 @@ export function formatGroupDeltaLines(delta: GroupMessage[], viewer: GroupChatLi
 
   for (let i = delta.length - 1; i >= 0 && lines.length < GROUP_CHAT_HISTORY_LIMIT; i--) {
     const entry = delta[i]
+
     const line = formatGroupChatLine(
       { ...entry, text: compactGroupChatSyncText(entry.text, GROUP_CHAT_HISTORY_LINE_CHARS).text },
       viewer,

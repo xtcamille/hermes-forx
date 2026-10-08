@@ -18,8 +18,8 @@ import {
   mainComposerScope,
   terminalContextBlocksFromDraft
 } from '@/store/composer'
-import { $hudMode } from '@/store/hud'
 import { commitDraftDatasetsToSession } from '@/store/enterprise-kb'
+import { $hudMode } from '@/store/hud'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { consumePendingCredentialWarning, requestDesktopOnboarding } from '@/store/onboarding'
 import { isStoredTranscriptReadOnly } from '@/store/read-only-transcript'

@@ -156,6 +156,7 @@ test('resolveBehindLocally: unreachable tip is unknown, reachable tip is ahead, 
 test('listLocalCommits renders the local gap newest-first in the parseCompare shape', async () => {
   const OLDEST = '1'.repeat(40)
   const NEWEST = '2'.repeat(40)
+
   const gitLog = fakeGit({
     log: {
       code: 0,

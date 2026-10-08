@@ -1,4 +1,11 @@
 import { useStore } from '@nanostores/react'
+import {
+  IconBook as BookOpen,
+  IconCheck as Check,
+  IconChevronDown as ChevronDown,
+  // IconLogout as LogOut,
+  IconRefresh as RefreshCw
+} from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -9,13 +16,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tip } from '@/components/ui/tooltip'
 import type { EnterpriseKbDataset } from '@/hermes'
-import {
-  IconBook as BookOpen,
-  IconCheck as Check,
-  IconChevronDown as ChevronDown,
-  // IconLogout as LogOut,
-  IconRefresh as RefreshCw
-} from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import {
   $enterpriseKbStatus,
@@ -54,9 +54,11 @@ export function KbPickerPopover({
 
   const handleToggle = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
+
     const next = selectedIds.includes(id)
       ? selectedIds.filter(x => id !== x)
       : [...selectedIds, id]
+
     setSelectedDatasetsForSession(sessionId, next, alternateSessionId)
   }
 
@@ -73,6 +75,7 @@ export function KbPickerPopover({
   const handleRefresh = async (e: React.MouseEvent) => {
     e.stopPropagation()
     setRefreshing(true)
+
     try {
       await refreshEnterpriseKbStatus()
     } finally {
@@ -163,6 +166,7 @@ export function KbPickerPopover({
           ) : (
             datasets.map((d: EnterpriseKbDataset) => {
               const selected = selectedIds.includes(d.id)
+
               return (
                 <div
                   className={cn(

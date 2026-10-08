@@ -211,8 +211,10 @@ function installedAgentInstallScript(hermesHome) {
 
   for (const name of ['forx-agent', 'hermes-agent']) {
     const candidate = path.join(hermesHome, name, 'scripts', installScriptName())
+
     try {
       fs.accessSync(candidate, fs.constants.R_OK)
+
       return candidate
     } catch {}
   }
