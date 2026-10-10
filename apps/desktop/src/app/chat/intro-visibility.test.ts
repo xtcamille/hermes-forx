@@ -36,13 +36,22 @@ describe('shouldShowIntro', () => {
     }
   })
 
-  it('hides on surfaces that are not an empty primary draft', () => {
-    expect(shouldShowIntro({ ...showing, primary: false })).toBe(false)
-    expect(shouldShowIntro({ ...showing, auxiliaryWindow: true })).toBe(false)
-    expect(shouldShowIntro({ ...showing, freshDraftReady: false })).toBe(false)
-    expect(shouldShowIntro({ ...showing, routedSessionView: true })).toBe(false)
-    expect(shouldShowIntro({ ...showing, selectedSessionId: 'session-1' })).toBe(false)
-    expect(shouldShowIntro({ ...showing, activeSessionId: 'session-1' })).toBe(false)
+  it('shows on new session tabs and empty session tiles', () => {
+    expect(
+      shouldShowIntro({
+        ...showing,
+        primary: false,
+        routedSessionView: true,
+        selectedSessionId: 'session-1',
+        activeSessionId: 'runtime-1',
+        freshDraftReady: false
+      })
+    ).toBe(true)
+  })
+
+  it('hides when messages are not empty or auxiliary window or bot chat', () => {
     expect(shouldShowIntro({ ...showing, messagesEmpty: false })).toBe(false)
+    expect(shouldShowIntro({ ...showing, auxiliaryWindow: true })).toBe(false)
+    expect(shouldShowIntro({ ...showing, isBotChat: true })).toBe(false)
   })
 })

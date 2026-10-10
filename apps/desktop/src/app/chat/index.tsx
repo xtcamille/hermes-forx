@@ -23,7 +23,7 @@ import type { ChatMessage } from '@/lib/chat-messages'
 import { NEW_SESSION_TITLE, quickModelOptions, sessionTitle } from '@/lib/chat-runtime'
 import { useIncrementalExternalStoreRuntime } from '@/lib/incremental-external-store-runtime'
 import { currentModelCapabilities, modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
-import { useStoreSelector } from '@/lib/use-session-slice'
+import { useStoreSelector, useStoresSelector } from '@/lib/use-session-slice'
 import { cn } from '@/lib/utils'
 import { migrateSessionDraft } from '@/store/composer'
 import { migrateQueuedPrompts, parkQueuedPrompts } from '@/store/composer-queue'
@@ -47,7 +47,14 @@ import {
   sessionPinId,
   shouldMigrateComposerScope
 } from '@/store/session'
-import { $focusedStoredSessionId, $sessionStates, sessionTileDelegate } from '@/store/session-states'
+import {
+  $botChatSessionIds,
+  $focusedStoredSessionId,
+  $sessionStates,
+  $sessionTiles,
+  isBotChatSession,
+  sessionTileDelegate
+} from '@/store/session-states'
 import { $transcriptTailBySessionId, transcriptTailState } from '@/store/transcript-tail'
 import { isAuxiliaryWindow, isWatchWindow } from '@/store/windows'
 
@@ -595,6 +602,10 @@ const ChatViewContent = memo(function ChatViewContent({
       })
     : false
 
+  const isBotChat = useStoresSelector([$botChatSessionIds, $sessionStates, $sessionTiles], () =>
+    isBotChatSession(selectedSessionId || activeSessionId)
+  )
+
   // The compact new-session pop-out skips the wordmark/tagline intro — it's a
   // scratch window, not the full-height empty state. The Appearance toggle
   // turns it off everywhere else.
@@ -603,6 +614,7 @@ const ChatViewContent = memo(function ChatViewContent({
     auxiliaryWindow: isAuxiliaryWindow(),
     enabled: introSplash,
     freshDraftReady,
+    isBotChat,
     messagesEmpty,
     primary: isPrimary,
     routedSessionView: isRoutedSessionView,
