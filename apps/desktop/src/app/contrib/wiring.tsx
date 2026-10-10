@@ -824,6 +824,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     archiveSession,
     branchStoredSession,
     executeSlashCommand,
+    openNewSessionTile,
     removeSession,
     requestGateway,
     runtimeIdByStoredSessionIdRef,

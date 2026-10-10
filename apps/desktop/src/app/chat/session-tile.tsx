@@ -22,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { useModelControls } from '@/app/session/hooks/use-model-controls'
 import { blobToDataUrl } from '@/app/session/hooks/use-prompt-actions/utils'
-import { resolveStoredSession } from '@/app/session/hooks/use-session-actions/utils'
+import { goneSessionVerdict, resolveStoredSession } from '@/app/session/hooks/use-session-actions/utils'
 import { ModelMenuPanel } from '@/app/shell/model-menu-panel'
 import { ReasoningMenuPanel } from '@/app/shell/reasoning-menu-panel'
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
@@ -471,6 +471,24 @@ export function SessionTilePane({ storedSessionId }: { storedSessionId: string }
         // reconnect-time lookup.
         const durableSession = await resolveStoredSession(storedSessionId, ownerRoute).catch(() => undefined)
         const current = $sessionTiles.get().find(candidate => candidate.storedSessionId === storedSessionId)
+
+        const stillListed = Boolean(durableSession)
+        const verdict = goneSessionVerdict({
+          createdThisRun: false,
+          stillListed,
+          switchInFlight: Boolean($gatewayState.get() !== 'open')
+        })
+
+        if (verdict === 'draft' && delegate.replaceTileWithNewSession) {
+          try {
+            await delegate.replaceTileWithNewSession(storedSessionId)
+
+            return
+          } catch {
+            // Fall through to error card if replace fails
+          }
+        }
+
         const error = sessionTileResumeFailure(message, Boolean(durableSession), Boolean(current && !current.runtimeId))
 
         if (error) {
@@ -494,14 +512,30 @@ export function SessionTilePane({ storedSessionId }: { storedSessionId: string }
   }, [gatewayOpen, storedSessionId])
 
   if (tile?.error) {
+    const delegate = sessionTileDelegate()
+
     return (
       <div className="grid h-full place-items-center p-4">
-        <div className="max-w-[24rem] space-y-2 text-center font-mono text-[11px]">
-          <div className="text-(--ui-danger,#f87171)">Couldn't open this session</div>
+        <div className="max-w-[24rem] space-y-3 text-center font-mono text-[11px]">
+          <div className="text-(--ui-danger,#f87171) font-semibold">Couldn't open this session</div>
           <div className="break-words text-(--ui-text-quaternary)">{tile.error}</div>
-          <Button onClick={() => patchSessionTile(storedSessionId, { error: undefined })} size="sm" variant="outline">
-            Retry
-          </Button>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button onClick={() => patchSessionTile(storedSessionId, { error: undefined })} size="sm" variant="outline">
+              Retry
+            </Button>
+            {delegate?.replaceTileWithNewSession && (
+              <Button
+                onClick={() => void delegate.replaceTileWithNewSession!(storedSessionId).catch(() => undefined)}
+                size="sm"
+                variant="default"
+              >
+                New Session
+              </Button>
+            )}
+            <Button onClick={() => closeSessionTile(storedSessionId)} size="sm" variant="ghost">
+              Close Tab
+            </Button>
+          </div>
         </div>
       </div>
     )

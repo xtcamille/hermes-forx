@@ -42,6 +42,7 @@ const row = (over: Partial<SessionInfo>): SessionInfo =>
 function renderTile(
   requestGateway: ReturnType<typeof vi.fn>,
   refs?: {
+    openNewSessionTile?: ReturnType<typeof vi.fn>
     runtimeIdByStoredSessionIdRef?: { current: Map<string, string> }
     sessionStateByRuntimeIdRef?: { current: Map<string, unknown> }
     updateSessionState?: ReturnType<typeof vi.fn>
@@ -52,6 +53,7 @@ function renderTile(
       archiveSession: vi.fn(async () => undefined),
       branchStoredSession: vi.fn(async () => undefined),
       executeSlashCommand: vi.fn(async () => undefined) as never,
+      openNewSessionTile: refs?.openNewSessionTile as never,
       removeSession: vi.fn(async () => undefined),
       requestGateway: requestGateway as never,
       runtimeIdByStoredSessionIdRef: (refs?.runtimeIdByStoredSessionIdRef ?? { current: new Map() }) as never,
@@ -531,3 +533,34 @@ describe('useSessionTileDelegate interruptSession', () => {
     expect(isSessionRecentlyInterrupted('runtime-tile-1')).toBe(true)
   })
 })
+
+describe('useSessionTileDelegate replaceTileWithNewSession', () => {
+  afterEach(() => {
+    $sessionTiles.set([])
+  })
+
+  it('closes dead tile and creates a fresh session tile at the same dock position', async () => {
+    const openNewSessionTile = vi.fn(async () => undefined)
+    $sessionTiles.set([
+      {
+        dir: 'center',
+        anchor: 'pane-1',
+        storedSessionId: 'dead-id'
+      }
+    ])
+
+    renderTile(vi.fn(async () => ({}) as never), { openNewSessionTile })
+
+    await sessionTileDelegate()!.replaceTileWithNewSession!('dead-id')
+
+    expect($sessionTiles.get().some(t => t.storedSessionId === 'dead-id')).toBe(false)
+    expect(openNewSessionTile).toHaveBeenCalledWith(
+      'center',
+      expect.objectContaining({
+        anchor: 'pane-1',
+        listed: false
+      })
+    )
+  })
+})
+

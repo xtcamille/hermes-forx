@@ -9,6 +9,8 @@ import {
 import { translateNow } from '@/i18n/runtime'
 import { type ChatMessage, chatMessageText, toChatMessages } from '@/lib/chat-messages'
 import { notify } from '@/store/notifications'
+import { announceGoneSessionDraft } from '@/store/composer'
+import type { AgentProfileRoute } from '@/store/profile'
 import {
   isReadOnlyRuntimeId,
   readOnlyRuntimeIdFor,
@@ -19,9 +21,12 @@ import { assertSessionOwnerResolved } from '@/store/session-owner-resolution'
 import { requestForSessionProfile, type SessionOwnerScope } from '@/store/session-request-router'
 import {
   $sessionTiles,
+  closeSessionTile,
   publishSessionState,
   sessionTileOwnerRoute,
-  setSessionTileDelegate
+  type SessionTileWorkspaceScope,
+  setSessionTileDelegate,
+  type TileDock
 } from '@/store/session-states'
 import type { SessionResumeResult } from '@/types/hermes'
 
@@ -116,6 +121,18 @@ interface SessionTileDelegateParams {
   archiveSession: (storedSessionId: string) => Promise<unknown>
   branchStoredSession: (storedSessionId: string) => Promise<unknown>
   executeSlashCommand: ReturnType<typeof usePromptActions>['executeSlashCommand']
+  openNewSessionTile?: (
+    dir?: TileDock,
+    options?: {
+      anchor?: string
+      before?: null | string
+      cwd?: null | string
+      listed?: boolean
+      profile?: string
+      route?: AgentProfileRoute | null
+      workspaceScope?: SessionTileWorkspaceScope
+    }
+  ) => Promise<void>
   removeSession: (storedSessionId: string) => Promise<unknown>
   requestGateway: GatewayRequester
   runtimeIdByStoredSessionIdRef: SessionStateCache['runtimeIdByStoredSessionIdRef']
@@ -134,6 +151,7 @@ export function useSessionTileDelegate({
   archiveSession,
   branchStoredSession,
   executeSlashCommand,
+  openNewSessionTile,
   removeSession,
   requestGateway,
   runtimeIdByStoredSessionIdRef,
@@ -205,6 +223,29 @@ export function useSessionTileDelegate({
       },
       executeSlash: async (rawCommand, sessionId) => {
         await executeSlashCommand(rawCommand, { sessionId })
+      },
+      replaceTileWithNewSession: async storedSessionId => {
+        const currentTile = $sessionTiles.get().find(t => t.storedSessionId === storedSessionId)
+        announceGoneSessionDraft(storedSessionId)
+        closeSessionTile(storedSessionId)
+        if (openNewSessionTile) {
+          await openNewSessionTile(currentTile?.dir ?? 'center', {
+            anchor: currentTile?.anchor,
+            before: currentTile?.before,
+            listed: false,
+            profile: currentTile?.ownerProfile,
+            route: currentTile?.ownerRoute,
+            workspaceScope: currentTile
+              ? {
+                  workspaceMode: currentTile.workspaceMode ?? 'sessions',
+                  ownerProfile: currentTile.ownerProfile,
+                  ownerRoute: currentTile.ownerRoute,
+                  workspaceOwnerKey: currentTile.workspaceOwnerKey,
+                  workspaceTabTitle: currentTile.workspaceTabTitle
+                }
+              : undefined
+          })
+        }
       },
       // Gateway reconnect (sleep/wake, backend respawn): every stored→runtime
       // binding recorded pre-reconnect points at a runtime id the respawned

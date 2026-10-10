@@ -1492,6 +1492,8 @@ export interface SessionTileDelegate {
    *  warm path re-binds tiles to dead runtime ids (the sleep/wake "empty
    *  right pane" bug). Bindings re-record from live post-reconnect events. */
   invalidateRuntimeBindings?(preserveStoredSessionIds?: ReadonlySet<string>): void
+  /** Replace a dead/unresolvable tile with a fresh session draft at the same dock position. */
+  replaceTileWithNewSession?(storedSessionId: string): Promise<void>
   /** Bind a live runtime id for a stored session (resume without touching
    *  the main view). Returns the runtime id, or throws.
    *  `refreshTranscript` forces a REST merge even when a warm cached

@@ -148,6 +148,9 @@ export function ambientOwnerConnectionId(): string | undefined {
  *  underneath it. (It used to omit the key for 'local', which made the pin
  *  unable to beat the ambient tag; helpers then had to bypass this wrapper.) */
 export function hermesApi<T>(request: HermesApiRequest): Promise<T> {
+  if (!window.hermesDesktop?.api) {
+    return Promise.reject(new Error('hermesDesktop.api unavailable'))
+  }
   return window.hermesDesktop.api<T>({ ...connectionScoped(), ...request })
 }
 

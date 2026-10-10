@@ -291,7 +291,7 @@ export function useComposerSubmit({
       scope.attachments.clear()
       if (sessionId) {
         const selectedKbIds = getSelectedDatasetsForSession(sessionId)
-        void setSessionEnterpriseKbDatasets(sessionId, selectedKbIds)
+        void setSessionEnterpriseKbDatasets(sessionId, selectedKbIds).catch(() => {})
       }
       dispatchSubmit(text, submittedAttachments)
     }
