@@ -3694,7 +3694,7 @@ export const zh = defineLocale({
 
   onboarding: {
     headerTitle: '开始设置 ForX Agent',
-    headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
+    headerDesc: '配置并连接模型平台及企业知识库即可开始对话。',
     preparingInstall: 'ForX 正在完成安装。首次运行通常不到一分钟。',
     starting: '正在启动 ForX…',
     lookingUpProviders: '正在查找提供方...',

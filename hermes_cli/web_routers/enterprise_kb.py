@@ -46,10 +46,13 @@ async def api_enterprise_kb_login(req: LoginRequest):
             base_url=req.base_url,
         )
         u = state.get("username")
-        display_username = "默认账户" if (not u or u == RAGFLOW_DEFAULT_USERNAME) else u
+        is_default = (not u or u == RAGFLOW_DEFAULT_USERNAME)
+        display_username = "默认账户" if is_default else u
         return {
             "success": True,
             "username": display_username,
+            "raw_username": u,
+            "is_default": is_default,
             "base_url": state.get("base_url"),
             "datasets": state.get("cached_datasets", []),
         }
@@ -64,10 +67,13 @@ async def api_enterprise_kb_status():
     logged_in = is_ragflow_logged_in()
     state = get_ragflow_auth_state() or {}
     username = state.get("username")
-    display_username = "默认账户" if (not username or username == RAGFLOW_DEFAULT_USERNAME) else username
+    is_default = (not username or username == RAGFLOW_DEFAULT_USERNAME)
+    display_username = "默认账户" if is_default else username
     return {
         "logged_in": logged_in,
         "username": display_username,
+        "raw_username": username,
+        "is_default": is_default,
         "base_url": state.get("base_url") or RAGFLOW_DEFAULT_URL,
         "datasets": state.get("cached_datasets", []),
         "logged_in_at": state.get("logged_in_at"),
@@ -92,6 +98,28 @@ async def api_enterprise_kb_logout():
     """Log out from the enterprise knowledge base."""
     clear_ragflow_auth_state()
     return {"success": True}
+
+
+@router.post("/reset-default")
+async def api_enterprise_kb_reset_default():
+    """Reset enterprise knowledge base to default official account."""
+    try:
+        state = login_ragflow(
+            username=RAGFLOW_DEFAULT_USERNAME,
+            password=RAGFLOW_DEFAULT_PASSWORD,
+            base_url=RAGFLOW_DEFAULT_URL,
+        )
+        return {
+            "success": True,
+            "username": "默认账户",
+            "raw_username": RAGFLOW_DEFAULT_USERNAME,
+            "is_default": True,
+            "base_url": state.get("base_url"),
+            "datasets": state.get("cached_datasets", []),
+        }
+    except Exception as exc:
+        log.warning("Enterprise KB reset-default API failed: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/session-datasets")

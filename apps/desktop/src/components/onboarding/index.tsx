@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -13,6 +14,7 @@ import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isSubmitEnter } from '@/lib/ime'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { cn } from '@/lib/utils'
+import { IconBook as BookOpen } from '@tabler/icons-react'
 import { $desktopBoot, type DesktopBootState } from '@/store/boot'
 import { $freeTierStatus, FREE_TIER_MODEL, freeTierSetupFailure } from '@/store/free-tier'
 import { openFreeTierSignIn } from '@/store/free-tier-sign-in'
@@ -345,7 +347,7 @@ export function DesktopOnboardingOverlay({
             <Codicon name="close" size="1rem" />
           </Button>
         ) : null}
-        <div className="grid gap-3 p-5">
+        <div className="grid gap-3 p-5 max-h-[85vh] overflow-y-auto">
           {reason ? <ReasonNotice reason={reason} /> : null}
           {ready ? (
             freeTierIntro ? (
@@ -506,7 +508,7 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
         canGoBack={false}
         initialEnvKey="OPENAI_BASE_URL"
         onBack={() => {}}
-        onLatticeLogin={(u, p, url) => saveOnboardingLatticeLogin(u, p, url, ctx)}
+        onLatticeLogin={(u, p, url, kb) => saveOnboardingLatticeLogin(u, p, url, ctx, kb)}
         onSave={(envKey, value, name, apiKey) => saveOnboardingApiKey(envKey, value, name, ctx, apiKey)}
         options={apiKeyOptions}
       />
@@ -562,7 +564,17 @@ export function ApiKeyForm({
   isSet?: (envKey: string) => boolean
   onBack: () => void
   onClear?: (envKey: string) => void
-  onLatticeLogin?: (username: string, password: string, portalUrl: string) => Promise<{ message?: string; ok: boolean }>
+  onLatticeLogin?: (
+    username: string,
+    password: string,
+    portalUrl: string,
+    kb?: {
+      enabled: boolean
+      username?: string
+      password?: string
+      baseUrl?: string
+    }
+  ) => Promise<{ message?: string; ok: boolean }>
   onSave: (envKey: string, value: string, name: string, apiKey?: string) => Promise<{ message?: string; ok: boolean }>
   options?: ApiKeyOption[]
   redactedValue?: (envKey: string) => null | string | undefined
@@ -588,6 +600,25 @@ export function ApiKeyForm({
       return 'http://192.168.1.206:3000'
     }
   })
+
+  // For Enterprise Knowledge Base (RAGFlow)
+  const [enableKb, setEnableKb] = useState(() => {
+    try {
+      return window.localStorage.getItem('hermes-onboarding-enable-kb-v1') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [useSameCreds, setUseSameCreds] = useState(true)
+  const [kbPortalUrl, setKbPortalUrl] = useState(() => {
+    try {
+      return window.localStorage.getItem('hermes-ragflow-portal-url-v1') || 'http://172.22.0.87'
+    } catch {
+      return 'http://172.22.0.87'
+    }
+  })
+  const [kbUsername, setKbUsername] = useState('')
+  const [kbPassword, setKbPassword] = useState('')
 
   // `options` can change at runtime when callers filter the catalog (e.g. the
   // Providers page wiring its search into this grid). Keep the selection valid
@@ -630,9 +661,14 @@ export function ApiKeyForm({
   const submit = async () => {
     if (isLocal) {
       if (!username.trim() || !password.trim()) {
-        setError('请输入用户名和密码')
+        setError('请输入模型服务平台用户名和密码')
         return
       }
+      if (enableKb && !useSameCreds && (!kbUsername.trim() || !kbPassword.trim())) {
+        setError('请输入个人知识库账号和密码')
+        return
+      }
+
       let cleanUrl = portalUrl.trim()
       if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
         cleanUrl = `http://${cleanUrl}`
@@ -642,9 +678,37 @@ export function ApiKeyForm({
       } catch {
         // ignore
       }
+
+      let cleanKbUrl = kbPortalUrl.trim() || 'http://172.22.0.87'
+      if (cleanKbUrl && !/^https?:\/\//i.test(cleanKbUrl)) {
+        cleanKbUrl = `http://${cleanKbUrl}`
+      }
+      try {
+        window.localStorage.setItem('hermes-ragflow-portal-url-v1', cleanKbUrl)
+      } catch {
+        // ignore
+      }
+
       setSaving(true)
       setError(null)
-      const result = await onLatticeLogin?.(username.trim(), password.trim(), cleanUrl)
+
+      const targetKbUser = useSameCreds ? username.trim() : kbUsername.trim()
+      const targetKbPass = useSameCreds ? password.trim() : kbPassword.trim()
+
+      const result = await onLatticeLogin?.(
+        username.trim(),
+        password.trim(),
+        cleanUrl,
+        enableKb
+          ? {
+              enabled: true,
+              username: targetKbUser,
+              password: targetKbPass,
+              baseUrl: cleanKbUrl
+            }
+          : { enabled: false }
+      )
+
       if (result && !result.ok) {
         setError(result.message ?? '登录失败，请检查账号密码或服务器连接')
       }
@@ -708,42 +772,149 @@ export function ApiKeyForm({
         </div>
 
         {isLocal ? (
-          <div className="grid gap-2">
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">服务器地址</span>
-              <Input
-                autoComplete="off"
-                className="font-mono text-sm"
-                onChange={e => setPortalUrl(e.target.value)}
-                placeholder="http://192.168.1.206:3000"
-                type="text"
-                value={portalUrl}
-              />
+          <div className="grid gap-3">
+            {/* 模型服务配置 */}
+            <div className="rounded-xl border border-border/70 bg-background/50 p-3 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <KeyRound className="size-3.5 text-primary" />
+                  模型服务平台 (New API)
+                </span>
+                <Badge size="xs" variant="muted">
+                  必填
+                </Badge>
+              </div>
+
+              <div className="grid gap-1">
+                <span className="text-xs font-medium text-muted-foreground">服务器地址</span>
+                <Input
+                  autoComplete="off"
+                  className="font-mono text-sm"
+                  onChange={e => setPortalUrl(e.target.value)}
+                  placeholder="http://192.168.1.206:3000"
+                  type="text"
+                  value={portalUrl}
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <span className="text-xs font-medium text-muted-foreground">用户名 / 邮箱</span>
+                <Input
+                  autoComplete="username"
+                  autoFocus
+                  className="font-mono text-sm"
+                  onChange={e => setUsername(e.target.value)}
+                  onKeyDown={e => isSubmitEnter(e) && void submit()}
+                  placeholder="输入 New API 用户名或注册邮箱"
+                  type="text"
+                  value={username}
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <span className="text-xs font-medium text-muted-foreground">登录密码</span>
+                <Input
+                  autoComplete="current-password"
+                  className="font-mono text-sm"
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => isSubmitEnter(e) && void submit()}
+                  placeholder="输入登录密码"
+                  type="password"
+                  value={password}
+                />
+              </div>
             </div>
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">用户名 / 邮箱</span>
-              <Input
-                autoComplete="username"
-                autoFocus
-                className="font-mono text-sm"
-                onChange={e => setUsername(e.target.value)}
-                onKeyDown={e => isSubmitEnter(e) && void submit()}
-                placeholder="输入 New API 用户名或注册邮箱"
-                type="text"
-                value={username}
-              />
-            </div>
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">登录密码</span>
-              <Input
-                autoComplete="current-password"
-                className="font-mono text-sm"
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => isSubmitEnter(e) && void submit()}
-                placeholder="输入登录密码"
-                type="password"
-                value={password}
-              />
+
+            {/* 知识库服务配置 */}
+            <div className="rounded-xl border border-border/70 bg-background/50 p-3 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <BookOpen className="size-3.5 text-primary" />
+                  企业知识库平台 (RAGFlow)
+                </span>
+                <Badge size="xs" variant={enableKb ? 'default' : 'outline'}>
+                  {enableKb ? '个人专属知识库' : '默认官方知识库'}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-2 pt-0.5">
+                <Checkbox
+                  checked={enableKb}
+                  id="enable-kb-onboarding"
+                  onCheckedChange={checked => {
+                    const val = Boolean(checked)
+                    setEnableKb(val)
+                    try {
+                      window.localStorage.setItem('hermes-onboarding-enable-kb-v1', val ? '1' : '0')
+                    } catch {}
+                  }}
+                />
+                <label
+                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
+                  htmlFor="enable-kb-onboarding"
+                >
+                  登录个人知识库账号（未勾选时将使用系统默认官方知识库）
+                </label>
+              </div>
+
+              {enableKb && (
+                <div className="space-y-2.5 pt-2 border-t border-border/40">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={useSameCreds}
+                      id="use-same-creds-onboarding"
+                      onCheckedChange={checked => setUseSameCreds(Boolean(checked))}
+                    />
+                    <label
+                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
+                      htmlFor="use-same-creds-onboarding"
+                    >
+                      使用与上方模型平台相同的账号密码
+                    </label>
+                  </div>
+
+                  <div className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">知识库地址 (RAGFlow URL)</span>
+                    <Input
+                      autoComplete="off"
+                      className="font-mono text-sm"
+                      onChange={e => setKbPortalUrl(e.target.value)}
+                      placeholder="http://172.22.0.87"
+                      type="text"
+                      value={kbPortalUrl}
+                    />
+                  </div>
+
+                  {!useSameCreds && (
+                    <>
+                      <div className="grid gap-1">
+                        <span className="text-xs font-medium text-muted-foreground">知识库账号 / 邮箱</span>
+                        <Input
+                          autoComplete="username"
+                          className="font-mono text-sm"
+                          onChange={e => setKbUsername(e.target.value)}
+                          onKeyDown={e => isSubmitEnter(e) && void submit()}
+                          placeholder="输入 RAGFlow 账号或邮箱"
+                          type="text"
+                          value={kbUsername}
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs font-medium text-muted-foreground">知识库密码</span>
+                        <Input
+                          autoComplete="current-password"
+                          className="font-mono text-sm"
+                          onChange={e => setKbPassword(e.target.value)}
+                          onKeyDown={e => isSubmitEnter(e) && void submit()}
+                          placeholder="输入知识库密码"
+                          type="password"
+                          value={kbPassword}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -773,14 +944,22 @@ export function ApiKeyForm({
           ) : null}
         </div>
         <Button
-          disabled={(isLocal ? !username.trim() || !password.trim() : !canSave) || saving}
+          disabled={
+            (isLocal
+              ? !username.trim() ||
+                !password.trim() ||
+                (enableKb && !useSameCreds && (!kbUsername.trim() || !kbPassword.trim()))
+              : !canSave) || saving
+          }
           onClick={() => void submit()}
         >
           {saving ? <Loader2 className="animate-spin" /> : <KeyRound />}
           {saving
             ? t.onboarding.connecting
             : isLocal
-              ? '登录并连接'
+              ? enableKb
+                ? '登录模型与知识库'
+                : '登录并连接'
               : alreadySet
                 ? t.onboarding.update
                 : t.common.connect}

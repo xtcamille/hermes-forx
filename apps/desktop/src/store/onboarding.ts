@@ -7,6 +7,7 @@ import {
   getRecommendedDefaultModel,
   hermesApi,
   listOAuthProviders,
+  loginEnterpriseKb,
   pollOAuthSession,
   setEnvVar,
   startOAuthLogin,
@@ -16,6 +17,7 @@ import {
 import { translateNow } from '@/i18n'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
+import { $enterpriseKbStatus } from '@/store/enterprise-kb'
 import { ackFreeTierNotice, freeTierReadyPending, refreshFreeTierStatus, setFreeTierRoute } from '@/store/free-tier'
 import { setMainModelAssignment } from '@/store/model-assignment'
 import { notify, notifyError } from '@/store/notifications'
@@ -1284,7 +1286,13 @@ export async function saveOnboardingLatticeLogin(
   username: string,
   password: string,
   portalUrl: string,
-  ctx: OnboardingContext
+  ctx: OnboardingContext,
+  kb?: {
+    enabled: boolean
+    username?: string
+    password?: string
+    baseUrl?: string
+  }
 ): Promise<{ ok: boolean; message?: string }> {
   ctx = { ...ctx }
   const generation = flowGeneration
@@ -1300,6 +1308,44 @@ export async function saveOnboardingLatticeLogin(
     return { ok: false, message: '请输入账号和密码' }
   }
 
+  // 1. If personal knowledge base is configured, authenticate it first
+  let kbDatasetCount = 0
+  let kbLoggedUser = ''
+  if (kb?.enabled && kb.username && kb.password) {
+    try {
+      const kbUrl = kb.baseUrl?.trim() || 'http://172.22.0.87'
+      const kbRes = await loginEnterpriseKb(kb.username.trim(), kb.password.trim(), kbUrl)
+      if (generation !== flowGeneration) {
+        return { ok: false }
+      }
+      $enterpriseKbStatus.set({
+        logged_in: true,
+        username: kbRes.username,
+        base_url: kbRes.base_url,
+        datasets: kbRes.datasets
+      })
+      kbDatasetCount = kbRes.datasets?.length ?? 0
+      kbLoggedUser = kbRes.username || kb.username.trim()
+    } catch (error: any) {
+      if (generation !== flowGeneration) {
+        return { ok: false }
+      }
+      let errDetail = error?.message || '连接失败'
+      try {
+        const jsonMatch = errDetail.match(/\{.*\}$/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          if (parsed.detail) errDetail = parsed.detail
+        }
+      } catch {}
+      return {
+        ok: false,
+        message: `个人知识库登录失败：${errDetail}。如无需配置个人知识库，可取消勾选以使用系统默认共享知识库。`
+      }
+    }
+  }
+
+  // 2. Authenticate model platform (New API)
   try {
     const res = await hermesApi<{ ok: boolean; message?: string; username?: string; model?: string }>({
       path: '/api/auth/latticecode/login',
@@ -1332,7 +1378,11 @@ export async function saveOnboardingLatticeLogin(
       return { ok: false }
     }
 
-    notifyReady(`New API (${res.username || u})`)
+    const readyLabel = kb?.enabled
+      ? `New API (${res.username || u}) & 个人知识库 (${kbLoggedUser}, ${kbDatasetCount}个知识库)`
+      : `New API (${res.username || u})`
+
+    notifyReady(readyLabel)
     completeDesktopOnboarding()
     ctx.onCompleted?.()
 

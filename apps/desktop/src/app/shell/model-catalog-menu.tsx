@@ -21,7 +21,7 @@ import { HighlightMatches } from '@/components/ui/highlight-matches'
 import { usePointerQuiet } from '@/components/ui/keyboard-first'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
-import { getLocalModelsStatus, logoutLattice } from '@/hermes'
+import { getLocalModelsStatus, logoutEnterpriseKb, logoutLattice } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { isSubmitEnter } from '@/lib/ime'
 import { catalogProviderMatches, modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
@@ -662,6 +662,7 @@ export function ModelCatalogMenu({
                         if (!ok) return
                         try {
                           await logoutLattice(profile)
+                          await logoutEnterpriseKb().catch(() => undefined)
                           notify({
                             durationMs: 3_000,
                             kind: 'success',

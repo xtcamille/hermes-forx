@@ -246,10 +246,12 @@ def login_ragflow(
     state = {
         "base_url": clean_url,
         "username": username,
+        "password": password,
         "access_token": token,
         "user_info": user_data,
         "cached_datasets": datasets,
         "logged_in_at": datetime.now(timezone.utc).isoformat(),
+        "is_default_account": (username == RAGFLOW_DEFAULT_USERNAME),
     }
     save_ragflow_auth_state(state)
     logger.info("Enterprise knowledge base login succeeded for %s with %d datasets", username, len(datasets))
@@ -327,10 +329,13 @@ def fetch_ragflow_datasets(
         is_401, datasets_list = _fetch(c, headers)
         if is_401:
             try:
-                logger.info("RAGFlow token expired during dataset fetch (401), re-authenticating...")
+                curr_state = get_ragflow_auth_state(auto_login=False) or {}
+                relogin_user = curr_state.get("username") or RAGFLOW_DEFAULT_USERNAME
+                relogin_pwd = curr_state.get("password") or RAGFLOW_DEFAULT_PASSWORD
+                logger.info("RAGFlow token expired during dataset fetch (401), re-authenticating as %s...", relogin_user)
                 new_state = login_ragflow(
-                    username=RAGFLOW_DEFAULT_USERNAME,
-                    password=RAGFLOW_DEFAULT_PASSWORD,
+                    username=relogin_user,
+                    password=relogin_pwd,
                     base_url=clean_url,
                     timeout_seconds=timeout_seconds,
                     client=c,
@@ -439,10 +444,13 @@ def search_ragflow(
         is_401, chunks = _search(c, headers)
         if is_401:
             try:
-                logger.info("RAGFlow token expired during search (401), re-authenticating...")
+                curr_state = get_ragflow_auth_state(auto_login=False) or {}
+                relogin_user = curr_state.get("username") or RAGFLOW_DEFAULT_USERNAME
+                relogin_pwd = curr_state.get("password") or RAGFLOW_DEFAULT_PASSWORD
+                logger.info("RAGFlow token expired during search (401), re-authenticating as %s...", relogin_user)
                 new_state = login_ragflow(
-                    username=RAGFLOW_DEFAULT_USERNAME,
-                    password=RAGFLOW_DEFAULT_PASSWORD,
+                    username=relogin_user,
+                    password=relogin_pwd,
                     base_url=clean_url,
                     timeout_seconds=timeout_seconds,
                     client=c,

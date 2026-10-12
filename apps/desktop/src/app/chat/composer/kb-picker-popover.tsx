@@ -133,9 +133,22 @@ export function KbPickerPopover({
         </div>
 
         <div className="flex items-center justify-between px-2 pb-1.5 text-[11px] text-muted-foreground border-b border-border/50">
-          <span className="truncate max-w-[120px]" title={(!status.username || status.username === 'admin@zkjg.com') ? '默认账户' : status.username}>
-            账号: {(!status.username || status.username === 'admin@zkjg.com') ? '默认账户' : status.username}
-          </span>
+          <div className="flex items-center gap-1 min-w-0 max-w-[130px]">
+            <span className="truncate" title={status.username}>
+              账号: {status.username}
+            </span>
+            <button
+              className="text-primary hover:underline cursor-pointer shrink-0 text-[10px]"
+              onClick={e => {
+                e.stopPropagation()
+                openKbLoginDialog()
+              }}
+              title="切换或登录个人知识库账号"
+              type="button"
+            >
+              [切换]
+            </button>
+          </div>
           <div className="flex items-center gap-1 text-[10px]">
             <button
               className="text-primary hover:underline cursor-pointer"

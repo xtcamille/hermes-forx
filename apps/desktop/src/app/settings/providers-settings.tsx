@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { RowButton } from '@/components/ui/row-button'
 import { SearchField } from '@/components/ui/search-field'
 import { Tip } from '@/components/ui/tooltip'
-import { disconnectOAuthProvider, listOAuthProviders } from '@/hermes'
+import { disconnectOAuthProvider, listOAuthProviders, logoutEnterpriseKb } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { Check, ChevronDown, ChevronRight, KeyRound, Loader2, Terminal, Trash2 } from '@/lib/icons'
 import { normalize } from '@/lib/text'
@@ -453,6 +453,7 @@ export function ProvidersSettings({
       })
       await refreshOAuthProviders().catch(() => undefined)
       if (provider.id === 'latticecode') {
+        await logoutEnterpriseKb().catch(() => undefined)
         resetDesktopOnboarding(scopeProfile)
       }
     } catch (err) {

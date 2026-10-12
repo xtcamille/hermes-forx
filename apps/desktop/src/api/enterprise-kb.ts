@@ -12,6 +12,8 @@ export interface EnterpriseKbDataset {
 export interface EnterpriseKbStatusResponse {
   logged_in: boolean
   username?: string
+  raw_username?: string
+  is_default?: boolean
   base_url?: string
   datasets?: EnterpriseKbDataset[]
   logged_in_at?: string
@@ -20,6 +22,8 @@ export interface EnterpriseKbStatusResponse {
 export interface EnterpriseKbLoginResponse {
   success: boolean
   username?: string
+  raw_username?: string
+  is_default?: boolean
   base_url?: string
   datasets?: EnterpriseKbDataset[]
 }
@@ -51,6 +55,13 @@ export function getEnterpriseKbDatasets(): Promise<{ datasets: EnterpriseKbDatas
 export function logoutEnterpriseKb(): Promise<{ success: boolean }> {
   return hermesApi<{ success: boolean }>({
     path: '/api/enterprise-kb/logout',
+    method: 'POST'
+  })
+}
+
+export function resetDefaultEnterpriseKb(): Promise<EnterpriseKbLoginResponse> {
+  return hermesApi<EnterpriseKbLoginResponse>({
+    path: '/api/enterprise-kb/reset-default',
     method: 'POST'
   })
 }

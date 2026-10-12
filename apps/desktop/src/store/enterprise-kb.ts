@@ -4,6 +4,7 @@ import {
   type EnterpriseKbDataset,
   type EnterpriseKbStatusResponse,
   getEnterpriseKbStatus,
+  resetDefaultEnterpriseKb,
   setSessionEnterpriseKbDatasets
 } from '@/hermes'
 
@@ -19,6 +20,24 @@ export async function refreshEnterpriseKbStatus(): Promise<EnterpriseKbStatusRes
   } catch (err) {
     console.debug('Failed to get enterprise KB status:', err)
     return null
+  }
+}
+
+export async function switchToDefaultEnterpriseKb(): Promise<boolean> {
+  try {
+    const res = await resetDefaultEnterpriseKb()
+    $enterpriseKbStatus.set({
+      logged_in: true,
+      username: res.username,
+      raw_username: res.raw_username,
+      is_default: true,
+      base_url: res.base_url,
+      datasets: res.datasets
+    })
+    return true
+  } catch (err) {
+    console.debug('Failed to reset to default enterprise KB:', err)
+    return false
   }
 }
 
