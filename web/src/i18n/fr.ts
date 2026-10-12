@@ -120,8 +120,8 @@ export const fr: Translations = {
     starting: "Démarrage",
     startedInBackground: "Démarré en arrière-plan — consultez les journaux pour la progression",
     stopped: "Arrêté",
-    updateHermes: "Mettre à jour Hermes",
-    updatingHermes: "Mise à jour de Hermes…",
+    updateHermes: "Mettre à jour ForX",
+    updatingHermes: "Mise à jour de ForX…",
     waitingForOutput: "En attente de la sortie…",
   },
 
@@ -326,8 +326,7 @@ export const fr: Translations = {
     enableAfterInstall: "Activer après l'installation",
     enableRuntime: "Activer",
     forceReinstall: "Forcer la réinstallation (supprimer d'abord le dossier existant)",
-    headline:
-      "Découvrez, installez, activez et mettez à jour les plugins Hermes (parité avec `hermes plugins`).",
+    headline: "Découvrez, installez, activez et mettez à jour les plugins ForX (parité avec `forx plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inactif",
     installBtn: "Installer",
@@ -344,8 +343,8 @@ export const fr: Translations = {
     providersHint:
       "Écrit memory.provider (vide = intégré) et context.engine dans config.yaml. Prend effet à la prochaine session.",
     refreshDashboard: "Re-scanner les extensions du tableau de bord",
-    removeConfirm: "Retirer ce plugin de ~/.hermes/plugins/ ?",
-    removeHint: "Seuls les plugins installés par l'utilisateur sous ~/.hermes/plugins peuvent être supprimés.",
+    removeConfirm: "Retirer ce plugin de ~/.forx/plugins/ ?",
+    removeHint: "Seuls les plugins installés par l'utilisateur sous ~/.forx/plugins peuvent être supprimés.",
     rescanHeading: "Registre des plugins SPA",
     rescanHint: "Re-scannez après avoir ajouté des fichiers sur le disque pour que la barre latérale prenne en compte les nouveaux manifestes.",
     runtimeHeading: "Exécution de la passerelle (plugins YAML)",
@@ -367,7 +366,7 @@ export const fr: Translations = {
     all: "Toutes",
     categories: "Catégories",
     filters: "Filtres",
-    noSkills: "Aucune compétence trouvée. Les compétences sont chargées depuis ~/.hermes/skills/",
+    noSkills: "Aucune compétence trouvée. Les compétences sont chargées depuis ~/.forx/skills/",
     noSkillsMatch: "Aucune compétence ne correspond à votre recherche ou filtre.",
     skillCount: "{count} compétence{s}",
     resultCount: "{count} résultat{s}",
@@ -381,7 +380,7 @@ export const fr: Translations = {
   },
 
   config: {
-    configPath: "~/.hermes/config.yaml",
+    configPath: "~/.forx/config.yaml",
     filters: "Filtres",
     sections: "Sections",
     exportConfig: "Exporter la configuration en JSON",
@@ -441,7 +440,7 @@ export const fr: Translations = {
     showValue: "Afficher la valeur réelle",
     hideValue: "Masquer la valeur",
     customTitle: "Clés personnalisées",
-    customHint: "Variables d'environnement arbitraires stockées dans votre .env que Hermes ne reconnaît pas. Utilisez-les pour injecter des variables d'environnement pour des compétences, des serveurs MCP ou vos propres outils.",
+    customHint: "Variables d'environnement arbitraires stockées dans votre .env que ForX ne reconnaît pas. Utilisez-les pour injecter des variables d'environnement pour des compétences, des serveurs MCP ou vos propres outils.",
     customConfigured: "{count} clé(s) personnalisée(s) définie(s)",
     addCustomKey: "Ajouter une clé personnalisée",
     customKeyName: "Nom de la variable",
@@ -506,10 +505,8 @@ export const fr: Translations = {
     hero: {
       kicker: "Agentic Gamerscore",
       title: "ForX Achievements",
-      subtitle:
-        "Badges Hermes à collectionner, gagnés à partir de l'historique réel des sessions. Les succès connus non terminés sont affichés comme Découverts ; les succès secrets restent cachés jusqu'à l'apparition du premier comportement correspondant.",
-      scan_subtitle:
-        "Analyse de l'historique des sessions Hermes en cours. Le premier scan peut prendre 5 à 10 secondes sur les historiques volumineux.",
+      subtitle: "Badges ForX à collectionner, gagnés à partir de l'historique réel des sessions. Les succès connus non terminés sont affichés comme Découverts ; les succès secrets restent cachés jusqu'à l'apparition du premier comportement correspondant.",
+      scan_subtitle: "Analyse de l'historique des sessions ForX en cours. Le premier scan peut prendre 5 à 10 secondes sur les historiques volumineux.",
     },
     actions: {
       rescan: "Relancer le scan",
@@ -524,7 +521,7 @@ export const fr: Translations = {
       highest_tier: "Niveau le plus élevé",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Dernier",
-      latest_hint_empty: "utilisez Hermes davantage",
+      latest_hint_empty: "utilisez ForX davantage",
       none_yet: "Aucun pour l'instant",
     },
     state: {
@@ -554,11 +551,9 @@ export const fr: Translations = {
     guide: {
       tiers_header: "Niveaux",
       secret_header: "Succès secrets",
-      secret_body:
-        "Les secrets cachent leur déclencheur exact. Dès qu'Hermes détecte un signal lié, la carte passe à Découvert et affiche son exigence.",
+      secret_body: "Les secrets cachent leur déclencheur exact. Dès qu'ForX détecte un signal lié, la carte passe à Découvert et affiche son exigence.",
       scan_status_header: "État du scan",
-      scan_status_body:
-        "Hermes analyse l'historique local une seule fois, puis les cartes apparaîtront automatiquement. Rien n'est bloqué si cela prend quelques secondes.",
+      scan_status_body: "ForX analyse l'historique local une seule fois, puis les cartes apparaîtront automatiquement. Rien n'est bloqué si cela prend quelques secondes.",
       what_scanned_header: "Ce qui est analysé",
       what_scanned_body:
         "Sessions, appels d'outils, métadonnées du modèle, erreurs, succès et état de déblocage local.",

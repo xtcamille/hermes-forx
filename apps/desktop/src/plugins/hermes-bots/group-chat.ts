@@ -1463,7 +1463,7 @@ export function groupSpeakerLabel(name?: null | string, group?: null | string) {
     const connection = trimmed.slice(0, boundary)
     const profile = trimmed.slice(boundary + 2)
     const title = String(meta?.[trimmed]?.title || meta?.[profile]?.title || '').trim()
-    const label = title || (profile.toLowerCase() === 'default' ? 'Hermes' : profile)
+    const label = title || (profile.toLowerCase() === 'default' ? 'ForX' : profile)
 
     // Another connection still exposes this name: keep them tellable apart.
     return rows.some(bot => bot.name === profile) ? `${label} · ${connection}` : label
@@ -1479,7 +1479,7 @@ export function groupSpeakerLabel(name?: null | string, group?: null | string) {
   }
 
   // Legacy rungs for names the roster cannot place: a bare-keyed Bot Mode
-  // title, then the local row's display_name, then default → Hermes.
+  // title, then the local row's display_name, then default → ForX.
   const title = String(meta?.[trimmed]?.title || '').trim()
 
   if (title) {
@@ -1493,7 +1493,7 @@ export function groupSpeakerLabel(name?: null | string, group?: null | string) {
     return renamed
   }
 
-  return isDefault ? 'Hermes' : trimmed
+  return isDefault ? 'ForX' : trimmed
 }
 
 /** Trim a room log + its watermarks to the retained window, keeping

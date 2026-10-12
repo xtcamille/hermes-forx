@@ -1489,7 +1489,7 @@ function GatewayConnectionSettings({ embedded, standalone }: { embedded: boolean
                 className={cn('h-8', CONTROL_TEXT)}
                 disabled={state.envOverride}
                 onChange={event => setState(current => ({ ...current, remoteUrl: event.target.value }))}
-                placeholder="https://gateway.example.com/hermes"
+                placeholder="https://gateway.example.com/forx"
                 value={state.remoteUrl}
               />
             }

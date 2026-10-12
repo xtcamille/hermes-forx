@@ -343,7 +343,7 @@ const en: BotsMessages = {
     unavailable: 'Unavailable',
     retryNow: 'Retry now',
     rosterUnavailable: reason =>
-      `Roster unavailable: ${reason}. If your gateway predates profiles.list, update Hermes and restart the gateway.`,
+      `Roster unavailable: ${reason}. If your gateway predates profiles.list, update ForX and restart the gateway.`,
     waitingForGateway:
       'Waiting for the gateway connection… (remote gateways can take a few seconds; retries automatically)'
   },
@@ -395,7 +395,7 @@ const en: BotsMessages = {
     attentionFallback: 'Needs attention',
     attentionProviderAuth: 'Sign in again for this profile',
     attentionQuota: 'Quota or balance exhausted',
-    attentionMissingConfig: 'Provider not configured — run hermes model',
+    attentionMissingConfig: 'Provider not configured — run forx model',
     attentionBlocked: 'Bot is blocked — see its last message',
     duplicate: 'Duplicate',
     duplicateFailed: 'Duplicate failed',
@@ -518,7 +518,7 @@ const en: BotsMessages = {
     answerTo: member => `Answer @${member}`
   },
   tools: {
-    skillsHub: 'Hermes Skills Hub',
+    skillsHub: 'ForX Skills Hub',
     filterSkills: 'Filter skills…',
     searchHub: 'Search the hub (community + well-known sources)…',
     noMcpServers: 'No MCP servers configured or in the catalog.'
@@ -599,7 +599,7 @@ const ja: BotsMessages = {
     unavailable: '利用できません',
     retryNow: '今すぐ再試行',
     rosterUnavailable: reason =>
-      `名簿を取得できません: ${reason}。ゲートウェイが profiles.list より前の場合は、Hermes を更新してゲートウェイを再起動してください。`,
+      `名簿を取得できません: ${reason}。ゲートウェイが profiles.list より前の場合は、ForX を更新してゲートウェイを再起動してください。`,
     waitingForGateway: 'ゲートウェイ接続を待っています…（リモートは数秒かかることがあります。自動で再試行します）'
   },
   sections: {
@@ -650,7 +650,7 @@ const ja: BotsMessages = {
     attentionFallback: '要対応',
     attentionProviderAuth: 'このプロファイルで再度サインインしてください',
     attentionQuota: 'クォータまたは残高が不足しています',
-    attentionMissingConfig: 'プロバイダーが未設定です — hermes model を実行してください',
+    attentionMissingConfig: 'プロバイダーが未設定です — forx model を実行してください',
     attentionBlocked: 'ボットがブロックされています — 最後のメッセージを確認してください',
     duplicate: '複製',
     duplicateFailed: '複製に失敗しました',
@@ -661,11 +661,11 @@ const ja: BotsMessages = {
     advanced: '詳細設定',
     advancedHint: '詳細設定 — モデル、スキル、ツールセット、SOUL.md',
     advancedFailed: '詳細設定に失敗しました',
-    openAnotherChatUnsupported: '別のボットチャットを開くには Hermes Desktop を更新してください。',
-    remoteConnectionsUnsupported: '他の接続上のボットとチャットするには Hermes Desktop を更新してください。',
-    openNeedsUpdateTitle: 'このボットは古い Hermes 上で動いています',
+    openAnotherChatUnsupported: '別のボットチャットを開くには ForX Desktop を更新してください。',
+    remoteConnectionsUnsupported: '他の接続上のボットとチャットするには ForX Desktop を更新してください。',
+    openNeedsUpdateTitle: 'このボットは古い ForX 上で動いています',
     openNeedsUpdateMessage: connectionLabel => `${connectionLabel} を更新してから、もう一度お試しください。`,
-    openUnreachableTitle: 'このボットが動いているコンピューターに Hermes が接続できませんでした',
+    openUnreachableTitle: 'このボットが動いているコンピューターに ForX が接続できませんでした',
     openUnreachableMessage: 'オンラインか確認して、もう一度お試しください。',
     openChatFailedTitle: botName => `${botName} のチャットを開けませんでした`,
     openChatFailedMessage: 'もう一度お試しください。',
@@ -773,7 +773,7 @@ const ja: BotsMessages = {
     answerTo: member => `@${member}に回答`
   },
   tools: {
-    skillsHub: 'Hermes スキルハブ',
+    skillsHub: 'ForX スキルハブ',
     filterSkills: 'スキルを絞り込み…',
     searchHub: 'ハブを検索（コミュニティと既知のソース）…',
     noMcpServers: '設定済みまたはカタログ内の MCP サーバーはありません。'
@@ -853,7 +853,7 @@ const zh: BotsMessages = {
     statusUnknown: '状态未知',
     unavailable: '不可用',
     retryNow: '立即重试',
-    rosterUnavailable: reason => `无法获取名单：${reason}。如果网关早于 profiles.list，请更新 Hermes 并重启网关。`,
+    rosterUnavailable: reason => `无法获取名单：${reason}。如果网关早于 profiles.list，请更新 ForX 并重启网关。`,
     waitingForGateway: '正在等待网关连接…（远程网关可能需要几秒；会自动重试）'
   },
   sections: {
@@ -901,7 +901,7 @@ const zh: BotsMessages = {
     attentionFallback: '需要处理',
     attentionProviderAuth: '请为此配置档案重新登录',
     attentionQuota: '配额或余额已用尽',
-    attentionMissingConfig: '未配置提供商 — 请运行 hermes model',
+    attentionMissingConfig: '未配置提供商 — 请运行 forx model',
     attentionBlocked: '机器人已被阻止 — 请查看其最后一条消息',
     duplicate: '复制',
     duplicateFailed: '复制失败',
@@ -1023,7 +1023,7 @@ const zh: BotsMessages = {
     answerTo: member => `回答 @${member}`
   },
   tools: {
-    skillsHub: 'Hermes 技能中心',
+    skillsHub: 'ForX 技能中心',
     filterSkills: '筛选技能…',
     searchHub: '搜索技能中心（社区和常见来源）…',
     noMcpServers: '未配置 MCP 服务器，目录中也没有。'
@@ -1103,7 +1103,7 @@ const zhHant: BotsMessages = {
     statusUnknown: '狀態未知',
     unavailable: '不可用',
     retryNow: '立即重試',
-    rosterUnavailable: reason => `無法取得名單：${reason}。如果閘道早於 profiles.list，請更新 Hermes 並重新啟動閘道。`,
+    rosterUnavailable: reason => `無法取得名單：${reason}。如果閘道早於 profiles.list，請更新 ForX 並重新啟動閘道。`,
     waitingForGateway: '正在等待閘道連線…（遠端閘道可能需要幾秒；會自動重試）'
   },
   sections: {
@@ -1151,7 +1151,7 @@ const zhHant: BotsMessages = {
     attentionFallback: '需要處理',
     attentionProviderAuth: '請為此設定檔重新登入',
     attentionQuota: '配額或餘額已用盡',
-    attentionMissingConfig: '未設定供應商 — 請執行 hermes model',
+    attentionMissingConfig: '未設定供應商 — 請執行 forx model',
     attentionBlocked: '機器人已被封鎖 — 請查看其最後一則訊息',
     duplicate: '複製',
     duplicateFailed: '複製失敗',
@@ -1162,11 +1162,11 @@ const zhHant: BotsMessages = {
     advanced: '進階',
     advancedHint: '進階 — 模型、技能、工具集、SOUL.md',
     advancedFailed: '進階設定失敗',
-    openAnotherChatUnsupported: '請更新 Hermes Desktop 以開啟另一個機器人聊天。',
-    remoteConnectionsUnsupported: '請更新 Hermes Desktop 以與其他連線上的機器人聊天。',
-    openNeedsUpdateTitle: '這個機器人運行在較舊的 Hermes 上',
+    openAnotherChatUnsupported: '請更新 ForX Desktop 以開啟另一個機器人聊天。',
+    remoteConnectionsUnsupported: '請更新 ForX Desktop 以與其他連線上的機器人聊天。',
+    openNeedsUpdateTitle: '這個機器人運行在較舊的 ForX 上',
     openNeedsUpdateMessage: connectionLabel => `請更新 ${connectionLabel}，然後再試一次。`,
-    openUnreachableTitle: 'Hermes 無法連線到運行這個機器人的電腦',
+    openUnreachableTitle: 'ForX 無法連線到運行這個機器人的電腦',
     openUnreachableMessage: '請確認它在線上後再試一次。',
     openChatFailedTitle: botName => `無法開啟 ${botName} 的聊天`,
     openChatFailedMessage: '請再試一次。',
@@ -1273,7 +1273,7 @@ const zhHant: BotsMessages = {
     answerTo: member => `回覆 @${member}`
   },
   tools: {
-    skillsHub: 'Hermes 技能中心',
+    skillsHub: 'ForX 技能中心',
     filterSkills: '篩選技能…',
     searchHub: '搜尋技能中心（社群和常見來源）…',
     noMcpServers: '未設定 MCP 伺服器，目錄中也沒有。'

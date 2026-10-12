@@ -164,8 +164,8 @@ export function PluginInstallModal() {
       : m.agentTargetLocal(
           profileLabel,
           request?.profile && request.profile !== 'default'
-            ? `~/.hermes/profiles/${request.profile}/plugins/`
-            : '~/.hermes/plugins/'
+            ? `~/.forx/profiles/${request.profile}/plugins/`
+            : '~/.forx/plugins/'
         )
 
   // A unified package installed into a local backend carries its own desktop

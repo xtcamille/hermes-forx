@@ -120,8 +120,8 @@ export const ko: Translations = {
     starting: "시작 중",
     startedInBackground: "백그라운드에서 시작됨 — 진행 상황은 로그를 확인하세요",
     stopped: "중지됨",
-    updateHermes: "Hermes 업데이트",
-    updatingHermes: "Hermes 업데이트 중…",
+    updateHermes: "ForX 업데이트",
+    updatingHermes: "ForX 업데이트 중…",
     waitingForOutput: "출력 대기 중…",
   },
 
@@ -324,8 +324,7 @@ export const ko: Translations = {
     enableAfterInstall: "설치 후 활성화",
     enableRuntime: "활성화",
     forceReinstall: "강제 재설치 (기존 폴더를 먼저 삭제)",
-    headline:
-      "Hermes 플러그인을 검색, 설치, 활성화 및 업데이트합니다 (`hermes plugins` 동등).",
+    headline: "ForX 플러그인을 검색, 설치, 활성화 및 업데이트합니다 (`forx plugins` 동등).",
     identifierLabel: "Git URL 또는 owner/repo",
     inactive: "비활성",
     installBtn: "설치",
@@ -342,8 +341,8 @@ export const ko: Translations = {
     providersHint:
       "memory.provider (비어 있으면 = 내장)와 context.engine을 config.yaml에 기록합니다. 다음 세션부터 적용됩니다.",
     refreshDashboard: "대시보드 확장 재스캔",
-    removeConfirm: "~/.hermes/plugins/에서 이 플러그인을 제거하시겠습니까?",
-    removeHint: "~/.hermes/plugins 아래에 사용자가 설치한 플러그인만 제거할 수 있습니다.",
+    removeConfirm: "~/.forx/plugins/에서 이 플러그인을 제거하시겠습니까?",
+    removeHint: "~/.forx/plugins 아래에 사용자가 설치한 플러그인만 제거할 수 있습니다.",
     rescanHeading: "SPA 플러그인 레지스트리",
     rescanHint: "디스크에 파일을 추가한 후 재스캔하여 대시보드 사이드바가 새 매니페스트를 인식하도록 합니다.",
     runtimeHeading: "게이트웨이 런타임 (YAML 플러그인)",
@@ -365,7 +364,7 @@ export const ko: Translations = {
     all: "전체",
     categories: "카테고리",
     filters: "필터",
-    noSkills: "스킬을 찾을 수 없습니다. 스킬은 ~/.hermes/skills/ 에서 로드됩니다",
+    noSkills: "스킬을 찾을 수 없습니다. 스킬은 ~/.forx/skills/ 에서 로드됩니다",
     noSkillsMatch: "검색이나 필터와 일치하는 스킬이 없습니다.",
     skillCount: "{count}개 스킬",
     resultCount: "{count}개 결과",
@@ -379,7 +378,7 @@ export const ko: Translations = {
   },
 
   config: {
-    configPath: "~/.hermes/config.yaml",
+    configPath: "~/.forx/config.yaml",
     filters: "필터",
     sections: "섹션",
     exportConfig: "설정을 JSON으로 내보내기",
@@ -439,7 +438,7 @@ export const ko: Translations = {
     showValue: "실제 값 표시",
     hideValue: "값 숨기기",
     customTitle: "사용자 지정 키",
-    customHint: "Hermes가 인식하지 못하는, .env에 저장된 임의의 환경 변수입니다. 스킬, MCP 서버 또는 자체 도구를 위한 환경 변수를 주입하는 데 사용하세요.",
+    customHint: "ForX가 인식하지 못하는, .env에 저장된 임의의 환경 변수입니다. 스킬, MCP 서버 또는 자체 도구를 위한 환경 변수를 주입하는 데 사용하세요.",
     customConfigured: "사용자 지정 키 {count}개 설정됨",
     addCustomKey: "사용자 지정 키 추가",
     customKeyName: "변수 이름",
@@ -505,10 +504,8 @@ export const ko: Translations = {
     hero: {
       kicker: "Agentic Gamerscore",
       title: "ForX Achievements",
-      subtitle:
-        "실제 세션 기록에서 획득하는 Hermes 컬렉터블 배지입니다. 알려져 있지만 아직 달성되지 않은 업적은 Discovered로 표시되며, Secret 업적은 일치하는 동작이 처음 나타날 때까지 숨겨집니다.",
-      scan_subtitle:
-        "Hermes 세션 기록을 스캔하고 있습니다. 기록이 많으면 첫 스캔에 5~10초가 걸릴 수 있습니다.",
+      subtitle: "실제 세션 기록에서 획득하는 ForX 컬렉터블 배지입니다. 알려져 있지만 아직 달성되지 않은 업적은 Discovered로 표시되며, Secret 업적은 일치하는 동작이 처음 나타날 때까지 숨겨집니다.",
+      scan_subtitle: "ForX 세션 기록을 스캔하고 있습니다. 기록이 많으면 첫 스캔에 5~10초가 걸릴 수 있습니다.",
     },
     actions: {
       rescan: "다시 스캔",
@@ -523,7 +520,7 @@ export const ko: Translations = {
       highest_tier: "최고 등급",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "최근",
-      latest_hint_empty: "Hermes를 더 사용해 보세요",
+      latest_hint_empty: "ForX를 더 사용해 보세요",
       none_yet: "아직 없음",
     },
     state: {
@@ -553,11 +550,9 @@ export const ko: Translations = {
     guide: {
       tiers_header: "등급",
       secret_header: "시크릿 업적",
-      secret_body:
-        "시크릿은 정확한 트리거 조건을 숨깁니다. Hermes가 관련 신호를 감지하면 카드가 Discovered로 바뀌고 요건이 표시됩니다.",
+      secret_body: "시크릿은 정확한 트리거 조건을 숨깁니다. ForX가 관련 신호를 감지하면 카드가 Discovered로 바뀌고 요건이 표시됩니다.",
       scan_status_header: "스캔 상태",
-      scan_status_body:
-        "Hermes는 로컬 기록을 한 번 스캔한 뒤 카드를 자동으로 표시합니다. 몇 초 걸리더라도 멈춘 것이 아닙니다.",
+      scan_status_body: "ForX는 로컬 기록을 한 번 스캔한 뒤 카드를 자동으로 표시합니다. 몇 초 걸리더라도 멈춘 것이 아닙니다.",
       what_scanned_header: "스캔 대상",
       what_scanned_body:
         "세션, 도구 호출, 모델 메타데이터, 오류, 업적 및 로컬 해제 상태입니다.",

@@ -406,7 +406,7 @@ export const en: KanbanMessages = {
   noProject: 'No project (scratch sandboxes)',
   projectHintPre:
     'New tasks run in the project’s repo (a worktree per task); each task can still override its workspace at creation. Manage projects with ',
-  projectHintCmd: 'hermes project',
+  projectHintCmd: 'forx project',
   createBoard: 'Create board',
   orchestratorProfile: 'Orchestrator profile',
   defaultAssignee: 'Default assignee',
@@ -619,7 +619,7 @@ const ja: KanbanMessages = {
   noProject: 'プロジェクトなし（スクラッチのサンドボックス）',
   projectHintPre:
     '新しいタスクはプロジェクトのリポジトリで実行されます（タスクごとに worktree）。各タスクは作成時にワークスペースを上書きできます。プロジェクトの管理は ',
-  projectHintCmd: 'hermes project',
+  projectHintCmd: 'forx project',
   createBoard: 'ボードを作成',
   orchestratorProfile: 'オーケストレータープロフィール',
   defaultAssignee: 'デフォルトの担当',
@@ -635,9 +635,9 @@ const ja: KanbanMessages = {
     blockedTitle: 'タスクがブロック中 — 入力が必要です',
     blockLoopTitle: 'タスクをトリアージへ移動 — 判断が必要です',
     gaveUpTitle: 'タスクが停止しました',
-    gaveUpBody: 'Hermes はこのタスクを完了できませんでした。かんばんを開いて原因を確認し、再割り当てしてください。',
-    crashedTitle: 'タスクで問題が発生 — Hermes が自動で再試行します',
-    timedOutTitle: 'タスクに時間がかかりすぎました — Hermes が自動で再試行します',
+    gaveUpBody: 'ForX はこのタスクを完了できませんでした。かんばんを開いて原因を確認し、再割り当てしてください。',
+    crashedTitle: 'タスクで問題が発生 — ForX が自動で再試行します',
+    timedOutTitle: 'タスクに時間がかかりすぎました — ForX が自動で再試行します',
     openKanban: 'かんばんを開く',
     artifacts: (n: number) => `成果物 ${n} 件`
   }
@@ -830,7 +830,7 @@ const zh: KanbanMessages = {
   noProject: '无项目（临时沙箱）',
   projectHintPre:
     '新任务将在项目的仓库中运行（每个任务一个 worktree）；每个任务在创建时仍可覆盖其工作区。管理项目请使用 ',
-  projectHintCmd: 'hermes project',
+  projectHintCmd: 'forx project',
   createBoard: '创建面板',
   orchestratorProfile: '编排者配置档',
   defaultAssignee: '默认负责人',
@@ -1040,7 +1040,7 @@ const zhHant: KanbanMessages = {
   noProject: '無專案（暫存沙箱）',
   projectHintPre:
     '新任務將在專案的儲存庫中執行（每個任務一個 worktree）；每個任務在建立時仍可覆寫其工作區。管理專案請使用 ',
-  projectHintCmd: 'hermes project',
+  projectHintCmd: 'forx project',
   createBoard: '建立面板',
   orchestratorProfile: '編排者設定檔',
   defaultAssignee: '預設負責人',
@@ -1055,9 +1055,9 @@ const zhHant: KanbanMessages = {
     blockedTitle: '任務受阻 — 需要你的輸入',
     blockLoopTitle: '任務已轉入分類 — 需要人工決定',
     gaveUpTitle: '任務已停止',
-    gaveUpBody: 'Hermes 無法完成這個任務。開啟看板查看原因並重新指派。',
-    crashedTitle: '任務遇到問題 — Hermes 將自動重試',
-    timedOutTitle: '任務耗時過長 — Hermes 將自動重試',
+    gaveUpBody: 'ForX 無法完成這個任務。開啟看板查看原因並重新指派。',
+    crashedTitle: '任務遇到問題 — ForX 將自動重試',
+    timedOutTitle: '任務耗時過長 — ForX 將自動重試',
     openKanban: '開啟看板',
     artifacts: (n: number) => `${n} 個產物`
   }

@@ -252,7 +252,7 @@ export function themeToneHex(tone: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
+  name: 'ForX Agent',
   icon: '☤',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',

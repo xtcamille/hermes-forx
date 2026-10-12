@@ -180,7 +180,7 @@ function MemoryProviderSetupHint({
   if (!hasDetails || !setup) {
     return (
       <p className="border border-destructive/50 px-3 py-2 text-xs text-destructive">
-        This provider is installed but unavailable. It may need local dependencies or a manual setup step before Hermes can activate it.
+        This provider is installed but unavailable. It may need local dependencies or a manual setup step before ForX can activate it.
       </p>
     );
   }
@@ -194,7 +194,7 @@ function MemoryProviderSetupHint({
     >
       <p className={isBlocked ? "text-destructive" : "text-muted-foreground"}>
         {needsDependencySetup
-          ? "Finish these setup steps before Hermes can activate this provider."
+          ? "Finish these setup steps before ForX can activate this provider."
           : "Provider dependency setup completed."}
       </p>
 
@@ -263,7 +263,7 @@ function MemoryProviderSetupHint({
       {setup.required_env.length && needsDependencySetup ? (
         <div className="grid gap-2">
           <p className="text-muted-foreground">
-            Required environment values. Fill the matching fields below, or set them in the Hermes environment.
+            Required environment values. Fill the matching fields below, or set them in the ForX environment.
           </p>
           <div className="flex flex-wrap gap-2">
             {setup.required_env.map((envKey) => (
@@ -628,7 +628,7 @@ export default function PluginsPage() {
 
                   {!selectedMemoryName && (
                     <p className="text-xs text-muted-foreground">
-                      Hermes will use the built-in MEMORY.md and USER.md files.
+                      ForX will use the built-in MEMORY.md and USER.md files.
                     </p>
                   )}
 
@@ -924,7 +924,7 @@ export default function PluginsPage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                {t.pluginsPage.catalogEmptyDocsLink ?? "Learn about Hermes plugins"}
+                {t.pluginsPage.catalogEmptyDocsLink ?? "Learn about ForX plugins"}
               </a>
             </p>
           ) : (
@@ -1382,7 +1382,7 @@ function CatalogEntryCard(props: CatalogEntryCardProps) {
           ) : null}
 
           {entry.requires_hermes ? (
-            <span>hermes {entry.requires_hermes}</span>
+            <span>forx {entry.requires_hermes}</span>
           ) : null}
 
           {entry.platforms.length ? (

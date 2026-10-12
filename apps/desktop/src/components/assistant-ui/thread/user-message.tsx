@@ -138,8 +138,8 @@ export async function resolveAgentAvatar(handle: string): Promise<null | string>
       const profiles = res?.profiles ?? []
       let profile = profiles.find(p => p.name.toLowerCase() === key)
 
-      // 'hermes' is the conventional alias for the primary profile.
-      if (!profile && key === 'hermes') {
+      // 'forx' or 'hermes' is the conventional alias for the primary profile.
+      if (!profile && (key === 'forx' || key === 'hermes')) {
         profile = profiles.find(p => p.name === 'default')
       }
 
