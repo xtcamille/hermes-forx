@@ -832,6 +832,8 @@ async def latticecode_login_endpoint(payload: LatticeLoginRequest, profile: Opti
             "portal_url": portal,
             "user_info": user_info,
             "access_token": user_info.get("access_token"),
+            "session_sid": user_info.get("session_sid"),
+            "cookies": user_info.get("cookies"),
             "inference_base_url": inference_url,
             "allowed_models": models,
             "default_model": default_model,

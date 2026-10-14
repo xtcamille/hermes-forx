@@ -35,6 +35,7 @@ class FakeLatticeServer:
         self.token_default_model = None
         self.models_endpoint_models = None
         self.user_tokens: list = []
+        self.logout_called = False
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         path = request.url.path
@@ -66,6 +67,8 @@ class FakeLatticeServer:
             data = json.loads(request.content.decode("utf-8"))
             if data.get("password") == "bad_pass":
                 return httpx.Response(200, json={"success": False, "message": "Invalid password"})
+            if data.get("password") == "conflict_pass":
+                return httpx.Response(409, json={"code": "AUTH_SESSION_LIMIT", "message": "Conflict"})
             return httpx.Response(200, json={
                 "success": True, "message": "",
                 "data": {
@@ -75,6 +78,9 @@ class FakeLatticeServer:
                     "role": 1
                 }
             })
+        if "/api/user/auth/logout" in path or "/api/user/logout" in path:
+            self.logout_called = True
+            return httpx.Response(200, json={"success": True, "data": {"cookie_cleared": True}})
         if "/api/pricing" in path:
             return httpx.Response(200, json={
                 "success": True,
@@ -433,6 +439,12 @@ class TestLatticeAccountAuth:
         assert bad_res["ok"] is False
         assert "Invalid password" in bad_res["message"]
 
+        conflict_req = LatticeLoginRequest(username="alice", password="conflict_pass", portal_url="https://api.latticecode.test")
+        conflict_res = await latticecode_login_endpoint(conflict_req)
+        assert conflict_res["ok"] is False
+        assert "409 Conflict" in conflict_res["message"]
+        assert "会话冲突" in conflict_res["message"]
+
     @pytest.mark.anyio
     async def test_api_login_fails_when_no_token(self, fake_lattice, tmp_path, monkeypatch):
         home = tmp_path / "hermes_home"
@@ -626,6 +638,7 @@ class TestLatticeAccountAuth:
         assert creds["base_url"] == "https://api.latticecode.test:9000/v1"
 
         logout_lattice()
+        assert fake_lattice.logout_called is True
         cleared_cfg = load_config_readonly()
         assert cleared_cfg.get("model", {}).get("base_url", "") == ""
         assert cleared_cfg.get("free_tier", {}).get("portal_url", "") == ""

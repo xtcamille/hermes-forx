@@ -787,15 +787,27 @@ def login_new_api(
     resp = client.post(login_url, headers=headers, json={"username": username, "password": password})
     if resp.status_code == 401 or not resp.is_success:
         err_msg = "Invalid username or password"
+        err_code = "invalid_credentials"
         try:
-            err_msg = resp.json().get("message") or err_msg
+            r_json = resp.json() or {}
+            err_msg = r_json.get("message") or err_msg
+            if r_json.get("code"):
+                err_code = str(r_json["code"])
         except Exception:
             pass
-        raise AuthError(f"New API login failed: {err_msg}", code="invalid_credentials")
+        if resp.status_code == 409 or err_msg == "Conflict" or err_code == "AUTH_SESSION_LIMIT":
+            err_msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话、重置密码，或直接使用 API Key 登录"
+            err_code = "session_limit_conflict"
+        raise AuthError(f"New API login failed: {err_msg}", code=err_code)
 
     body = resp.json() or {}
     if not body.get("success", True):
-        raise AuthError(f"New API login failed: {body.get('message', 'Login unsuccessful')}", code="invalid_credentials")
+        msg = body.get("message", "Login unsuccessful")
+        code = body.get("code", "invalid_credentials")
+        if msg == "Conflict" or code == "AUTH_SESSION_LIMIT":
+            msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话、重置密码，或直接使用 API Key 登录"
+            code = "session_limit_conflict"
+        raise AuthError(f"New API login failed: {msg}", code=code)
 
     data = body.get("data") or {}
     user_info = data if isinstance(data, dict) else {}
@@ -816,17 +828,34 @@ def login_new_api(
         auth_headers["Authorization"] = token_str if token_str.startswith("Bearer ") else f"Bearer {token_str}"
 
     cookie_headers = resp.headers.get_list("set-cookie")
+    cookie_str = ""
     if cookie_headers:
         cookie_parts = [c.split(";")[0] for c in cookie_headers]
-        auth_headers["Cookie"] = "; ".join(cookie_parts)
+        cookie_str = "; ".join(cookie_parts)
+        auth_headers["Cookie"] = cookie_str
     elif client.cookies:
-        auth_headers["Cookie"] = "; ".join([f"{k}={v}" for k, v in client.cookies.items()])
+        cookie_str = "; ".join([f"{k}={v}" for k, v in client.cookies.items()])
+        auth_headers["Cookie"] = cookie_str
+
+    session_data = data.get("session") if isinstance(data, dict) else {}
+    session_sid = ""
+    if isinstance(session_data, dict):
+        session_sid = session_data.get("sid") or ""
 
     active_key, ordered_models, default_model = probe_first_valid_new_api_token(
         client, base, auth_headers, base_v1
     )
 
+    # Clean up stale/dangling sessions for this user on New API so they never accumulate
+    try:
+        client.post(f"{base}/api/user/sessions/revoke-others", headers=auth_headers, json={}, timeout=3.0)
+    except Exception as rev_exc:
+        logger.debug("Failed to revoke other sessions on login: %s", rev_exc)
+
     user_info["access_token"] = access_token
+    user_info["session_sid"] = session_sid
+    user_info["cookies"] = cookie_str
+    user_info["portal_url"] = base
     user_info["models"] = ordered_models
     user_info["default_model"] = default_model
     user_info["password"] = password
@@ -911,6 +940,8 @@ def _handle_lattice_login(args: Any) -> bool:
         "portal_url": portal_url,
         "user_info": user_info,
         "access_token": user_info.get("access_token"),
+        "session_sid": user_info.get("session_sid"),
+        "cookies": user_info.get("cookies"),
         "inference_base_url": inference_url,
         "allowed_models": models,
         "default_model": default_model,
@@ -943,6 +974,43 @@ def _handle_lattice_logout(args: Any) -> bool:
 def logout_lattice() -> bool:
     """Log out of LatticeCode / New API account, clear credentials, and reset config."""
     from hermes_cli.auth import _load_auth_store, _save_auth_store, _auth_store_lock
+
+    state = current_lattice_state()
+    if state and (state.get("auth_method") == "password" or state.get("logged_in")):
+        portal_url = str(state.get("portal_url") or _portal_url()).rstrip("/")
+        user_info = state.get("user_info") if isinstance(state.get("user_info"), dict) else {}
+        access_token = state.get("access_token") or user_info.get("access_token")
+        session_sid = state.get("session_sid") or user_info.get("session_sid")
+        if not session_sid and isinstance(user_info.get("session"), dict):
+            session_sid = user_info["session"].get("sid")
+        cookies = state.get("cookies") or user_info.get("cookies")
+
+        if portal_url and access_token:
+            try:
+                headers = {
+                    "Accept": "application/json",
+                    "User-Agent": "hermes-agent",
+                    "Authorization": f"Bearer {str(access_token).strip()}",
+                }
+                if session_sid:
+                    headers["X-Auth-Session"] = str(session_sid).strip()
+                if cookies:
+                    headers["Cookie"] = str(cookies).strip()
+
+                with httpx.Client(timeout=4.0) as client:
+                    try:
+                        client.post(f"{portal_url}/api/user/auth/logout", headers=headers, json={})
+                    except Exception:
+                        try:
+                            client.post(f"{portal_url}/api/user/logout", headers=headers, json={})
+                        except Exception:
+                            try:
+                                client.get(f"{portal_url}/api/user/logout", headers=headers)
+                            except Exception:
+                                pass
+            except Exception as exc:
+                logger.debug("Remote logout from New API encountered error: %s", exc)
+
     try:
         with _auth_store_lock():
             auth_store = _load_auth_store()
