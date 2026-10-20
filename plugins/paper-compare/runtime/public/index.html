@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7f4">
+  <meta name="description" content="上传论文，让多个模型使用同一份证据并行回答，对照观点、核验引用并导出分析。">
+  <title>论文对照台 · Paper Compare</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./vendor/katex/katex.min.css">
+  <script src="./vendor/katex/katex.min.js" defer></script>
+  <script src="./vendor/katex/mhchem.min.js" defer></script>
+  <script src="./vendor/marked.js" defer></script>
+  <script src="./vendor/purify.js" defer></script>
+  <script src="./markdown.js" defer></script>
+  <script src="./workspace.js" defer></script>
+  <script src="./desktop.js" defer></script>
+  <script src="./evidence.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M9 4v6M15 14v6"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l3 2"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 10a8 8 0 0 0-14-4L3 9m0-6v6h6M4 14a8 8 0 0 0 14 4l3-3m-6 0h6v6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><path d="M8 8h12v12H8zM16 8V4H4v12h4"/></symbol>
+    <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 7h6M9 11h6M9 15h4"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></symbol>
+  </defs></svg>
+
+  <header class="app-header">
+    <button id="sidebarToggle" class="icon-button sidebar-toggle" type="button" aria-label="收起侧栏" aria-expanded="true" aria-controls="paperSidebar" title="收起侧栏"><svg><use href="#i-columns"/></svg></button><a class="brand" href="./" aria-label="论文对照台首页"><img src="./favicon.svg" alt="" width="36" height="36"><span>论文对照台<small>PAPER COMPARE</small></span></a>
+    <div class="header-right">
+      <span id="connectionStatus" class="connection"><span class="status-dot"></span><span>正在连接接口</span></span>
+      <span id="historyCount" hidden>0</span>
+      <button id="settingsBtn" class="icon-button" aria-label="接口设置" title="接口设置"><svg><use href="#i-settings"/></svg></button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside id="paperSidebar" class="sidebar">
+      <section class="sidebar-section">
+        <div class="section-title"><h2><span class="step">01</span> 选择论文</h2><span id="documentCount" class="muted">0 份</span></div>
+        <input id="fileInput" type="file" accept=".pdf,.docx,.txt,.md" multiple hidden>
+        <button id="dropzone" class="dropzone"><span class="upload-icon"><svg><use href="#i-upload"/></svg></span><strong>点击上传，或拖入文件</strong><span>PDF、Word、TXT、Markdown</span><small>单个文件最大 50 MB</small></button>
+        <div id="uploadProgress" class="upload-progress" hidden><span class="spinner"></span><span>正在提取论文文字…</span></div>
+        <div id="documentList" class="document-list"></div>
+        <button id="sourceBtn" class="button button-source" hidden><svg><use href="#i-eye"/></svg>查看原文与页面<svg class="trailing"><use href="#i-arrow"/></svg></button>
+        <button id="demoBtn" class="demo-link">没有手边的文件？载入测试文档 <span>↗</span></button>
+      </section>
+
+      <section class="sidebar-section model-section">
+        <div class="section-title"><h2><span class="step">02</span> 选择模型</h2><button id="refreshModels" class="icon-button" title="刷新模型列表" aria-label="刷新模型列表"><svg><use href="#i-refresh"/></svg></button></div>
+        <div class="model-caption"><span>最多并行 6 个模型</span><strong id="selectedCount">已选 0 个</strong></div>
+        <div class="vision-discovery"><button id="visionResultsBtn" type="button">视觉检测结果</button><span id="visionModelCount">尚未检测</span></div><label class="search-field"><span aria-hidden="true">⌕</span><input id="modelSearch" type="search" placeholder="搜索模型名称" aria-label="搜索模型名称"></label>
+        <div id="modelList" class="model-list"><div class="loading-models">正在读取可用模型…</div></div>
+        <details class="manual-model"><summary>手动添加模型 ID</summary><div><input id="manualModelInput" placeholder="输入接口支持的模型 ID" aria-label="手动模型 ID"><button id="addModelBtn" class="button button-small">添加</button></div></details>
+      </section>
+      <div class="sidebar-note"><span class="local-mark"></span><div><strong>在你的电脑上运行</strong><p>密钥由服务端配置。论文和阅读记录保存在本机。提问时按所选模式发送文字、页面图片或视觉转录。</p></div></div>
+    </aside>
+
+    <main class="workspace"><div id="collapsedSelection" class="collapsed-selection" hidden></div>
+      <div class="workspace-intro"><div><span class="eyebrow">一篇论文，多种视角</span><h1>让答案经得起对照。</h1><p>同一份原文、同一个问题。并行阅读，比较观点，再回到证据。</p></div><span class="workspace-mark" aria-hidden="true"><svg><use href="#i-columns"/></svg></span></div>
+
+      <form id="questionForm" class="question-panel">
+        <div class="question-title"><label for="question"><span class="step">03</span> 你想了解什么？</label><span id="paperBadge" class="paper-badge">请先上传论文</span></div>
+        <textarea id="question" rows="3" maxlength="8000" placeholder="例如：这篇论文的核心贡献是什么？实验结果能否支持作者的结论？" required></textarea>
+        <div class="quick-questions"><button type="button" data-question="这篇论文的核心贡献是什么？与已有方法相比有什么创新？请给出原文依据。">核心贡献</button><button type="button" data-question="请解释这篇论文的方法和关键假设，并指出适用条件，引用原文。">方法拆解</button><button type="button" data-question="实验设计和结果能否支持作者的结论？有哪些证据不足或潜在混杂因素？">实验与证据</button><button type="button" data-question="这篇论文有哪些局限性、尚未验证的假设和可继续研究的方向？请区分原文与推断。">局限与启发</button></div>
+        <details class="vision-options">
+          <summary><svg><use href="#i-eye"/></svg> 图表与公式阅读 <span>全文文字 + 页面视觉证据</span></summary>
+          <div class="vision-grid">
+            <label>读取方式<select id="visualMode"><option value="shared">共享视觉转录（适合混合模型对比）</option><option value="direct">各模型直接看图（仅已验证视觉模型）</option><option value="off">仅使用提取文字</option></select></label>
+            <label id="visionReaderLabel">视觉读取模型<select id="visionReader" aria-label="视觉读取模型"></select></label>
+            <label>图片覆盖<select id="visualSelection"><option value="auto">自动选择相关页面</option><option value="all">读取所有页面（最多 40 页）</option><option value="manual">指定原始 PDF 页码</option></select></label>
+            <label id="maxVisualPagesLabel">自动读取页数<input id="maxVisualPages" type="number" value="8" min="1" max="40" step="1"></label>
+            <label id="visualPagesLabel" hidden>图片页码<input id="visualPages" type="text" placeholder="例如：2, 4-6, 12" maxlength="240"></label>
+          </div>
+          <p id="visualHint" class="visual-hint"></p>
+          <small class="visual-cost">共享转录先读取选中页的图表与公式，再给所有回答模型提供相同证据。首次转录会增加调用，重复使用相同页面与读取模型可复用缓存。</small>
+        </details>
+        <div class="question-bottom"><div class="analysis-options"><label class="check-label"><input id="analyzeToggle" type="checkbox" checked><svg><use href="#i-spark"/></svg>生成对比分析</label><label class="reviewer-label">分析模型 <select id="reviewerSelect" aria-label="分析模型"></select></label></div><button id="askBtn" class="button button-primary" type="submit"><span>开始并行提问</span><svg><use href="#i-arrow"/></svg></button><button id="cancelBtn" class="button button-stop" type="button" hidden>停止生成</button></div>
+        <details class="advanced-options"><summary>生成参数</summary><div class="advanced-grid"><label>温度<input id="temperature" type="number" min="0" max="2" step="0.1" value="0.2"><small>支持温度的模型使用相同值</small></label><label>最大输出 tokens<input id="maxTokens" type="number" min="512" max="32768" step="1" value="12000"><small>最高 32,768；包含部分模型的思考用量</small></label><label>原文预算（字符）<input id="contextBudget" type="number" min="4000" max="1000000" step="1" value="250000"><span class="context-budget-tools"><small id="contextBudgetHint">默认 250,000，上限 1,000,000 字符</small><button id="fullContextBtn" type="button">填入全文预算</button></span><small>字符不是 token，实际容量取决于所选模型</small></label></div><div class="analysis-budget-grid"><label>分析最大输出 tokens<input id="analysisMaxTokens" type="number" min="1024" max="65536" step="1" value="32768"><small>独立于各模型回答；最多 65,536，思考用量可能占用预算</small></label><label>分析原文预算（字符）<input id="analysisContextBudget" type="number" min="4000" max="1000000" step="1" value="500000"><small>默认 500,000，上限 1,000,000；额外加入已有回答与视觉转录</small></label></div></details>
+      </form>
+
+      <section id="emptyState" class="empty-state"><div class="empty-art" aria-hidden="true"><div class="mini-paper"><i></i><i></i><i></i><i></i></div><span class="mini-model mini-q">Q</span><span class="mini-model mini-d">D</span><span class="mini-model mini-g">G</span><span class="art-line line-one"></span><span class="art-line line-two"></span><span class="art-line line-three"></span></div><h2>从一个值得追问的问题开始</h2><p>上传论文，选择模型，再输入问题。<br>各模型的回答会在这里并排出现。</p><div class="empty-features"><span><svg><use href="#i-check"/></svg>并行生成</span><span><svg><use href="#i-check"/></svg>原文引用</span><span><svg><use href="#i-check"/></svg>差异分析</span></div></section>
+
+      <section id="resultsSection" class="results-section" hidden>
+        <div class="results-toolbar"><div><h2>回答对照 <span id="resultCount" class="count-badge">0 / 0</span></h2><p id="runStatus" aria-live="polite">等待回答</p></div><div class="results-actions"><div class="segmented"><button id="gridViewBtn" class="active" aria-pressed="true" title="并排对照" aria-label="并排对照"><svg><use href="#i-columns"/></svg></button><button id="listViewBtn" aria-pressed="false" title="列表阅读" aria-label="列表阅读"><svg><use href="#i-list"/></svg></button></div><button id="exportBtn" class="button button-outlined" disabled><svg><use href="#i-download"/></svg>导出报告</button></div></div>
+        <div id="contextNotice" class="context-notice"></div>
+        <div id="visualEvidence" class="visual-evidence" hidden></div>
+        <div id="answersGrid" class="answers-grid"></div>
+        <article id="analysisPanel" class="analysis-panel" hidden><header><div class="analysis-heading"><span class="analysis-icon"><svg><use href="#i-spark"/></svg></span><div><h2>共识、分歧与证据</h2><p id="analysisMeta">回答完成后生成对比分析</p></div></div><div class="analysis-tools"><button id="retryAnalysisBtn" class="button button-quiet button-small" title="使用独立的分析输入与输出预算，复用已有回答；截断时自动提高分析输出预算"><svg><use href="#i-refresh"/></svg><span>重新分析</span></button><button id="fullscreenAnalysis" class="button button-quiet button-small" type="button">全屏阅读</button><button id="copyAnalysis" class="button button-quiet button-small"><svg><use href="#i-copy"/></svg>复制</button></div></header><div id="analysisBudgetNotice" class="analysis-budget-notice" hidden></div><div id="analysisContent" class="markdown analysis-content"></div><footer>分析由模型生成，关键判断请结合原文核验。引用可点击查看文字与原始页面。</footer></article>
+      </section>
+      <footer class="workspace-footer">PAPER COMPARE <span>·</span> 用证据理解论文，用对照拓宽视角。</footer>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog" class="dialog settings-dialog"><div class="dialog-header"><div><h2>接口设置</h2><p>使用兼容 OpenAI 的模型网关</p></div><button class="icon-button" data-close="settingsDialog" aria-label="关闭接口设置"><svg><use href="#i-close"/></svg></button></div><form id="settingsForm"><label>接口地址<input id="baseUrlInput" type="url" required placeholder="http://127.0.0.1:3000/v1"><small>填写到 /v1；根地址会自动补全。</small></label><label>API 密钥<input id="apiKeyInput" type="password" autocomplete="off" placeholder="填写 API 密钥"><small id="keyHint">密钥只发送到本地服务端，接口不会返回密钥。</small></label><p id="pdfParserStatus" class="settings-note"></p><div class="settings-note">模型接口设置仅保存在当前服务进程中。PDF 解析服务通过环境变量配置。</div><div class="dialog-footer"><span id="settingsStatus" role="status"></span><button class="button button-primary" type="submit">保存并连接<svg><use href="#i-arrow"/></svg></button></div></form></dialog>
+
+  <dialog id="sourceDialog" class="dialog source-dialog"><div class="dialog-header"><div><h2 id="sourceTitle">提取的原文</h2><p id="sourceMeta">文字提取可能丢失图表、公式与版式。</p></div><button class="icon-button" data-close="sourceDialog" aria-label="关闭原文"><svg><use href="#i-close"/></svg></button></div><div class="source-controls"><label>页面／分段<select id="sourcePageSelect"></select></label><label>定位段落<select id="sourceParagraphSelect"><option value="">整页</option></select></label><span id="sourceCoverage"></span></div><div class="source-mode"><button id="sourceImageBtn" class="active" type="button">原始页面</button><button id="sourceTextBtn" type="button">提取文字</button><button id="sourceUsePageBtn" type="button">将此页加入图片输入</button><button id="sourceZoomBtn" type="button">放大原图</button></div><div id="sourceImageWrap" class="source-image-wrap" hidden><p id="sourceImageStatus">正在渲染页面…</p><img id="sourceImage" alt="论文原始页面"></div><div id="sourceText" class="source-text"></div></dialog>
+
+  <dialog id="visionDialog" class="dialog vision-dialog"><div class="dialog-header"><div><h2>接口视觉能力检测</h2><p>用两张独立测试图片核验标记与柱状图，接受请求不等于读到了图片。</p></div><button class="icon-button" data-close="visionDialog" aria-label="关闭视觉检测"><svg><use href="#i-close"/></svg></button></div><div class="vision-probe-controls"><button id="visionProbeBtn" class="button button-primary" type="button">重新检测全部模型</button><button id="stopVisionProbeBtn" class="button button-stop" type="button" hidden>停止检测</button><span id="visionProbeStatus"></span></div><p class="muted">检测只发送工具自带的测试图片，不发送论文；每个模型最多调用两次，会消耗接口配额。结果只代表当前网关路由，7 天后需重新核验。</p><div id="visionResults" class="vision-results"></div></dialog>
+
+  <dialog id="historyDialog" class="dialog history-dialog"><div class="dialog-header"><div><h2>问答历史</h2><p>最近 30 轮保存在当前浏览器，可导出完整报告。</p></div><button class="icon-button" data-close="historyDialog" aria-label="关闭历史记录"><svg><use href="#i-close"/></svg></button></div><div id="historyList" class="history-list"></div><div class="history-footer"><span>文件原文保留在本地服务内存中，8 小时后过期。</span><button id="clearHistoryBtn" class="button button-quiet button-small">清空历史</button></div></dialog>
+
+  <dialog id="exportDialog" class="dialog export-dialog"><div class="dialog-header"><div><h2>导出本轮报告</h2><p>包含问题、全部回答、生成指标、视觉转录和对比分析。</p></div><button class="icon-button" data-close="exportDialog" aria-label="关闭导出"><svg><use href="#i-close"/></svg></button></div><div class="export-choices"><button id="exportHtmlBtn"><strong>HTML · 公式已渲染</strong><span>内置公式字体，可离线阅读与打印</span><svg><use href="#i-download"/></svg></button><button id="exportMarkdownBtn"><strong>Markdown</strong><span>便于编辑，保留 LaTeX 公式源码</span><svg><use href="#i-download"/></svg></button><button id="exportJsonBtn"><strong>JSON</strong><span>保留结构化回答和用量数据</span><svg><use href="#i-download"/></svg></button></div></dialog>
+
+  <dialog id="answerDialog" class="dialog answer-dialog"><div class="dialog-header"><div><h2 id="answerDialogTitle">模型回答</h2><p id="answerDialogMeta"></p></div><div class="reader-actions"><button id="readerCopyBtn" class="button button-quiet button-small" type="button">复制</button><button id="readerSizeBtn" class="button button-quiet button-small" type="button">全屏阅读</button><button class="icon-button" data-close="answerDialog" aria-label="关闭回答"><svg><use href="#i-close"/></svg></button></div></div><div id="answerDialogContent" class="markdown expanded-answer"></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

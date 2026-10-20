@@ -1,0 +1,10 @@
+runtime/node_modules/
+runtime/.paper-data/
+runtime/.paper-cache/
+runtime/data/vision-capabilities.json
+.env
+.env.*
+!runtime/.env.example
+__pycache__/
+*.log
+artifacts/

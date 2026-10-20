@@ -1,0 +1,30 @@
+name: paper-compare
+label: 论文工作台
+version: 1.2.1
+kind: standalone
+description: "Local paper library, isolated multi-model conversations, visual close reading, and evidence verification. Includes Desktop and Dashboard pages."
+author: Paper Compare
+license: MIT
+tags: [research, papers, desktop, evidence]
+config_schema:
+  data_dir:
+    type: str
+    description: "Existing Paper Compare data directory, or empty for profile-local storage."
+  env_file:
+    type: str
+    description: "Legacy private parser configuration only (MinerU/Poppler). LLM credentials always come from ForX."
+  node_path:
+    type: str
+    description: "Profile-relative or absolute Node.js executable (22.13+). The installer keeps an independent runtime in this profile."
+  browser_storage_scope:
+    type: str
+    description: "Preserved browser preference namespace when moving the same library into this profile."
+  port:
+    type: int
+    description: "Optional stable loopback port; initially allocated automatically, then remembered per profile."
+  pdf_parser:
+    type: str
+    description: "mineru or poppler."
+  mineru_base_url:
+    type: str
+    description: "MinerU v1 HTTP endpoint."
