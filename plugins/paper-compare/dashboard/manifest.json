@@ -1,0 +1,10 @@
+{
+  "name": "paper-compare",
+  "label": "论文工作台",
+  "description": "本地论文库、多模型对照、图表与公式精读和证据核验。",
+  "icon": "BookOpen",
+  "version": "1.2.1",
+  "tab": { "path": "/papers", "position": "after:skills" },
+  "entry": "index.js",
+  "api": "plugin_api.py"
+}

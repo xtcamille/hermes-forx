@@ -1,0 +1,25 @@
+{
+  "name": "paper-compare",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "本地论文多模型问答与对比分析工具",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "dev": "node --env-file-if-exists=.env --watch server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check:mineru": "node --env-file-if-exists=.env scripts/check-mineru.mjs",
+    "check": "node --check server.mjs && node --check lib/documents.mjs && node --check lib/mineru.mjs && node --check lib/gateway.mjs && node --check lib/vision.mjs && node --check lib/visual-cache.mjs && node --check public/markdown.js && node --check public/app.js && node --check lib/library.mjs && node --check lib/library-lock.mjs && node --check lib/generation.mjs && node --check lib/workspace.mjs && node --check lib/pdf-layout.mjs && node --check public/workspace.js && node --check public/desktop.js && node --check lib/evidence.mjs && node --check lib/regions.mjs && node --check lib/readings.mjs && node --check lib/investigation.mjs && node --check public/evidence.js"
+  },
+  "dependencies": {
+    "dompurify": "3.4.16",
+    "katex": "0.19.0",
+    "marked": "18.1.0"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.2"
+  }
+}
