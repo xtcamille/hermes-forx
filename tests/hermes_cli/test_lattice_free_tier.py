@@ -418,6 +418,18 @@ class TestLatticeAccountAuth:
         assert st["anon_token"] == anon_token
         assert get_auth_status("latticecode")["logged_in"] is False
 
+    def test_login_rejects_api_key(self, fake_lattice, tmp_path, monkeypatch, capsys):
+        home = tmp_path / "hermes_home"
+        home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("HERMES_HOME", str(home))
+
+        from argparse import Namespace
+        from hermes_cli.auth_lattice import lattice_auth_handler
+        res = lattice_auth_handler("login", Namespace(api_key="sk-test-key"))
+        assert res is False
+        captured = capsys.readouterr().out
+        assert "不支持 API Key 登录" in captured
+
     @pytest.mark.anyio
     async def test_api_login_endpoint_success_and_failure(self, fake_lattice, tmp_path, monkeypatch):
         home = tmp_path / "hermes_home"

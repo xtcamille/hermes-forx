@@ -796,7 +796,7 @@ def login_new_api(
         except Exception:
             pass
         if resp.status_code == 409 or err_msg == "Conflict" or err_code == "AUTH_SESSION_LIMIT":
-            err_msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话、重置密码，或直接使用 API Key 登录"
+            err_msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话或重置密码"
             err_code = "session_limit_conflict"
         raise AuthError(f"New API login failed: {err_msg}", code=err_code)
 
@@ -805,7 +805,7 @@ def login_new_api(
         msg = body.get("message", "Login unsuccessful")
         code = body.get("code", "invalid_credentials")
         if msg == "Conflict" or code == "AUTH_SESSION_LIMIT":
-            msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话、重置密码，或直接使用 API Key 登录"
+            msg = "会话冲突 (409 Conflict)：该账号的在线活跃会话已达上限。请在 Web 端退出其他旧会话或重置密码"
             code = "session_limit_conflict"
         raise AuthError(f"New API login failed: {msg}", code=code)
 
@@ -877,60 +877,45 @@ def lattice_auth_handler(action: str, args: Any) -> bool:
 
 
 def _handle_lattice_login(args: Any) -> bool:
-    api_key = getattr(args, "api_key", None) or getattr(args, "token", None)
+    if getattr(args, "api_key", None) or getattr(args, "token", None):
+        print("\n登录失败: ForX 不支持 API Key 登录，请使用用户名和密码登录。")
+        return False
+
     portal_input = getattr(args, "portal_url", None) or _portal_url()
     portal_url, inference_url = normalize_lattice_urls(portal_input)
 
-    password = ""
-    if not api_key:
-        import getpass
-        print(f"\n--- LatticeCode (New API) Login [{portal_url}] ---")
-        try:
-            username = input("Username / Email: ").strip()
-            if not username:
-                print("Login cancelled.")
-                return True
-            password = getpass.getpass("Password: ")
-            if not password:
-                print("Login cancelled.")
-                return True
-        except (KeyboardInterrupt, EOFError):
-            print("\nLogin cancelled.")
+    import getpass
+    print(f"\n--- LatticeCode (New API) Login [{portal_url}] ---")
+    try:
+        username = input("Username / Email: ").strip()
+        if not username:
+            print("Login cancelled.")
             return True
+        password = getpass.getpass("Password: ")
+        if not password:
+            print("Login cancelled.")
+            return True
+    except (KeyboardInterrupt, EOFError):
+        print("\nLogin cancelled.")
+        return True
 
-        with httpx.Client(timeout=15.0) as client:
-            try:
-                api_key, user_info = login_new_api(client, portal_url, username, password)
-            except AuthError as exc:
-                print(f"\n登录失败: {exc}")
-                return False
-    else:
-        username = "api_key_user"
-        user_info = {}
+    with httpx.Client(timeout=15.0) as client:
+        try:
+            api_key, user_info = login_new_api(client, portal_url, username, password)
+        except AuthError as exc:
+            print(f"\n登录失败: {exc}")
+            return False
 
     models = user_info.get("models") or []
     default_model = user_info.get("default_model") or (models[0] if models else "")
-    if not models and api_key:
-        with httpx.Client(timeout=5.0) as client:
-            try:
-                test_resp = client.get(f"{inference_url}/models", headers={"Authorization": f"Bearer {api_key}"})
-                if test_resp.is_success:
-                    raw = test_resp.json().get("data") or []
-                    models = [
-                        m["id"] if isinstance(m, dict) and "id" in m else str(m)
-                        for m in raw
-                        if (isinstance(m, dict) and m.get("id")) or (isinstance(m, str) and m)
-                    ]
-            except Exception:
-                pass
-        if not models:
-            print("\n登录失败: 当前token不可用，无可用模型，检查new api账户是否创建了有效token")
-            return False
-        if "qwen3.8-27b-5090" in models:
-            default_model = "qwen3.8-27b-5090"
-            models = ["qwen3.8-27b-5090"] + [m for m in models if m != "qwen3.8-27b-5090"]
-        else:
-            default_model = models[0]
+    if not models:
+        print("\n登录失败: 当前token不可用，无可用模型，检查new api账户是否创建了有效token")
+        return False
+    if "qwen3.8-27b-5090" in models:
+        default_model = "qwen3.8-27b-5090"
+        models = ["qwen3.8-27b-5090"] + [m for m in models if m != "qwen3.8-27b-5090"]
+    else:
+        default_model = models[0]
 
     state = {
         "auth_method": "password",

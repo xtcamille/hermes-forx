@@ -173,7 +173,7 @@ _REGISTRY_ROWS: Tuple[Any, ...] = (
         "latticecode", "New API", "oauth_device_code",
         portal_base_url="http://192.168.1.206:3000",
         inference_base_url="http://192.168.1.206:3000/v1",
-        api_key_env_vars=("LATTICE_API_KEY",),
+        api_key_env_vars=(),
         base_url_env_var="LATTICE_INFERENCE_URL"),
     ProviderConfig(
         "nous", "Nous Portal", "oauth_device_code", portal_base_url=DEFAULT_NOUS_PORTAL_URL,
