@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
+import useBaseUrl from "@docusaurus/useBaseUrl";
 import styles from "./styles.module.css";
 
 interface PluginCapabilities {
@@ -43,11 +44,6 @@ interface CatalogMeta {
   removedCount?: number;
   starsFetchedAt?: string | null;
 }
-
-// Routes Docusaurus serves the static API JSON from. `baseUrl` is `/docs/`,
-// `static/api/` ends up at `/docs/api/` — same pattern as the Skills Hub.
-const PLUGINS_URL = "/docs/api/plugins.json";
-const META_URL = "/docs/api/plugins-meta.json";
 
 // Docs section describing the PR-based submission workflow.
 const SUBMIT_PLUGIN_URL = "/user-guide/features/plugin-catalog#submitting-a-plugin-to-the-catalog";
@@ -449,16 +445,19 @@ export default function PluginCatalogPage() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const pluginsUrl = useBaseUrl("/api/plugins.json");
+  const metaUrl = useBaseUrl("/api/plugins-meta.json");
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const [pl, mt] = await Promise.all([
-          fetch(PLUGINS_URL).then((r) => {
+          fetch(pluginsUrl).then((r) => {
             if (!r.ok) throw new Error(`plugins.json HTTP ${r.status}`);
             return r.json();
           }),
-          fetch(META_URL).then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
+          fetch(metaUrl).then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
         ]);
         if (cancelled) return;
         const arr = Array.isArray(pl) ? (pl as CatalogPlugin[]) : [];

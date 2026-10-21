@@ -6,6 +6,7 @@ import { $agentPlugins, $agentPluginsStatus } from '@/store/agent-plugins'
 import { $paneHeightOverride, setPaneHeightOverride } from '@/store/panes'
 import { $pluginInstallRequest, closePluginInstallRequest } from '@/store/plugin-install-request'
 import { $connection } from '@/store/session'
+import { CATALOG_ORIGIN } from '@/lib/plugin-catalog'
 
 import { PluginsTab } from './plugins-tab'
 
@@ -202,7 +203,7 @@ describe('PluginsTab', () => {
           tier: 'community',
           type: 'hermes-plugin-pick'
         },
-        origin: 'https://hermes-agent.nousresearch.com'
+        origin: CATALOG_ORIGIN
       })
     )
 
@@ -297,7 +298,7 @@ describe('PluginsTab', () => {
           subdir: 'nested-plugin',
           type: 'hermes-plugin-pick'
         },
-        origin: 'https://hermes-agent.nousresearch.com'
+        origin: CATALOG_ORIGIN
       })
     )
 
@@ -414,7 +415,7 @@ describe('PluginsTab catalog UX', () => {
           repo: 'https://github.com/example/demo-weather',
           type: 'hermes-plugin-pick'
         },
-        origin: 'https://hermes-agent.nousresearch.com'
+        origin: CATALOG_ORIGIN
       })
     )
 
@@ -447,7 +448,7 @@ describe('PluginsTab catalog UX', () => {
           repo: 'https://github.com/example/demo-weather',
           type: 'hermes-plugin-pick'
         },
-        origin: 'https://hermes-agent.nousresearch.com'
+        origin: CATALOG_ORIGIN
       })
     )
 
