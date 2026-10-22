@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "Hermes Agent Quickstart"
-description: "Your first conversation with Hermes Agent — from install to chatting in under 5 minutes"
+title: "ForX Agent Quickstart"
+description: "Your first conversation with ForX Agent — from install to chatting in under 5 minutes"
 ---
 
-# Hermes Agent Quickstart
+# ForX Agent Quickstart
 
-This guide gets you from zero to a working Hermes setup that survives real use. Install, choose a provider, verify a working chat, and know exactly what to do when something breaks.
+This guide gets you from zero to a working ForX setup that survives real use. Install, choose a provider, verify a working chat, and know exactly what to do when something breaks.
 
 ## Prefer to watch?
 

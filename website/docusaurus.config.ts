@@ -144,7 +144,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://hermes-agent.nousresearch.com/',
+          href: 'https://github.com/xtcamille/hermes-forx/releases',
           label: 'Download',
           position: 'left',
         },
@@ -153,18 +153,13 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://hermes-agent.nousresearch.com',
-          label: 'Home',
+          to: '/',
+          label: 'Docs',
           position: 'right',
         },
         {
-          href: 'https://github.com/NousResearch/hermes-agent',
+          href: 'https://github.com/xtcamille/hermes-forx',
           label: 'GitHub',
-          position: 'right',
-        },
-        {
-          href: 'https://discord.gg/NousResearch',
-          label: 'Discord',
           position: 'right',
         },
       ],
@@ -182,23 +177,22 @@ const config: Config = {
           ],
         },
         {
-          title: 'Community',
+          title: 'Capabilities',
           items: [
-            { label: 'Discord', href: 'https://discord.gg/NousResearch' },
-            { label: 'GitHub Issues', href: 'https://github.com/NousResearch/hermes-agent/issues' },
-            { label: 'Skills Hub', href: 'https://agentskills.io' },
+            { label: 'Skills Hub', to: '/skills' },
+            { label: 'Plugin Catalog', to: '/plugins' },
+            { label: 'GitHub Issues', href: 'https://github.com/xtcamille/hermes-forx/issues' },
           ],
         },
         {
           title: 'More',
           items: [
-            { label: 'Desktop Download', href: 'https://hermes-agent.nousresearch.com/' },
-            { label: 'GitHub', href: 'https://github.com/NousResearch/hermes-agent' },
-            { label: 'Nous Research', href: 'https://nousresearch.com' },
+            { label: 'Desktop Releases', href: 'https://github.com/xtcamille/hermes-forx/releases' },
+            { label: 'GitHub Repository', href: 'https://github.com/xtcamille/hermes-forx' },
           ],
         },
       ],
-      copyright: `Built by <a href="https://nousresearch.com">Nous Research</a> · MIT License · ${new Date().getFullYear()}`,
+      copyright: `ForX Agent · MIT License · ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,

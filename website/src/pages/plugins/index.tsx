@@ -80,7 +80,7 @@ const TIER_ORDER = ["all", "official", "community"];
 // grouped sections; keep it in sync with CATALOG_CATEGORIES in
 // hermes_cli/plugin_catalog.py and website/scripts/extract-plugins.py.
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; blurb: string }> = {
-  desktop: { label: "Desktop", icon: "\u{1F5A5}\u{FE0F}", blurb: "Panes, tabs and views for Hermes Desktop" },
+  desktop: { label: "Desktop", icon: "\u{1F5A5}\u{FE0F}", blurb: "Panes, tabs and views for ForX Desktop" },
   memory: { label: "Memory", icon: "\u{1F9E0}", blurb: "Memory providers and context engines" },
   platform: { label: "Platforms", icon: "\u{1F4AC}", blurb: "Messaging and channel adapters" },
   web: { label: "Web & Browser", icon: "\u{1F310}", blurb: "Search backends, extraction and browser control" },
@@ -304,10 +304,10 @@ function PluginCard({
           <a
             className={styles.pickBtn}
             href={desktopInstallLink(plugin.name)}
-            title="Opens the Install Plugin dialog in Hermes Desktop at the reviewed version. No app? Use the install command below."
+            title="Opens the Install Plugin dialog in ForX Desktop at the reviewed version. No app? Use the install command below."
             onClick={(e) => e.stopPropagation()}
           >
-            Open in Hermes Desktop
+            Open in ForX Desktop
           </a>
         )}
 
@@ -559,14 +559,14 @@ export default function PluginCatalogPage() {
 
   return (
     <Layout
-      title="Plugin Catalog"
-      description="Give Hermes new powers: reviewed plugins you can install in one click"
+      title="ForX Plugin Catalog"
+      description="Give ForX new powers: reviewed plugins you can install in one click"
     >
       <div className={`${styles.page} ${pickerMode ? styles.pickerMode : ""}`}>
         <header className={styles.hero}>
           <div className={styles.heroGlow} />
           <div className={styles.heroContent}>
-            <p className={styles.heroEyebrow}>Hermes Agent</p>
+            <p className={styles.heroEyebrow}>ForX Agent</p>
             <h1 className={styles.heroTitle}>Plugin Catalog</h1>
             <nav className={styles.crossNav} aria-label="Catalog pages">
               <Link className={styles.crossNavLink} to="/skills">
@@ -577,7 +577,7 @@ export default function PluginCatalogPage() {
               </span>
             </nav>
             <p className={styles.heroSub}>
-              Give Hermes new powers. Memory, voice, messaging, browsing, Desktop panes and more,
+              Give ForX new powers. Memory, voice, messaging, browsing, Desktop panes and more,
               built by the community.
               {loadError && (
                 <span style={{ color: "#f87171", marginLeft: 8 }}>
@@ -630,7 +630,7 @@ export default function PluginCatalogPage() {
               <input
                 ref={searchRef}
                 type="text"
-                placeholder="Search plugins by name or by what you want Hermes to do"
+                placeholder="Search plugins by name or by what you want ForX to do"
                 title='Tip: press "/" to jump here'
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -720,7 +720,7 @@ export default function PluginCatalogPage() {
               <div className={styles.emptyIcon}>{"\u{1F331}"}</div>
               <h3 className={styles.emptyTitle}>The catalog is just getting started</h3>
               <p className={styles.emptyDesc}>
-                The plugin catalog is a curated, human-reviewed list of Hermes
+                The plugin catalog is a curated, human-reviewed list of ForX
                 plugins — each entry pinned to an exact commit. Want yours listed?
                 Submissions are open.
               </p>
