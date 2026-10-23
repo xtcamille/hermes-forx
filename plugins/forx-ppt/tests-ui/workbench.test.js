@@ -72,3 +72,13 @@ it('keeps a new request pending when an earlier cancelled model response arrives
   await screen.findByText('最新稿 · v1 · 已保存')
   expect(screen.queryByRole('button', { name: '取消本次指令' })).toBeNull()
 })
+
+it('cleans up raw IPC remote error and formats friendly message on failure', async () => {
+  mount(() => {
+    throw new Error(`Error invoking remote method 'hermes:api': Error: 422: {"detail":[{"loc":["body","slides",0,"name"],"msg":"Field required"}]}`)
+  })
+  const field = await screen.findByLabelText('PPT 对话指令')
+  fireEvent.change(field, { target: { value: '生成一份介绍' } })
+  fireEvent.click(screen.getByRole('button', { name: '生成初稿' }))
+  await screen.findByText(/内容校验未通过 \(422\): slides.0.name: Field required/)
+})

@@ -13,6 +13,32 @@ const fileData = file => new Promise((resolve, reject) => {
   reader.readAsDataURL(file)
 })
 
+function cleanErrorMessage(err) {
+  let msg = err?.message || String(err || '') || '操作失败，已保存版本仍保留'
+  msg = msg.replace(/^Error invoking remote method '[^']+':\s*/i, '')
+  msg = msg.replace(/^Error:\s*/i, '')
+  const httpMatch = msg.match(/^(\d{3}):\s*(.*)$/s)
+  if (httpMatch) {
+    const [, status, body] = httpMatch
+    try {
+      const parsed = JSON.parse(body)
+      if (parsed.detail) {
+        if (typeof parsed.detail === 'string') return parsed.detail
+        if (Array.isArray(parsed.detail)) {
+          const details = parsed.detail.map(d => `${d.loc?.filter(x => x !== 'body').join('.') || '参数'}: ${d.msg}`).join('; ')
+          return `内容校验未通过 (${status}): ${details}`
+        }
+        return JSON.stringify(parsed.detail)
+      }
+    } catch {
+      if (body.trim()) return body.trim()
+    }
+    if (status === '422') return '生成内容格式校验失败，请重试或简化提示词'
+    if (status === '500') return '服务处理异常，请稍后重试'
+  }
+  return msg
+}
+
 function controller(ctx, owner) {
   const state = {
     owner, ctx, $doc: atom(null), $slide: atom(null), $selection: atom([]), $numbers: atom(true),
@@ -38,7 +64,7 @@ function controller(ctx, owner) {
     const operationId = uid()
     state.$busy.set({ label, requestId: null, operationId })
     state.$error.set('')
-    try { await fn() } catch (error) { if (state.$busy.get()?.operationId === operationId) state.$error.set(error.message || '操作失败，已保存版本仍保留') }
+    try { await fn() } catch (error) { if (state.$busy.get()?.operationId === operationId) state.$error.set(cleanErrorMessage(error)) }
     finally { if (state.$busy.get()?.operationId === operationId) state.$busy.set(null) }
   }
   state.edit = (operations, label = '修改文稿') => state.perform(label, async () => {
@@ -85,7 +111,7 @@ function controller(ctx, owner) {
       if (result.result) state.accept(result.result)
       state.$messages.set([...state.$messages.get(), { role: 'assistant', text: result.cancelled ? '已取消，本次指令不会修改原稿。' : '本次修改已经保存，可以使用撤销恢复。' }])
       state.$busy.set(null)
-    } catch (error) { state.$error.set(error.message) }
+    } catch (error) { state.$error.set(cleanErrorMessage(error)) }
   }
   state.travel = direction => state.perform(direction === 'undo' ? '撤销修改' : '重做修改', async () => {
     const current = state.$doc.get()

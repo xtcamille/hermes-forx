@@ -80,14 +80,22 @@ def _update_element(deck, op):
 
 def _add_element(deck, op):
     owner = deck.master if op.target == deck.master.id else _slide(deck, op.slide_id or op.target)
-    if not op.element or "id" in op.element:
+    if not op.element:
         raise ValueError("提供 element，身份编号由系统分配")
     raw = deepcopy(op.element)
+    raw.pop("id", None)
+    raw.setdefault("name", "新元素")
+    raw.setdefault("kind", "text")
+    if "box" not in raw and not raw.get("role"):
+        raw["box"] = {"x": 1.0, "y": 1.5, "width": 6.0, "height": 3.0}
 
     def assign(data):
         data["id"] = allocate(deck, "E")
         for child in data.get("children", []):
-            assign(child)
+            if isinstance(child, dict):
+                child.pop("id", None)
+                child.setdefault("name", "新元素")
+                assign(child)
 
     assign(raw)
     owner.elements.append(Element.model_validate(raw))

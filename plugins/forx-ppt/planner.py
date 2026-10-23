@@ -11,10 +11,17 @@ from .operations import Operation
 from .storage import Store, encoded
 
 
+class DraftSlide(Model):
+    title: str = Field(min_length=1, max_length=128)
+    bullets: list[str] = Field(default_factory=list, max_length=12)
+    layout_id: Literal["L001", "L002", "L003", "L004", "L005"] = "L003"
+    notes: str = Field("", max_length=20000)
+
+
 class Draft(Model):
     name: str = Field(min_length=1, max_length=128)
     theme: Literal["business", "technology", "minimal"] = "business"
-    slides: list[SlideDraft] = Field(min_length=1, max_length=30)
+    slides: list[DraftSlide] = Field(min_length=1, max_length=30)
     message: str = Field("初稿已生成，可以按编号继续修改。", max_length=2000)
 
 

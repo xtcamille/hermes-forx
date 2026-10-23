@@ -289,13 +289,22 @@ def add_slide(deck, spec):
         slide.elements.append(Element(id=allocate(deck, "E"), name="主标题" if role == "title" else "正文",
                                       kind="text", role=role, text=text))
     for raw in spec.get("elements", []):
+        if not isinstance(raw, dict):
+            continue
         data = dict(raw)
+        if "kind" not in data:
+            continue
+        data.setdefault("name", "元素")
         def assign(item):
             item["id"] = allocate(deck, "E")
             for child in item.get("children", []):
-                assign(child)
+                if isinstance(child, dict):
+                    assign(child)
         assign(data)
-        slide.elements.append(Element.model_validate(data))
+        try:
+            slide.elements.append(Element.model_validate(data))
+        except Exception:
+            pass
     deck.slides.append(slide)
     return slide
 

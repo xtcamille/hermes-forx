@@ -176,6 +176,16 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         async def acomplete_structured(self, **kwargs):
             from types import SimpleNamespace
             calls.append((str(get_hermes_home()), kwargs))
+            if kwargs.get("schema_name") == "forx_ppt_draft":
+                return SimpleNamespace(parsed={
+                    "name": "区块链技术介绍",
+                    "theme": "technology",
+                    "slides": [
+                        {"title": "区块链概述", "bullets": ["去中心化账本", "智能合约"], "layout_id": "L001"},
+                        {"title": "核心架构", "bullets": ["共识算法", "加密哈希"], "layout_id": "L003"},
+                    ],
+                    "message": "初稿已生成。",
+                })
             context = json.loads(kwargs["input"][0]["text"])
             target = context["selected_ids"][0]
             return SimpleNamespace(parsed={"message": "已更新指定标题。", "operations": [{"action": "update_element", "target": target, "changes": {"text": "精准更新"}}]})
@@ -208,8 +218,13 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         assert check(client.get(f"{PREFIX}/projects/{pid}")) == changed
         check(client.post(PREFIX + "/cancel", json={"request_id": "cancel-edit"}))
         edit(client, changed, [{"action": "theme", "changes": {"preset": "minimal"}}], request_id="cancel-edit", status=409)
+        # Initial draft creation via chat without project_id
+        draft_chat = check(client.post(PREFIX + "/chat", json={"prompt": "生成区块链介绍", "request_id": "chat-draft"}))["result"]
+        assert draft_chat["deck"]["name"] == "区块链技术介绍"
+        assert len(draft_chat["deck"]["slides"]) == 2
+        assert draft_chat["deck"]["theme"]["name"] == "深色科技"
         add_key = "add-retry"
-        add = [{"action": "add_slide", "slide": {"title": "新增页", "bullets": []}}]
+        add = [{"action": "add_slide", "slide": {"title": "新增页", "bullets": [], "elements": [{"id": "E0006"}]}}]
         newer = edit(client, changed, add, request_id=add_key)
         assert edit(client, changed, add, request_id=add_key)["revision"] == newer["revision"]
         new_ids = {e["id"] for e in newer["deck"]["slides"][-1]["elements"]}
@@ -221,6 +236,10 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         assert restored["deck"]["slides"] == a["deck"]["slides"]
         branch = edit(client, restored, add)
         assert not (new_ids & {e["id"] for e in branch["deck"]["slides"][-1]["elements"]})
+        with_preassigned_id = [{"action": "add_element", "slide_id": branch["deck"]["slides"][0]["id"], "element": {"id": "E9999", "name": "自动重配ID", "kind": "text", "text": "内容", "box": {"x": 1, "y": 1, "width": 4, "height": 1}}}]
+        with_id_res = edit(client, branch, with_preassigned_id)
+        added_elem = [e for e in with_id_res["deck"]["slides"][0]["elements"] if e["name"] == "自动重配ID"][0]
+        assert added_elem["id"] != "E9999" and added_elem["id"].startswith("E")
         assert check(client.get(f'{PREFIX}/projects/{b["deck"]["id"]}?profile=ppt-b')) == b
-        assert check(client.get(f"{PREFIX}/projects/{pid}"))["revision"] == branch["revision"]
-        assert check(client.get(f"{PREFIX}/projects/{pid}/history"))["history"][0]["version"] == branch["revision"]
+        assert check(client.get(f"{PREFIX}/projects/{pid}"))["revision"] == with_id_res["revision"]
+        assert check(client.get(f"{PREFIX}/projects/{pid}/history"))["history"][0]["version"] == with_id_res["revision"]
