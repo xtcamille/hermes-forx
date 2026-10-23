@@ -60,9 +60,9 @@ const TIER_CONFIG: Record<
 > = {
   official: {
     label: "Official",
-    color: "#ffd700",
-    bg: "rgba(255, 215, 0, 0.08)",
-    border: "rgba(255, 215, 0, 0.25)",
+    color: "#2997ff",
+    bg: "rgba(41, 151, 255, 0.12)",
+    border: "rgba(41, 151, 255, 0.3)",
     icon: "\u{2713}",
   },
   community: {
