@@ -240,6 +240,20 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         with_id_res = edit(client, branch, with_preassigned_id)
         added_elem = [e for e in with_id_res["deck"]["slides"][0]["elements"] if e["name"] == "自动重配ID"][0]
         assert added_elem["id"] != "E9999" and added_elem["id"].startswith("E")
+        # Test doc-to-deck conversion endpoint and expanded layout validation (L006-L010)
+        doc_deck = check(client.post(PREFIX + "/projects/from-doc", json={
+            "text": "# 企业智能转型方案\n## 实施路径\n- 阶段规划\n- 商业价值",
+            "title": "智能转型",
+            "target_pages": 4,
+            "theme": "technology",
+            "request_id": "doc-create-1",
+        }))["result"]
+        assert doc_deck["deck"]["name"] == "智能转型"
+        assert len(doc_deck["deck"]["layouts"]) == 10
+        # Add slide with expanded layout L006 (timeline)
+        l6_add = [{"action": "add_slide", "slide": {"title": "发展历程", "layout_id": "L006", "bullets": ["Q1 启动", "Q2 验证"]}}]
+        l6_res = edit(client, doc_deck, l6_add)
+        assert l6_res["deck"]["slides"][-1]["layout_id"] == "L006"
         assert check(client.get(f'{PREFIX}/projects/{b["deck"]["id"]}?profile=ppt-b')) == b
         assert check(client.get(f"{PREFIX}/projects/{pid}"))["revision"] == with_id_res["revision"]
         assert check(client.get(f"{PREFIX}/projects/{pid}/history"))["history"][0]["version"] == with_id_res["revision"]

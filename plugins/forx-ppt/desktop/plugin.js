@@ -61,6 +61,7 @@ function controller(ctx, owner) {
     $busy: atom(null), $error: atom(''), $messages: atom([]), $draft: atom(''),
     $before: atom(null), $compare: atom(false), $refresh: atom(0),
     $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
+    $docModalOpen: atom(false), $layoutModalOpen: atom(false),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -175,6 +176,7 @@ function Toolbar({ c }) {
     ),
     h('div', { className: 'ppt-btn-group' },
       button('空白新建', c.create, !!busy),
+      button('文档转PPT', () => c.$docModalOpen.set(true), !!busy),
       button('导入', () => upload.current.click(), !!busy),
     ),
     h('input', { ref: upload, type: 'file', accept: '.pptx,.forxppt', hidden: true, onChange: event => {
@@ -233,6 +235,185 @@ function Thumbnail({ c, doc, slide, index }) {
   )
 }
 
+const LAYOUTS = [
+  { id: 'L001', name: '封面页', icon: '🎯', desc: '大标题、副标题与主讲人', defaultTitle: '汇报主标题', bullets: ['副标题与核心主旨阐述', '汇报人 / 团队 / 日期'] },
+  { id: 'L002', name: '目录导航', icon: '📑', desc: '全篇章节规划与导航条目', defaultTitle: '章节目录', bullets: ['01 项目背景与核心挑战', '02 系统架构与核心技术', '03 业务落地与运营成果', '04 下一步规划与未来展望'] },
+  { id: 'L003', name: '标题正文', icon: '📝', desc: '单栏叙述、观点展开与要点', defaultTitle: '核心观点与阐述', bullets: ['核心观点或关键结论阐述', '支持性论据或实施步骤展开', '量化成果或具体落地指标'] },
+  { id: 'L004', name: '图文双栏', icon: '🖼️', desc: '双栏结构、左右对比或图文并列', defaultTitle: '双栏重点提炼', bullets: ['维度一：核心技术能力深度自研', '维度二：跨系统高可用生态打通', '维度三：全流程监控与安全审计'] },
+  { id: 'L006', name: '时间轴', icon: '⏳', desc: '发展历程与里程碑阶段规划', defaultTitle: '发展历程与演进路线', bullets: ['阶段一 (Q1)：需求调研与架构选型', '阶段二 (Q2)：原型研发与核心功能内测', '阶段三 (Q3)：业务试点上线与指标验证', '阶段四 (Q4)：全量推广与生态规模化'] },
+  { id: 'L007', name: '多列卡片', icon: '🗂️', desc: '3-4项核心能力、业务支柱', defaultTitle: '三大核心支柱', bullets: ['核心支柱 1：模块化插件解耦体系', '核心支柱 2：全端自适应高质量排版', '核心支柱 3：端侧高安全隐私离线存储'] },
+  { id: 'L008', name: '关键指标', icon: '📈', desc: '量化成果大屏与核心KPI战报', defaultTitle: '业务关键指标战报', bullets: ['99.99% 核心链路 SLA 可用性', '300% 创作与排版提效倍率', '50,000+ 累计服务企业与团队'] },
+  { id: 'L009', name: '四象限/SWOT', icon: '🧭', desc: 'SWOT分析与象限评估矩阵', defaultTitle: 'SWOT 多维矩阵分析', bullets: ['优势 (S)：轻量架构与高效缓存机制', '劣势 (W)：初期外部生态插件库待扩展', '机会 (O)：大模型 Native 应用全面普及', '威胁 (T)：开源工具快速演进与技术同质化'] },
+  { id: 'L010', name: '方案对比', icon: '⚖️', desc: '双方案/竞品优劣多维对比', defaultTitle: '多维方案优劣评估', bullets: ['方案 A (当前方案)：低改造成本、上线快、维护简单', '方案 B (重构方案)：弹性伸缩强、性能上限高、长期架构优秀'] },
+  { id: 'L005', name: '结束致谢', icon: '🎉', desc: '总结、Q&A 与致谢页', defaultTitle: '致谢与交流', bullets: ['感谢各位专家与评委聆听！', '欢迎提问与深入探讨 (Q & A)'] },
+]
+
+function LayoutPickerModal({ c }) {
+  const open = useValue(c.$layoutModalOpen)
+  if (!open) return null
+  const handleSelect = (l) => {
+    c.$layoutModalOpen.set(false)
+    c.edit([{
+      action: 'add_slide',
+      slide: {
+        title: l.defaultTitle || l.name,
+        layout_id: l.id,
+        bullets: l.bullets || []
+      }
+    }], `新增页面 · ${l.name}`)
+  }
+  return h('div', { className: 'ppt-modal-backdrop', onClick: () => c.$layoutModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-layout-modal', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header' },
+        h('div', null,
+          h('h3', { className: 'ppt-modal-title' }, '选择新增页面版式 (10 类专业版式)'),
+          h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, '点击卡片立即插入页面，自动填充规范结构与示范要点')
+        ),
+        button('✕', () => c.$layoutModalOpen.set(false), false, { className: 'ppt-btn-icon' })
+      ),
+      h('div', { className: 'ppt-layout-grid' },
+        LAYOUTS.map(l => h('div', {
+          key: l.id,
+          className: 'ppt-layout-card',
+          onClick: () => handleSelect(l)
+        },
+          h('div', { className: 'ppt-layout-card-header' },
+            h('span', { className: 'ppt-layout-card-icon' }, l.icon),
+            h('div', { className: 'ppt-layout-card-meta' },
+              h('span', { className: 'ppt-layout-card-id' }, l.id),
+              h('strong', { className: 'ppt-layout-card-name' }, l.name),
+            )
+          ),
+          h('p', { className: 'ppt-layout-card-desc' }, l.desc),
+          h('ul', { className: 'ppt-layout-card-bullets' },
+            (l.bullets || []).slice(0, 2).map((b, idx) => h('li', { key: idx }, b))
+          )
+        ))
+      ),
+      h('div', { className: 'ppt-modal-footer' },
+        button('取消', () => c.$layoutModalOpen.set(false)),
+        button('插入标准空白正文页 (L003)', () => handleSelect(LAYOUTS[2]), false, { className: 'ppt-btn-primary' })
+      )
+    )
+  )
+}
+
+function DocToDeckModal({ c }) {
+  const open = useValue(c.$docModalOpen), busy = useValue(c.$busy)
+  const [docText, setDocText] = useState('')
+  const [title, setTitle] = useState('')
+  const [theme, setTheme] = useState('business')
+  const [targetPages, setTargetPages] = useState(8)
+  const [ratio, setRatio] = useState('16:9')
+
+  if (!open) return null
+
+  const handleConvert = async () => {
+    if (!docText.trim() || docText.trim().length < 5) {
+      c.$error.set('请输入至少5个字符的文档正文或大纲内容')
+      return
+    }
+    await c.perform('正在智能解析文档并生成 PPT…', async () => {
+      const res = await c.request('/projects/from-doc', {
+        method: 'POST',
+        timeoutMs: 180000,
+        body: {
+          text: docText.trim(),
+          title: title.trim() || undefined,
+          target_pages: parseInt(targetPages, 10) || 8,
+          theme,
+          ratio,
+          request_id: uid()
+        }
+      })
+      c.$docModalOpen.set(false)
+      setDocText('')
+      setTitle('')
+      c.accept(res.result)
+    })
+  }
+
+  return h('div', { className: 'ppt-modal-backdrop', onClick: () => !busy && c.$docModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-doc-modal', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header' },
+        h('div', null,
+          h('h3', { className: 'ppt-modal-title' }, '📄 文档一键转 PPT (Doc-to-Deck)'),
+          h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, '粘贴 Markdown、会议纪要、PRD或技术报告，AI将智能提炼并自适应匹配专业版式')
+        ),
+        button('✕', () => !busy && c.$docModalOpen.set(false), !!busy, { className: 'ppt-btn-icon' })
+      ),
+      h('div', { className: 'ppt-modal-body' },
+        h('div', { className: 'ppt-form-row' },
+          h('label', null, '文稿标题（选填，留空将由 AI 自动提炼）'),
+          h('input', {
+            className: 'ppt-input',
+            placeholder: '例如：2024 年度产品战略规划与技术架构',
+            value: title,
+            disabled: !!busy,
+            onChange: e => setTitle(e.target.value)
+          })
+        ),
+        h('div', { className: 'ppt-form-row' },
+          h('label', null, '文档正文内容或大纲 *'),
+          h('textarea', {
+            className: 'ppt-textarea',
+            rows: 7,
+            placeholder: '在此粘贴 Markdown 长文、需求文档、总结汇报或提纲…\n\n示例：\n# 核心项目复盘\n## 背景与业务痛点\n- 现有系统延迟高、资源开销大\n## 实施成果\n- 架构完成全量重构，SLA提升至99.99%',
+            value: docText,
+            disabled: !!busy,
+            onChange: e => setDocText(e.target.value)
+          })
+        ),
+        h('div', { className: 'ppt-form-grid' },
+          h('div', { className: 'ppt-form-col' },
+            h('label', null, '主题风格'),
+            h('select', {
+              className: 'ppt-select',
+              value: theme,
+              disabled: !!busy,
+              onChange: e => setTheme(e.target.value)
+            },
+              h('option', { value: 'business' }, '💼 商务简洁 (深蓝商务)'),
+              h('option', { value: 'technology' }, '⚡ 深色科技 (暗夜科技)'),
+              h('option', { value: 'minimal' }, '🌿 清新极简 (雅致白灰)')
+            )
+          ),
+          h('div', { className: 'ppt-form-col' },
+            h('label', null, '目标页数'),
+            h('select', {
+              className: 'ppt-select',
+              value: targetPages,
+              disabled: !!busy,
+              onChange: e => setTargetPages(Number(e.target.value))
+            },
+              h('option', { value: 5 }, '5 页 · 精炼极速汇报'),
+              h('option', { value: 8 }, '8 页 · 标准方案讲解 (推荐)'),
+              h('option', { value: 12 }, '12 页 · 深度系统性复盘'),
+              h('option', { value: 16 }, '16 页 · 完整商业技术报告')
+            )
+          ),
+          h('div', { className: 'ppt-form-col' },
+            h('label', null, '画面比例'),
+            h('select', {
+              className: 'ppt-select',
+              value: ratio,
+              disabled: !!busy,
+              onChange: e => setRatio(e.target.value)
+            },
+              h('option', { value: '16:9' }, '16:9 · 宽屏高清 (默认)'),
+              h('option', { value: '4:3' }, '4:3 · 经典传统比例')
+            )
+          )
+        )
+      ),
+      h('div', { className: 'ppt-modal-footer' },
+        button('取消', () => c.$docModalOpen.set(false), !!busy),
+        button(busy ? '正在智能转换中…' : '开始智能转换', handleConvert, !!busy || !docText.trim(), { className: 'ppt-btn-primary' })
+      )
+    )
+  )
+}
+
 function Navigation({ c }) {
   const doc = useValue(c.$doc), refresh = useValue(c.$refresh)
   const projects = useQuery({ queryKey: ['forx-ppt', c.owner, 'projects', refresh], queryFn: () => c.request('/projects'), refetchInterval: 5000, retry: 1 })
@@ -244,7 +425,10 @@ function Navigation({ c }) {
     h('select', { className: 'ppt-project-select', 'aria-label': '打开文稿', value: doc?.deck.id || '', onChange: event => void c.load(event.target.value) },
       h('option', { value: '', disabled: true }, '选择已保存文稿'),
       ...(projects.data?.projects || []).map(p => h('option', { key: p.id, value: p.id }, p.name))),
-    doc && button('＋ 新增页面', () => c.edit([{ action: 'add_slide', slide: { title: '新页面', bullets: [] } }], '新增页面'), !!c.$busy.get(), { className: 'ppt-add-slide-btn' }),
+    doc && h('div', { className: 'ppt-nav-actions' },
+      button('＋ 新增页面', () => c.$layoutModalOpen.set(true), !!c.$busy.get(), { className: 'ppt-add-slide-btn' }),
+      button('📄 文档转PPT', () => c.$docModalOpen.set(true), !!c.$busy.get(), { className: 'ppt-nav-doc-btn' })
+    ),
     h('div', { className: 'ppt-thumbs-list' },
       ...(doc?.deck.slides || []).map((slide, i) => h(Thumbnail, { key: slide.id, c, doc, slide, index: i }))
     ),
@@ -270,6 +454,10 @@ function Canvas({ c }) {
       h('p', null, '在右侧描述主题、受众和页数，或创建空白文稿。'),
       h('p', { className: 'ppt-muted' }, '支持稳定编号、母版联动、局部修改与实时换主题。'),
       h('div', { className: 'ppt-suggestion-grid' },
+        h('button', { className: 'ppt-suggestion-chip ppt-suggestion-primary', onClick: () => c.$docModalOpen.set(true) },
+          h('span', null, '📄 文档一键转 PPT (Markdown/PRD/大纲)'),
+          h('small', { className: 'ppt-muted' }, '智能萃取要点并自适应匹配10类专业版式')
+        ),
         h('button', { className: 'ppt-suggestion-chip', onClick: () => c.$draft.set('生成一份 8 页的区块链技术架构与应用前景介绍。') },
           h('span', null, '🚀 生成一份 8 页的区块链技术与架构介绍'),
           h('small', { className: 'ppt-muted' }, '点击填入')
@@ -294,7 +482,15 @@ function Canvas({ c }) {
     h('div', { className: 'ppt-stage-header' },
       h('div', { className: 'ppt-stage-title' },
         h('span', { className: 'ppt-pill-badge' }, slideId),
-        h('span', { className: 'ppt-stage-slide-name' }, doc.deck.slides.find(s => s.id === slideId)?.name || '当前幻灯片')
+        h('span', { className: 'ppt-stage-slide-name' }, doc.deck.slides.find(s => s.id === slideId)?.name || '当前幻灯片'),
+        h('select', {
+          className: 'ppt-layout-select',
+          'aria-label': '页面版式',
+          value: doc.deck.slides.find(s => s.id === slideId)?.layout_id || 'L003',
+          onChange: event => void c.edit([{ action: 'update_slide', target: slideId, changes: { layout_id: event.target.value } }], '切换页面版式')
+        },
+          LAYOUTS.map(l => h('option', { key: l.id, value: l.id }, `${l.id} · ${l.name}`))
+        )
       ),
       h('div', { className: 'ppt-btn-group' },
         before?.project === doc.deck.id && before?.slide === slideId && button(showingBefore ? '返回当前版本' : '查看修改前', () => c.$compare.set(!c.$compare.get())),
@@ -567,6 +763,49 @@ const css = `
 .ppt-error,.ppt-issue{color:var(--ui-text-primary);background:color-mix(in srgb, #ef4444 12%, transparent);border:1px solid color-mix(in srgb, #ef4444 35%, transparent);border-radius:8px;padding:8px 12px;text-align:left;font-size:12px;margin:0}
 .ppt-connecting{padding:40px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;max-width:480px;margin:auto}
 
+/* Navigation action buttons */
+.ppt-nav-actions{display:flex;flex-direction:column;gap:5px}
+.ppt-nav-doc-btn{width:100%;padding:6px;border-radius:6px;border:1px dashed var(--ui-stroke-secondary);background:transparent;color:var(--ui-text-secondary);font-size:11.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s ease}
+.ppt-nav-doc-btn:hover{color:var(--ui-accent);border-color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 8%, transparent)}
+
+/* Stage Layout Selector */
+.ppt-layout-select{margin-left:6px;padding:2px 6px;font-size:11px;font-weight:500;border-radius:6px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);cursor:pointer}
+.ppt-layout-select:focus{border-color:var(--ui-accent);outline:none}
+
+/* Modals */
+.ppt-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.ppt-modal{background:var(--ui-bg-base);border:1px solid var(--ui-stroke-secondary);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden;animation:ppt-pop 0.18s ease-out;max-height:90vh}
+@keyframes ppt-pop{0%{opacity:0;transform:scale(0.96)}100%{opacity:1;transform:scale(1)}}
+.ppt-modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated)}
+.ppt-modal-title{font-size:15px;font-weight:700;color:var(--ui-text-primary);margin:0}
+.ppt-btn-icon{border:none;background:transparent;color:var(--ui-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px}
+.ppt-btn-icon:hover{background:var(--ui-bg-base);color:var(--ui-text-primary)}
+.ppt-modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.ppt-modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated)}
+
+/* Layout Picker Modal */
+.ppt-layout-modal{width:860px;max-width:96vw}
+.ppt-layout-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:10px;padding:18px 20px;overflow-y:auto;max-height:60vh}
+.ppt-layout-card{background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:10px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:all 0.15s ease}
+.ppt-layout-card:hover{border-color:var(--ui-accent);transform:translateY(-1px);box-shadow:0 6px 16px color-mix(in srgb, var(--ui-accent) 15%, transparent)}
+.ppt-layout-card-header{display:flex;align-items:center;gap:8px}
+.ppt-layout-card-icon{font-size:20px;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:color-mix(in srgb, var(--ui-accent) 12%, transparent)}
+.ppt-layout-card-meta{display:flex;flex-direction:column}
+.ppt-layout-card-id{font-size:10px;font-weight:600;color:var(--ui-accent)}
+.ppt-layout-card-name{font-size:12.5px;color:var(--ui-text-primary)}
+.ppt-layout-card-desc{font-size:11px;color:var(--ui-text-secondary);margin:0;line-height:1.4}
+.ppt-layout-card-bullets{margin:4px 0 0;padding-left:16px;font-size:10.5px;color:var(--ui-text-tertiary);line-height:1.4}
+
+/* Doc to Deck Modal */
+.ppt-doc-modal{width:700px;max-width:94vw}
+.ppt-input,.ppt-textarea,.ppt-select{width:100%;border:1px solid var(--ui-stroke-secondary);border-radius:7px;padding:8px 10px;background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:12.5px;box-sizing:border-box;transition:border-color 0.15s ease}
+.ppt-input:focus,.ppt-textarea:focus,.ppt-select:focus{border-color:var(--ui-accent);outline:none}
+.ppt-textarea{resize:vertical;font-family:inherit;line-height:1.55}
+.ppt-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.ppt-form-col{display:flex;flex-direction:column;gap:5px}
+.ppt-form-col label,.ppt-form-row label{font-size:11.5px;font-weight:600;color:var(--ui-text-secondary)}
+.ppt-suggestion-primary{border-color:color-mix(in srgb, var(--ui-accent) 40%, transparent)!important;background:color-mix(in srgb, var(--ui-accent) 10%, transparent)!important}
+
 @media(max-width:1000px){
   .ppt-pages{width:170px;min-width:150px}
   .ppt-side{width:290px;min-width:260px}
@@ -614,7 +853,9 @@ function Workbench({ c }) {
         (panelTab === 'all' || panelTab === 'chat') && h(Conversation, { c, expanded: panelTab === 'chat' }),
         (panelTab === 'all' || panelTab === 'properties') && h(Properties, { c, expanded: panelTab === 'properties' })
       )
-    )
+    ),
+    h(LayoutPickerModal, { c }),
+    h(DocToDeckModal, { c })
   )
 }
 

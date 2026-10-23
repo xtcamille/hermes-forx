@@ -91,6 +91,15 @@ class Chat(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
 
+class DocToDeck(Body):
+    text: str = Field(min_length=5, max_length=100000)
+    title: str | None = Field(None, max_length=128)
+    target_pages: int = Field(8, ge=2, le=30)
+    theme: str = "business"
+    ratio: str = "16:9"
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 class Cancel(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
@@ -117,6 +126,25 @@ async def create(body: Create):
         return replay
     deck = models.new_deck(body.name, body.slides, body.theme, body.ratio)
     return storage.Store().create(deck, body.request_id, fingerprint)
+
+
+@router.post("/projects/from-doc")
+async def from_doc(body: DocToDeck):
+    try:
+        return await planner.convert_document(
+            body.text,
+            title=body.title,
+            target_pages=body.target_pages,
+            theme_name=body.theme,
+            ratio=body.ratio,
+            request_id=body.request_id,
+        )
+    except (ValueError, KeyError):
+        raise
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("PPT doc conversion failed")
+        raise HTTPException(502, "文档转 PPT 失败，请检查模型连接与文本内容后重试。") from exc
 
 
 @router.get("/projects/{project_id}")

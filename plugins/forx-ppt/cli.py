@@ -9,11 +9,14 @@ from pathlib import Path
 
 
 def setup(parser):
-    parser.add_argument("action", choices=["list", "show", "create", "edit", "chat", "undo", "redo", "export", "import", "doctor"])
+    parser.add_argument("action", choices=["list", "show", "create", "edit", "chat", "undo", "redo", "export", "import", "doctor", "doc-to-deck"])
     parser.add_argument("--project", help="Stable project identity")
     parser.add_argument("--revision", type=int, help="Expected current revision for writes")
-    parser.add_argument("--input", help="UTF-8 JSON draft or operation list")
-    parser.add_argument("--prompt", help="Natural language request, using the host's active model")
+    parser.add_argument("--input", help="UTF-8 JSON draft, document text file path, or operation list")
+    parser.add_argument("--prompt", help="Natural language request or document text, using the host's active model")
+    parser.add_argument("--pages", type=int, default=8, help="Target slide count for doc-to-deck")
+    parser.add_argument("--theme", default="business", help="Theme preset name")
+    parser.add_argument("--ratio", default="16:9", choices=["16:9", "4:3"], help="Slide aspect ratio")
     parser.add_argument("--output", help="Destination PPTX/project path")
     parser.add_argument("--request-id", default=None, help="Reuse this key when retrying the same request")
 
@@ -50,6 +53,28 @@ def run(args, client=None):
             raise ValueError("需要 --prompt")
         return asyncio.run(planner.converse(args.prompt, request_id, args.project, args.revision, client=client))
 
+    def doc_to_deck():
+        text = ""
+        if args.input:
+            path = Path(args.input)
+            if path.is_file():
+                text = path.read_text(encoding="utf-8")
+            else:
+                text = args.input
+        elif args.prompt:
+            text = args.prompt
+        else:
+            raise ValueError("需要 --input (文档路径或文本) 或 --prompt")
+        return asyncio.run(planner.convert_document(
+            text,
+            title=args.project,
+            target_pages=args.pages or 8,
+            theme_name=args.theme or "business",
+            ratio=args.ratio or "16:9",
+            request_id=request_id,
+            client=client
+        ))
+
     def export():
         from .pptx_io import export_pptx
         if not args.output:
@@ -77,6 +102,7 @@ def run(args, client=None):
     handlers = {
         "list": store.list, "show": lambda: store.get(require_project()), "create": create,
         "edit": edit, "chat": chat, "export": export, "import": import_file,
+        "doc-to-deck": doc_to_deck,
         "undo": lambda: store.travel(require_project(), args.revision, "undo", request_id),
         "redo": lambda: store.travel(require_project(), args.revision, "redo", request_id),
         "doctor": lambda: {"ready": __import__("importlib.util", fromlist=["find_spec"]).find_spec("pptx") is not None,

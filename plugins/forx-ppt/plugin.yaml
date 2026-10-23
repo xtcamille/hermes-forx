@@ -1,8 +1,8 @@
 name: forx-ppt
 label: PPT 创作台
-version: 0.1.0
+version: 0.2.0
 kind: standalone
-description: Editable PPTX creation with stable element IDs, master inheritance and conversational editing.
+description: Editable PPTX creation with 10 native layouts, Doc-to-Deck conversion, master inheritance and conversational editing.
 author: ForX
 license: MIT
 tags: [productivity, presentations, desktop]

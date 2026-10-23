@@ -23,6 +23,7 @@ function mount(chat) {
       if (path === '/status') return { ready: true }
       if (path === '/chat') return chat(options.body)
       if (path === '/cancel') return { cancelled: true }
+      if (path === '/projects/from-doc') { current = makeDocument('文档生成文稿'); return { result: current, message: '转换成功' } }
       if (path === '/projects' && options?.method === 'POST') { current = makeDocument(); return current }
       if (path === '/projects') return { projects: current ? [{ id: current.deck.id, name: current.deck.name }] : [] }
       if (path.endsWith('/history')) return { history: [] }
@@ -81,4 +82,35 @@ it('cleans up raw IPC remote error and formats friendly message on failure', asy
   fireEvent.change(field, { target: { value: '生成一份介绍' } })
   fireEvent.click(screen.getByRole('button', { name: '生成初稿' }))
   await screen.findByText(/内容校验未通过 \(422\): slides.0.name: Field required/)
+})
+
+it('opens layout picker with 10 layouts and adds slide with selected layout', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+  fireEvent.click(screen.getByRole('button', { name: '＋ 新增页面' }))
+  await screen.findByText('选择新增页面版式 (10 类专业版式)')
+  expect(screen.getByText('时间轴')).toBeTruthy()
+  expect(screen.getByText('多列卡片')).toBeTruthy()
+  expect(screen.getByText('关键指标')).toBeTruthy()
+  expect(screen.getByText('四象限/SWOT')).toBeTruthy()
+  expect(screen.getByText('方案对比')).toBeTruthy()
+  fireEvent.click(screen.getByText('时间轴'))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'add_slide' && opts.body.operations[0].slide.layout_id === 'L006'
+  )).toBe(true))
+})
+
+it('opens doc-to-deck modal, inputs document content and submits conversion', async () => {
+  const ctx = mount()
+  const docBtn = await screen.findByRole('button', { name: '文档转PPT' })
+  fireEvent.click(docBtn)
+  await screen.findByText('📄 文档一键转 PPT (Doc-to-Deck)')
+  const textarea = screen.getByPlaceholderText(/在此粘贴 Markdown 长文/)
+  fireEvent.change(textarea, { target: { value: '# 季度规划\n- 任务A\n- 任务B' } })
+  fireEvent.click(screen.getByRole('button', { name: '开始智能转换' }))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path === '/projects/from-doc' && opts.body.target_pages === 8 && opts.body.text.includes('# 季度规划')
+  )).toBe(true))
+  await screen.findByText('文档生成文稿 · v1 · 已保存')
 })

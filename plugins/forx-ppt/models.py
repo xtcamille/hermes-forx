@@ -109,7 +109,7 @@ class Element(Model):
 
 
 class Layout(Model):
-    id: Literal["L001", "L002", "L003", "L004", "L005"]
+    id: Literal["L001", "L002", "L003", "L004", "L005", "L006", "L007", "L008", "L009", "L010"]
     name: str
     boxes: dict[str, Box]
     styles: dict[str, Style] = Field(default_factory=dict)
@@ -118,7 +118,7 @@ class Layout(Model):
 class SlideDraft(Model):
     title: str = Field(min_length=1, max_length=128)
     bullets: list[str] = Field(default_factory=list, max_length=12)
-    layout_id: Literal["L001", "L002", "L003", "L004", "L005"] = "L003"
+    layout_id: Literal["L001", "L002", "L003", "L004", "L005", "L006", "L007", "L008", "L009", "L010"] = "L003"
     notes: str = Field("", max_length=20000)
     elements: list[dict] = Field(default_factory=list, max_length=20)
 
@@ -255,6 +255,11 @@ def make_layouts(width):
         ("标题正文", (0.6, 0.7, right, 0.85), (0.6, 1.9, right, 4.7)),
         ("图文", (0.6, 0.7, right, 0.85), (0.6, 1.9, width / 2 - 0.9, 4.7)),
         ("结束页", (0.8, 2.5, width - 1.6, 1.5), (0.85, 4.2, width - 1.7, 1.0)),
+        ("时间轴", (0.6, 0.7, right, 0.85), (0.6, 2.0, right, 4.5)),
+        ("多列卡片", (0.6, 0.7, right, 0.85), (0.6, 1.9, right, 4.7)),
+        ("关键指标", (0.6, 0.7, right, 0.85), (0.6, 2.0, right, 4.5)),
+        ("四象限SWOT", (0.6, 0.7, right, 0.85), (0.6, 1.9, right, 4.7)),
+        ("方案对比", (0.6, 0.7, right, 0.85), (0.6, 1.9, right, 4.7)),
     ]
     return [Layout(id=f"L{i:03}", name=n, boxes={"title": Box(x=a[0], y=a[1], width=a[2], height=a[3]),
                    "body": Box(x=b[0], y=b[1], width=b[2], height=b[3])})
