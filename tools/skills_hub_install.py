@@ -35,6 +35,24 @@ def _is_path_redirect(path: Path) -> bool:
     return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
 
 
+def _unvirtualize_windows_store_path(p: Path) -> Path:
+    """Map Windows UWP/Store LocalCache virtualized path back to original AppData path.
+
+    When running under a packaged/Store Python or sandboxed environment on Windows,
+    filesystem operations inside %LOCALAPPDATA% can be redirected by the OS to
+    %LOCALAPPDATA%\\Packages\\<Package>\\LocalCache\\Local\\<Path>.
+    Resolving such paths returns the redirected target, which breaks is_relative_to
+    checks against the unredirected skills directory root.
+    """
+    parts = list(p.parts)
+    for i in range(len(parts) - 4):
+        if (parts[i].lower() == 'packages' and 
+            parts[i+2].lower() == 'localcache' and 
+            parts[i+3].lower() == 'local'):
+            return Path(*parts[:i], *parts[i+4:])
+    return p
+
+
 def _resolve_lock_install_path(install_path: str, skill_name: str) -> Path:
     """Resolve a lock-file install path without allowing escapes from ``SKILLS_DIR``.
 
@@ -52,7 +70,9 @@ def _resolve_lock_install_path(install_path: str, skill_name: str) -> Path:
         if _is_path_redirect(target):
             raise ValueError(f"Unsafe install path: {install_path}")
     target = target.resolve()
-    if target == skills_root or not target.is_relative_to(skills_root):
+    effective_target = _unvirtualize_windows_store_path(target)
+    effective_root = _unvirtualize_windows_store_path(skills_root)
+    if effective_target == effective_root or not effective_target.is_relative_to(effective_root):
         raise ValueError(f"Unsafe install path: {install_path}")
     return target
 
@@ -113,13 +133,13 @@ def _check_install_target(install_dir: Path) -> None:
     # <name-of-an-existing-skill>`` would create a hybrid skill-plus-category directory; a later update or
     # uninstall of the outer skill would then rmtree the inner one — the sibling case of the category-bucket
     # wipe reported in issue #75983.
-    skills_root = _skills_dir().resolve()
-    ancestor = install_dir.parent
+    skills_root = _unvirtualize_windows_store_path(_skills_dir().resolve())
+    ancestor = _unvirtualize_windows_store_path(install_dir.parent)
     while ancestor != skills_root and ancestor.is_relative_to(skills_root):
         if (ancestor / "SKILL.md").is_file():
             raise ValueError(f"Refusing to install into '{ancestor.name}': it is an "
                              f"existing skill directory, not a category. Choose a different category.")
-        ancestor = ancestor.parent
+        ancestor = _unvirtualize_windows_store_path(ancestor.parent)
     if not install_dir.exists():
         return
     if not install_dir.is_dir():
@@ -148,8 +168,8 @@ def install_from_quarantine(
     from tools.skills_hub import HubLockFile, _quarantine_dir, _skills_dir, append_audit_log
     safe_skill_name = _validate_skill_name(skill_name)
     safe_category = _validate_install_parent_path(category) if category else ""
-    quarantine_resolved = quarantine_path.resolve()
-    if not quarantine_resolved.is_relative_to(_quarantine_dir().resolve()):
+    quarantine_resolved = _unvirtualize_windows_store_path(quarantine_path.resolve())
+    if not quarantine_resolved.is_relative_to(_unvirtualize_windows_store_path(_quarantine_dir().resolve())):
         raise ValueError(f"Unsafe quarantine path: {quarantine_path}")
 
     install_rel_path = f"{safe_category}/{safe_skill_name}" if safe_category else safe_skill_name
@@ -185,10 +205,16 @@ def install_from_quarantine(
     install_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(quarantine_path), str(install_dir))
     installed_hash = content_hash(install_dir)
+    try:
+        install_rel = _unvirtualize_windows_store_path(install_dir.resolve()).relative_to(
+            _unvirtualize_windows_store_path(_skills_dir().resolve())
+        ).as_posix()
+    except ValueError:
+        install_rel = install_rel_path
     HubLockFile().record_install(
         name=safe_skill_name, source=bundle.source, identifier=bundle.identifier, trust_level=bundle.trust_level,
         scan_verdict=scan_result.verdict, skill_hash=installed_hash,
-        install_path=install_dir.resolve().relative_to(_skills_dir().resolve()).as_posix(),
+        install_path=install_rel,
         files=list(bundle.files.keys()), metadata=bundle.metadata,
         scan_provenance=scan_provenance or getattr(scan_result, "scan_provenance", None),
     )

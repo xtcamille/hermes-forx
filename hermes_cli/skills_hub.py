@@ -193,7 +193,12 @@ def _resolve_short_name(name: str, sources, console: Console) -> str:
     c = console or _console
     c.print(f"[dim]Resolving '{name}'...[/]")
     results = unified_search(name, sources, source_filter="all", limit=20)
-    exact = [r for r in results if r.name.lower() == name.lower()]
+    exact = [
+        r for r in results
+        if r.name.lower() == name.lower()
+        or r.identifier.lower() == name.lower()
+        or r.identifier.split("/")[-1].lower() == name.lower()
+    ]
 
     if len(exact) == 1:
         c.print(f"[dim]Resolved to: {exact[0].identifier}[/]")
@@ -671,7 +676,7 @@ def _confirm_install(c: Console, bundle, category: str) -> bool:
 def do_install(identifier: str, category: str = "", force: bool = False,
                console: Optional[Console] = None, skip_confirm: bool = False,
                invalidate_cache: bool = True, name_override: str = "",
-               source_id: Optional[str] = None) -> None:
+               source_id: Optional[str] = None) -> bool:
     """Fetch, quarantine, scan, confirm, and install a skill. ``source_id`` pins resolution to one
     adapter; callers that know the provenance (``do_update``) must pass it so a bare identifier
     cannot resolve to a same-named skill elsewhere."""
@@ -682,17 +687,17 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     ensure_hub_dirs()
     sources = _pinned_sources(c, _sources(), source_id, identifier)
     if sources is None:
-        return
+        return False
     identifier = _full_identifier(identifier, sources, c)
     if not identifier:
-        return
+        return False
     c.print(f"\n[bold]Fetching:[/] {identifier}")
     meta, bundle, _matched_source = _resolve_source_meta_and_bundle(identifier, sources)
     if not bundle:
         _print_fetch_failure(c, sources, identifier, meta=meta, source=_matched_source)
-        return
+        return False
     if not _resolve_url_bundle_name(c, bundle, meta, identifier, name_override, skip_confirm):
-        return
+        return False
 
     # URL-sourced skills: pick a category interactively when none was given (TTY only;
     # non-interactive installs fall through to flat install like every other source).
@@ -708,7 +713,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
         c.print(f"[yellow]Warning:[/] '{bundle.name}' is already installed at {existing['install_path']}")
         if not force:
             c.print("Use --force to reinstall.\n")
-            return
+            return False
 
     extra_metadata = {**(getattr(meta, "extra", {}) or {}), **bundle.metadata}
 
@@ -716,7 +721,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
         q_path = quarantine_bundle(bundle)
     except ValueError as exc:
         _invalid_path(c, bundle, exc)
-        return
+        return False
     c.print(f"[dim]Quarantined to {q_path.relative_to(q_path.parent.parent.parent)}[/]")
 
     result = _scan_quarantined(c, q_path, bundle, meta, identifier)
@@ -724,7 +729,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     if not allowed:
         _install_blocked(c, bundle, _scan_block_message(result, identifier), result.verdict,
                          f"{len(result.findings)}_findings", q_path=q_path, lead="\n", label="Not installed:")
-        return
+        return False
     # Advisory second opinion — warn-and-continue by design (PII-class findings are
     # informational); the install confirmation below is where the user decides.
     _print_tier1_advisory(q_path, c)
@@ -735,18 +740,26 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     # skip_confirm bypasses the prompt (TUI mode, where input() hangs).
     if not force and not skip_confirm and not _confirm_install(c, bundle, category):
         shutil.rmtree(q_path, ignore_errors=True)
-        return
+        return False
 
     try:
         install_dir = install_from_quarantine(q_path, bundle.name, category, bundle, result)
     except ValueError as exc:
         _invalid_path(c, bundle, exc, q_path)
-        return
+        return False
     from tools.skills_hub import SKILLS_DIR
-    c.print(f"[bold green]Installed:[/] {install_dir.resolve().relative_to(Path(SKILLS_DIR).resolve()).as_posix()}")
+    try:
+        from tools.skills_hub_install import _unvirtualize_windows_store_path
+        display_rel = _unvirtualize_windows_store_path(install_dir.resolve()).relative_to(
+            _unvirtualize_windows_store_path(Path(SKILLS_DIR).resolve())
+        ).as_posix()
+    except Exception:
+        display_rel = f"{category}/{bundle.name}" if category else bundle.name
+    c.print(f"[bold green]Installed:[/] {display_rel}")
     c.print(f"[dim]Files: {', '.join(bundle.files.keys())}[/]\n")
     _announce_blueprint(c, bundle.name)
     _finish_change(c, invalidate_cache, "Skill will be available", "activate")
+    return True
 
 
 def _print_tier1_advisory(skill_dir, console) -> None:
@@ -1372,8 +1385,10 @@ def skills_command(args) -> None:
     if handler is None:
         _console.print("Usage: hermes skills [browse|search|install|inspect|list|list-modified|diff|check|update|audit|uninstall|reset|opt-out|opt-in|publish|snapshot|tap]\n")
         _console.print("Run 'hermes skills <command> --help' for details.\n")
-        return
-    handler(args)
+        sys.exit(1)
+    res = handler(args)
+    if res is False:
+        sys.exit(1)
 
 
 # --- Slash command entry point (/skills in chat) ---
