@@ -387,8 +387,61 @@ export const slateTheme: DesktopTheme = {
   }
 }
 
+/** Cupertino — Apple Humanist theme inspired by macOS Sequoia & Apple Intelligence. */
+export const cupertinoTheme: DesktopTheme = {
+  name: 'cupertino',
+  label: 'Cupertino',
+  description: 'Apple Humanist — fluid translucency, warm neutrals & Apple Blue',
+  ...THEME_PRESET_PALETTES.cupertino,
+  typography: {
+    fontSans:
+      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Segoe UI Variable Text", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif, ' +
+      EMOJI_FALLBACK,
+    fontMono: '"SF Mono", "Cascadia Code", "Cascadia Mono", Menlo, Monaco, "Courier Prime", monospace, ' + EMOJI_FALLBACK
+  },
+  terminal: {
+    foreground: '#1d1d1f',
+    black: '#1d1d1f',
+    red: '#ff3b30',
+    green: '#34c759',
+    yellow: '#ff9500',
+    blue: '#0071e3',
+    magenta: '#af52de',
+    cyan: '#55bef0',
+    white: '#86868b',
+    brightBlack: '#636366',
+    brightRed: '#ff453a',
+    brightGreen: '#30d158',
+    brightYellow: '#ffd60a',
+    brightBlue: '#2997ff',
+    brightMagenta: '#bf5af2',
+    brightCyan: '#64d2ff',
+    brightWhite: '#ffffff'
+  },
+  darkTerminal: {
+    foreground: '#f5f5f7',
+    black: '#161618',
+    red: '#ff453a',
+    green: '#30d158',
+    yellow: '#ffd60a',
+    blue: '#2997ff',
+    magenta: '#bf5af2',
+    cyan: '#64d2ff',
+    white: '#a1a1a6',
+    brightBlack: '#636366',
+    brightRed: '#ff6961',
+    brightGreen: '#4cd964',
+    brightYellow: '#ffe066',
+    brightBlue: '#5ac8fa',
+    brightMagenta: '#da8fff',
+    brightCyan: '#70d7ff',
+    brightWhite: '#ffffff'
+  }
+}
+
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
   nous: nousTheme,
+  cupertino: cupertinoTheme,
   github: githubTheme,
   catppuccin: catppuccinTheme,
   everforest: everforestTheme,
