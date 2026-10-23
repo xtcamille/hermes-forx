@@ -248,6 +248,205 @@ const LAYOUTS = [
   { id: 'L005', name: '结束致谢', icon: '🎉', desc: '总结、Q&A 与致谢页', defaultTitle: '致谢与交流', bullets: ['感谢各位专家与评委聆听！', '欢迎提问与深入探讨 (Q & A)'] },
 ]
 
+const DOC_PRESETS = [
+  {
+    label: '💼 商业计划书 (BP)',
+    title: 'Hermes Agent 商业化与产品战略规划',
+    text: `# Hermes Agent 商业化与产品战略规划
+
+## 1. 项目愿景与使命
+- 打造极致优雅、端侧优先的个人 AI Agent 工作台与多模态创作底座。
+- 深度适配 Apple HIG Cupertino 美学标准，融合现代交互与本地模型能力。
+
+## 2. 行业痛点与市场机遇
+- 传统演示文稿制作耗时耗力，多端协作与格式排版摩擦严重。
+- 现有 AI PPT 工具大多依赖公有云，企业内部敏感数据面临泄露风险。
+- 本地私有化、轻量级、高颜值的专业 PPTX 原生生成处于市场空白。
+
+## 3. 核心优势与技术壁垒
+- 微内核设计：核心窄腰，能力外延，按需热插拔插件生态。
+- 10 类高阶商务排版矩阵：封面、时间轴、四象限、指标大屏一应俱全。
+- 无感延迟：离线即时编译与双向响应式双活状态流。
+
+## 4. 商业模式与商业化落地
+- 社区开源版沉淀全球开发者口碑与模型生态连接。
+- 企业私有化部署版提供多租户隔离、审计追踪与品牌模板深度定制。`
+  },
+  {
+    label: '📊 季度业务复盘',
+    title: '2024 Q3 团队核心业务与技术战报复盘',
+    text: `# 2024 Q3 团队核心业务与技术战报复盘
+
+## 1. 核心关键指标战报
+- 99.99% 核心系统 SLA 业务可用性，零重大生产事故。
+- 300% 演示文稿全流程创作提效倍率，平均耗时降至 1.8 秒。
+- 50,000+ 累计服务团队与关键商务汇报场次。
+
+## 2. 重点突破与亮点成果
+- 全新版式矩阵上线：支持多列卡片、方案对比与关键指标大屏。
+- 全面对齐 Cupertino 视觉语言：磨砂玻璃、超椭圆圆角与灵动微动效。
+- 状态机机制重构：支持完备的撤销/重做与原子化操作集。
+
+## 3. 业务挑战与应对策略
+- 针对长文大纲提炼碎片化问题，引入版式自适应权重决策树。
+- 针对跨端字体渲染差异，优化本地字体回退与度量计算链。
+
+## 4. 下季度演进路线规划
+- 探索多轮自然语言深度协同交互与智能演讲者备注生成。
+- 推进跨平台移动端与平板端画布自适应排版。`
+  },
+  {
+    label: '🛠️ 技术架构方案',
+    title: '高可用 AI 演示引擎技术架构演进方案',
+    text: `# 高可用 AI 演示引擎技术架构演进方案
+
+## 1. 业务背景与系统演进诉求
+- 应对复杂长文大纲的智能解析，解决传统方案上下文截断与版式僵化问题。
+- 构建端到端零摩擦、无公网依赖的本地原生排版渲染管线。
+
+## 2. 总体分层架构设计
+- 客户端层：Electron + React 声明式渲染，结合轻量状态控制器。
+- 契约网关层：严格 JSON Schema 校验与幂等请求上下文管理。
+- 渲染核心层：基于 Python-PPTX 的参数化矢量几何布局引擎。
+
+## 3. 关键技术实现与创新
+- 基于 AST 语意树的文本大纲自动分块与版式智能匹配算法。
+- 统一原子化操作命令集（add/edit/delete/reorder），实现无损操作历史。
+- 进程外隔离执行，确保复杂长任务下 UI 主线程始终保持 60fps。
+
+## 4. 可靠性与安全性保障
+- 离线沙箱环境安全执行，用户原始数据与产物不离开本地磁盘。
+- 完备的自动化回归测试矩阵，覆盖 UI 端与 Python 引擎契约。`
+  }
+]
+
+function LayoutWireframe({ id }) {
+  const bg = 'var(--ppt-wf-bg, rgba(120, 120, 128, 0.08))'
+  const border = 'var(--ppt-wf-border, rgba(120, 120, 128, 0.16))'
+  const primary = '#0071e3'
+  const ink = 'var(--ppt-wf-ink, #6e6e73)'
+  const cardBg = 'var(--ppt-wf-card, rgba(120, 120, 128, 0.12))'
+
+  let content = null
+  if (id === 'L001') {
+    content = [
+      h('rect', { key: 't', x: 26, y: 34, width: 108, height: 11, rx: 3, fill: primary }),
+      h('rect', { key: 's', x: 44, y: 50, width: 72, height: 6, rx: 2, fill: ink, opacity: 0.5 }),
+    ]
+  } else if (id === 'L002') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 44, height: 6, rx: 2, fill: primary }),
+      ...[26, 39, 52, 65].map((y, idx) => h('g', { key: idx },
+        h('circle', { cx: 20, cy: y + 3, r: 2.5, fill: primary }),
+        h('rect', { x: 27, y, width: 85 + (idx % 2 === 0 ? 20 : 0), height: 5, rx: 2, fill: ink, opacity: 0.6 })
+      ))
+    ]
+  } else if (id === 'L003') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 55, height: 6, rx: 2, fill: primary }),
+      h('rect', { key: 'b1', x: 14, y: 26, width: 132, height: 5, rx: 2, fill: ink, opacity: 0.6 }),
+      h('rect', { key: 'b2', x: 14, y: 37, width: 126, height: 5, rx: 2, fill: ink, opacity: 0.5 }),
+      h('rect', { key: 'b3', x: 14, y: 48, width: 130, height: 5, rx: 2, fill: ink, opacity: 0.5 }),
+      h('rect', { key: 'b4', x: 14, y: 59, width: 92, height: 5, rx: 2, fill: ink, opacity: 0.4 }),
+    ]
+  } else if (id === 'L004') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 50, height: 6, rx: 2, fill: primary }),
+      h('rect', { key: 'img', x: 14, y: 25, width: 60, height: 50, rx: 4, fill: cardBg, stroke: border, strokeWidth: 1 }),
+      h('circle', { key: 'ic', cx: 34, cy: 45, r: 6, fill: primary, opacity: 0.4 }),
+      h('rect', { key: 'b1', x: 82, y: 28, width: 64, height: 5, rx: 2, fill: ink, opacity: 0.7 }),
+      h('rect', { key: 'b2', x: 82, y: 41, width: 58, height: 5, rx: 2, fill: ink, opacity: 0.5 }),
+      h('rect', { key: 'b3', x: 82, y: 54, width: 62, height: 5, rx: 2, fill: ink, opacity: 0.5 }),
+    ]
+  } else if (id === 'L006') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 44, height: 6, rx: 2, fill: primary }),
+      h('line', { key: 'line', x1: 20, y1: 45, x2: 140, y2: 45, stroke: primary, strokeWidth: 1.5, opacity: 0.7 }),
+      ...[26, 62, 98, 134].map((x, idx) => h('g', { key: idx },
+        h('circle', { cx: x, cy: 45, r: 4, fill: '#ffffff', stroke: primary, strokeWidth: 2 }),
+        h('rect', { x: x - 12, y: idx % 2 === 0 ? 25 : 55, width: 24, height: 5, rx: 2, fill: ink, opacity: 0.7 })
+      ))
+    ]
+  } else if (id === 'L007') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 48, height: 6, rx: 2, fill: primary }),
+      ...[14, 60, 106].map((x, idx) => h('g', { key: idx },
+        h('rect', { x, y: 25, width: 40, height: 50, rx: 4, fill: cardBg, stroke: border, strokeWidth: 1 }),
+        h('rect', { x: x + 6, y: 31, width: 20, height: 4, rx: 1.5, fill: primary, opacity: 0.8 }),
+        h('rect', { x: x + 6, y: 40, width: 28, height: 3, rx: 1, fill: ink, opacity: 0.5 }),
+        h('rect', { x: x + 6, y: 47, width: 24, height: 3, rx: 1, fill: ink, opacity: 0.4 }),
+      ))
+    ]
+  } else if (id === 'L008') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 48, height: 6, rx: 2, fill: primary }),
+      ...[14, 60, 106].map((x, idx) => h('g', { key: idx },
+        h('rect', { x, y: 25, width: 40, height: 50, rx: 4, fill: cardBg, stroke: border, strokeWidth: 1 }),
+        h('rect', { x: x + 6, y: 34, width: 26, height: 10, rx: 2, fill: primary }),
+        h('rect', { x: x + 6, y: 52, width: 28, height: 4, rx: 1.5, fill: ink, opacity: 0.6 }),
+      ))
+    ]
+  } else if (id === 'L009') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 48, height: 6, rx: 2, fill: primary }),
+      h('rect', { key: 'q1', x: 18, y: 24, width: 58, height: 24, rx: 3, fill: '#34c759', opacity: 0.25 }),
+      h('rect', { key: 'q2', x: 84, y: 24, width: 58, height: 24, rx: 3, fill: '#ff9500', opacity: 0.25 }),
+      h('rect', { key: 'q3', x: 18, y: 52, width: 58, height: 24, rx: 3, fill: '#0071e3', opacity: 0.25 }),
+      h('rect', { key: 'q4', x: 84, y: 52, width: 58, height: 24, rx: 3, fill: '#ff3b30', opacity: 0.25 }),
+      h('rect', { key: 'q1-t', x: 24, y: 31, width: 32, height: 4, rx: 1.5, fill: ink, opacity: 0.7 }),
+      h('rect', { key: 'q2-t', x: 90, y: 31, width: 32, height: 4, rx: 1.5, fill: ink, opacity: 0.7 }),
+      h('rect', { key: 'q3-t', x: 24, y: 59, width: 32, height: 4, rx: 1.5, fill: ink, opacity: 0.7 }),
+      h('rect', { key: 'q4-t', x: 90, y: 59, width: 32, height: 4, rx: 1.5, fill: ink, opacity: 0.7 }),
+    ]
+  } else if (id === 'L010') {
+    content = [
+      h('rect', { key: 't', x: 14, y: 12, width: 48, height: 6, rx: 2, fill: primary }),
+      h('rect', { key: 'c1', x: 16, y: 25, width: 60, height: 50, rx: 4, fill: cardBg, stroke: primary, strokeWidth: 1 }),
+      h('rect', { key: 'c1-h', x: 22, y: 31, width: 28, height: 5, rx: 1.5, fill: primary }),
+      h('rect', { key: 'c1-l1', x: 22, y: 42, width: 46, height: 3, rx: 1, fill: ink, opacity: 0.6 }),
+      h('rect', { key: 'c1-l2', x: 22, y: 50, width: 42, height: 3, rx: 1, fill: ink, opacity: 0.5 }),
+      h('rect', { key: 'c2', x: 84, y: 25, width: 60, height: 50, rx: 4, fill: cardBg, stroke: border, strokeWidth: 1 }),
+      h('rect', { key: 'c2-h', x: 90, y: 31, width: 28, height: 5, rx: 1.5, fill: ink, opacity: 0.8 }),
+      h('rect', { key: 'c2-l1', x: 90, y: 42, width: 46, height: 3, rx: 1, fill: ink, opacity: 0.6 }),
+      h('rect', { key: 'c2-l2', x: 90, y: 50, width: 42, height: 3, rx: 1, fill: ink, opacity: 0.5 }),
+    ]
+  } else if (id === 'L005') {
+    content = [
+      h('rect', { key: 'card', x: 34, y: 26, width: 92, height: 38, rx: 6, fill: cardBg, stroke: primary, strokeWidth: 1 }),
+      h('rect', { key: 't', x: 50, y: 36, width: 60, height: 7, rx: 2, fill: primary }),
+      h('rect', { key: 's', x: 58, y: 49, width: 44, height: 4, rx: 1.5, fill: ink, opacity: 0.6 }),
+    ]
+  }
+
+  return h('div', { className: 'ppt-wireframe-wrap' },
+    h('svg', {
+      viewBox: '0 0 160 90',
+      className: 'ppt-wireframe-svg',
+      style: { width: '100%', height: 'auto', display: 'block' }
+    },
+      h('rect', { x: 0.5, y: 0.5, width: 159, height: 89, rx: 6, fill: bg, stroke: border, strokeWidth: 1 }),
+      content
+    )
+  )
+}
+
+function SegmentedControl({ options, value, onChange, disabled }) {
+  return h('div', { className: 'ppt-cupertino-segmented', role: 'tablist' },
+    options.map(opt => {
+      const isSelected = opt.value === value
+      return h('button', {
+        key: String(opt.value),
+        type: 'button',
+        role: 'tab',
+        'aria-selected': isSelected,
+        disabled,
+        className: `ppt-cupertino-segment ${isSelected ? 'ppt-cupertino-segment-active' : ''}`,
+        onClick: () => onChange(opt.value)
+      }, opt.label)
+    })
+  )
+}
+
 function LayoutPickerModal({ c }) {
   const open = useValue(c.$layoutModalOpen)
   if (!open) return null
@@ -262,37 +461,55 @@ function LayoutPickerModal({ c }) {
       }
     }], `新增页面 · ${l.name}`)
   }
-  return h('div', { className: 'ppt-modal-backdrop', onClick: () => c.$layoutModalOpen.set(false) },
-    h('div', { className: 'ppt-modal ppt-layout-modal', onClick: e => e.stopPropagation() },
-      h('div', { className: 'ppt-modal-header' },
-        h('div', null,
-          h('h3', { className: 'ppt-modal-title' }, '选择新增页面版式 (10 类专业版式)'),
-          h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, '点击卡片立即插入页面，自动填充规范结构与示范要点')
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => c.$layoutModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-layout-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'Layouts'),
+            h('h3', { className: 'ppt-modal-title' }, '选择新增页面版式 (10 类专业版式)')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '点击卡片立即插入页面，自动填充规范结构与示范要点')
         ),
-        button('✕', () => c.$layoutModalOpen.set(false), false, { className: 'ppt-btn-icon' })
+        h('button', {
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          onClick: () => c.$layoutModalOpen.set(false)
+        }, '✕')
       ),
-      h('div', { className: 'ppt-layout-grid' },
+      h('div', { className: 'ppt-layout-grid ppt-cupertino-layout-grid' },
         LAYOUTS.map(l => h('div', {
           key: l.id,
-          className: 'ppt-layout-card',
+          className: 'ppt-layout-card ppt-cupertino-card',
           onClick: () => handleSelect(l)
         },
-          h('div', { className: 'ppt-layout-card-header' },
-            h('span', { className: 'ppt-layout-card-icon' }, l.icon),
-            h('div', { className: 'ppt-layout-card-meta' },
-              h('span', { className: 'ppt-layout-card-id' }, l.id),
-              h('strong', { className: 'ppt-layout-card-name' }, l.name),
+          h(LayoutWireframe, { id: l.id }),
+          h('div', { className: 'ppt-layout-card-content' },
+            h('div', { className: 'ppt-layout-card-header' },
+              h('span', { className: 'ppt-layout-card-icon' }, l.icon),
+              h('div', { className: 'ppt-layout-card-meta' },
+                h('span', { className: 'ppt-layout-card-id' }, l.id),
+                h('strong', { className: 'ppt-layout-card-name' }, l.name),
+              )
+            ),
+            h('p', { className: 'ppt-layout-card-desc' }, l.desc),
+            h('ul', { className: 'ppt-layout-card-bullets' },
+              (l.bullets || []).slice(0, 2).map((b, idx) => h('li', { key: idx }, b))
             )
-          ),
-          h('p', { className: 'ppt-layout-card-desc' }, l.desc),
-          h('ul', { className: 'ppt-layout-card-bullets' },
-            (l.bullets || []).slice(0, 2).map((b, idx) => h('li', { key: idx }, b))
           )
         ))
       ),
-      h('div', { className: 'ppt-modal-footer' },
-        button('取消', () => c.$layoutModalOpen.set(false)),
-        button('插入标准空白正文页 (L003)', () => handleSelect(LAYOUTS[2]), false, { className: 'ppt-btn-primary' })
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          onClick: () => c.$layoutModalOpen.set(false)
+        }, '取消'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-primary',
+          onClick: () => handleSelect(LAYOUTS[2])
+        }, '插入标准空白正文页 (L003)')
       )
     )
   )
@@ -333,20 +550,71 @@ function DocToDeckModal({ c }) {
     })
   }
 
-  return h('div', { className: 'ppt-modal-backdrop', onClick: () => !busy && c.$docModalOpen.set(false) },
-    h('div', { className: 'ppt-modal ppt-doc-modal', onClick: e => e.stopPropagation() },
-      h('div', { className: 'ppt-modal-header' },
-        h('div', null,
-          h('h3', { className: 'ppt-modal-title' }, '📄 文档一键转 PPT (Doc-to-Deck)'),
-          h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, '粘贴 Markdown、会议纪要、PRD或技术报告，AI将智能提炼并自适应匹配专业版式')
+  const handleFileImport = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const content = ev.target?.result
+      if (typeof content === 'string') {
+        setDocText(content)
+        if (!title.trim()) {
+          const cleanName = file.name.replace(/\.[^/.]+$/, '')
+          setTitle(cleanName)
+        }
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const charCount = docText.trim().length
+  const isTextValid = charCount >= 5
+
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$docModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-doc-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'Doc-to-Deck'),
+            h('h3', { className: 'ppt-modal-title' }, '📄 文档一键转 PPT (Doc-to-Deck)')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '粘贴 Markdown、会议纪要、PRD或技术报告，AI将智能提炼并自适应匹配专业版式')
         ),
-        button('✕', () => !busy && c.$docModalOpen.set(false), !!busy, { className: 'ppt-btn-icon' })
+        h('button', {
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          disabled: !!busy,
+          onClick: () => !busy && c.$docModalOpen.set(false)
+        }, '✕')
       ),
-      h('div', { className: 'ppt-modal-body' },
+      h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+        h('div', { className: 'ppt-presets-bar' },
+          h('span', { className: 'ppt-presets-label' }, '快捷示范：'),
+          DOC_PRESETS.map((p, idx) => h('button', {
+            key: idx,
+            type: 'button',
+            className: 'ppt-preset-chip',
+            disabled: !!busy,
+            onClick: () => {
+              setTitle(p.title)
+              setDocText(p.text)
+            }
+          }, p.label)),
+          h('label', { className: 'ppt-preset-chip ppt-upload-chip', title: '从本地加载 Markdown 或 TXT 纯文本' },
+            h('span', null, '📂 导入文件 (.md/.txt)'),
+            h('input', {
+              type: 'file',
+              accept: '.md,.markdown,.txt',
+              style: { display: 'none' },
+              disabled: !!busy,
+              onChange: handleFileImport
+            })
+          )
+        ),
         h('div', { className: 'ppt-form-row' },
-          h('label', null, '文稿标题（选填，留空将由 AI 自动提炼）'),
+          h('label', { className: 'ppt-field-label' }, '文稿标题（选填，留空将由 AI 自动提炼）'),
           h('input', {
-            className: 'ppt-input',
+            className: 'ppt-input ppt-cupertino-input',
             placeholder: '例如：2024 年度产品战略规划与技术架构',
             value: title,
             disabled: !!busy,
@@ -354,9 +622,14 @@ function DocToDeckModal({ c }) {
           })
         ),
         h('div', { className: 'ppt-form-row' },
-          h('label', null, '文档正文内容或大纲 *'),
+          h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
+            h('label', { className: 'ppt-field-label', style: { margin: 0 } }, '文档正文内容或大纲 *'),
+            h('span', { className: `ppt-char-counter ${isTextValid ? 'ppt-char-counter-valid' : ''}` },
+              isTextValid ? `✓ 已输入 ${charCount} 字` : `${charCount} / 最少 5 字`
+            )
+          ),
           h('textarea', {
-            className: 'ppt-textarea',
+            className: 'ppt-textarea ppt-cupertino-textarea',
             rows: 7,
             placeholder: '在此粘贴 Markdown 长文、需求文档、总结汇报或提纲…\n\n示例：\n# 核心项目复盘\n## 背景与业务痛点\n- 现有系统延迟高、资源开销大\n## 实施成果\n- 架构完成全量重构，SLA提升至99.99%',
             value: docText,
@@ -364,55 +637,67 @@ function DocToDeckModal({ c }) {
             onChange: e => setDocText(e.target.value)
           })
         ),
-        h('div', { className: 'ppt-form-grid' },
+        h('div', { className: 'ppt-form-row' },
+          h('label', { className: 'ppt-field-label' }, '主题风格'),
+          h(SegmentedControl, {
+            value: theme,
+            onChange: setTheme,
+            disabled: !!busy,
+            options: [
+              { label: '💼 商务深蓝', value: 'business' },
+              { label: '⚡ 暗夜科技', value: 'technology' },
+              { label: '🌿 极简雅致', value: 'minimal' }
+            ]
+          })
+        ),
+        h('div', { className: 'ppt-form-grid-2col' },
           h('div', { className: 'ppt-form-col' },
-            h('label', null, '主题风格'),
-            h('select', {
-              className: 'ppt-select',
-              value: theme,
-              disabled: !!busy,
-              onChange: e => setTheme(e.target.value)
-            },
-              h('option', { value: 'business' }, '💼 商务简洁 (深蓝商务)'),
-              h('option', { value: 'technology' }, '⚡ 深色科技 (暗夜科技)'),
-              h('option', { value: 'minimal' }, '🌿 清新极简 (雅致白灰)')
-            )
-          ),
-          h('div', { className: 'ppt-form-col' },
-            h('label', null, '目标页数'),
-            h('select', {
-              className: 'ppt-select',
+            h('label', { className: 'ppt-field-label' }, '目标页数'),
+            h(SegmentedControl, {
               value: targetPages,
+              onChange: setTargetPages,
               disabled: !!busy,
-              onChange: e => setTargetPages(Number(e.target.value))
-            },
-              h('option', { value: 5 }, '5 页 · 精炼极速汇报'),
-              h('option', { value: 8 }, '8 页 · 标准方案讲解 (推荐)'),
-              h('option', { value: 12 }, '12 页 · 深度系统性复盘'),
-              h('option', { value: 16 }, '16 页 · 完整商业技术报告')
-            )
+              options: [
+                { label: '5 页 · 精炼', value: 5 },
+                { label: '8 页 · 推荐', value: 8 },
+                { label: '12 页 · 深度', value: 12 },
+                { label: '16 页 · 详实', value: 16 }
+              ]
+            })
           ),
           h('div', { className: 'ppt-form-col' },
-            h('label', null, '画面比例'),
-            h('select', {
-              className: 'ppt-select',
+            h('label', { className: 'ppt-field-label' }, '画面比例'),
+            h(SegmentedControl, {
               value: ratio,
+              onChange: setRatio,
               disabled: !!busy,
-              onChange: e => setRatio(e.target.value)
-            },
-              h('option', { value: '16:9' }, '16:9 · 宽屏高清 (默认)'),
-              h('option', { value: '4:3' }, '4:3 · 经典传统比例')
-            )
+              options: [
+                { label: '16:9 宽屏', value: '16:9' },
+                { label: '4:3 经典', value: '4:3' }
+              ]
+            })
           )
         )
       ),
-      h('div', { className: 'ppt-modal-footer' },
-        button('取消', () => c.$docModalOpen.set(false), !!busy),
-        button(busy ? '正在智能转换中…' : '开始智能转换', handleConvert, !!busy || !docText.trim(), { className: 'ppt-btn-primary' })
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '按 Esc 或点击遮罩关闭 · 离线私有优先'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          disabled: !!busy,
+          onClick: () => c.$docModalOpen.set(false)
+        }, '取消'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-primary',
+          disabled: !!busy || !docText.trim(),
+          onClick: handleConvert
+        }, busy ? '正在智能转换中…' : '开始智能转换')
       )
     )
   )
 }
+
 
 function Navigation({ c }) {
   const doc = useValue(c.$doc), refresh = useValue(c.$refresh)
@@ -772,38 +1057,85 @@ const css = `
 .ppt-layout-select{margin-left:6px;padding:2px 6px;font-size:11px;font-weight:500;border-radius:6px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);cursor:pointer}
 .ppt-layout-select:focus{border-color:var(--ui-accent);outline:none}
 
-/* Modals */
-.ppt-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
-.ppt-modal{background:var(--ui-bg-base);border:1px solid var(--ui-stroke-secondary);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden;animation:ppt-pop 0.18s ease-out;max-height:90vh}
-@keyframes ppt-pop{0%{opacity:0;transform:scale(0.96)}100%{opacity:1;transform:scale(1)}}
-.ppt-modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated)}
-.ppt-modal-title{font-size:15px;font-weight:700;color:var(--ui-text-primary);margin:0}
-.ppt-btn-icon{border:none;background:transparent;color:var(--ui-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px}
-.ppt-btn-icon:hover{background:var(--ui-bg-base);color:var(--ui-text-primary)}
-.ppt-modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
-.ppt-modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated)}
+/* Modals & Cupertino Sheets */
+.ppt-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;animation:ppt-fade-in 0.2s ease-out}
+@keyframes ppt-fade-in{from{opacity:0}to{opacity:1}}
+
+.ppt-modal{background:rgba(255,255,255,0.95);color:#1d1d1f;border:1px solid rgba(255,255,255,0.8);border-radius:20px;box-shadow:0 30px 70px rgba(0,0,0,0.22),0 0 0 1px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;overflow:hidden;animation:ppt-sheet-up 0.25s cubic-bezier(0.16,1,0.3,1);max-height:90vh;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Helvetica Neue",sans-serif}
+@keyframes ppt-sheet-up{from{opacity:0;transform:scale(0.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* Cupertino Dark Mode Adaptation */
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-modal{background:rgba(32,32,36,0.95);color:#f5f5f7;border:1px solid rgba(255,255,255,0.12);box-shadow:0 30px 80px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.06),inset 0 1px 0 rgba(255,255,255,0.14)}
+
+.ppt-cupertino-sheet-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid rgba(120,120,128,0.15);background:transparent}
+.ppt-modal-title{font-size:16px;font-weight:600;color:inherit;margin:0;letter-spacing:-0.2px}
+.ppt-apple-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#0071e3;background:rgba(0,113,227,0.12);padding:2px 8px;border-radius:980px}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-apple-badge{background:rgba(10,132,255,0.2);color:#2997ff}
+
+.ppt-cupertino-close-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(120,120,128,0.14);color:inherit;opacity:0.75;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;line-height:1;transition:all 0.15s ease}
+.ppt-cupertino-close-btn:hover:not(:disabled){opacity:1;background:rgba(120,120,128,0.25);transform:scale(1.06)}
+.ppt-cupertino-close-btn:active:not(:disabled){transform:scale(0.92)}
+.ppt-cupertino-close-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+.ppt-cupertino-sheet-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.ppt-cupertino-sheet-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid rgba(120,120,128,0.15);background:transparent}
 
 /* Layout Picker Modal */
-.ppt-layout-modal{width:860px;max-width:96vw}
-.ppt-layout-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:10px;padding:18px 20px;overflow-y:auto;max-height:60vh}
-.ppt-layout-card{background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:10px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:all 0.15s ease}
-.ppt-layout-card:hover{border-color:var(--ui-accent);transform:translateY(-1px);box-shadow:0 6px 16px color-mix(in srgb, var(--ui-accent) 15%, transparent)}
+.ppt-layout-modal{width:880px;max-width:96vw}
+.ppt-cupertino-layout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:18px 22px;overflow-y:auto;max-height:62vh}
+.ppt-cupertino-card{background:rgba(120,120,128,0.06);border:1px solid rgba(120,120,128,0.15);border-radius:14px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:all 0.2s cubic-bezier(0.16,1,0.3,1);box-shadow:0 1px 3px rgba(0,0,0,0.03)}
+.ppt-cupertino-card:hover{border-color:#0071e3;background:rgba(0,113,227,0.04);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,113,227,0.16)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-cupertino-card{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-cupertino-card:hover{border-color:#2997ff;background:rgba(10,132,255,0.08);box-shadow:0 8px 24px rgba(10,132,255,0.25)}
+
+.ppt-wireframe-wrap{width:100%;border-radius:8px;overflow:hidden;background:rgba(0,0,0,0.02)}
+.ppt-layout-card-content{display:flex;flex-direction:column;gap:4px;padding:2px 4px}
 .ppt-layout-card-header{display:flex;align-items:center;gap:8px}
-.ppt-layout-card-icon{font-size:20px;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:color-mix(in srgb, var(--ui-accent) 12%, transparent)}
+.ppt-layout-card-icon{font-size:18px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:rgba(0,113,227,0.1)}
 .ppt-layout-card-meta{display:flex;flex-direction:column}
-.ppt-layout-card-id{font-size:10px;font-weight:600;color:var(--ui-accent)}
-.ppt-layout-card-name{font-size:12.5px;color:var(--ui-text-primary)}
-.ppt-layout-card-desc{font-size:11px;color:var(--ui-text-secondary);margin:0;line-height:1.4}
-.ppt-layout-card-bullets{margin:4px 0 0;padding-left:16px;font-size:10.5px;color:var(--ui-text-tertiary);line-height:1.4}
+.ppt-layout-card-id{font-size:10px;font-weight:700;color:#0071e3}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-layout-card-id{color:#2997ff}
+.ppt-layout-card-name{font-size:12.5px;color:inherit;font-weight:600}
+.ppt-layout-card-desc{font-size:11px;color:rgba(120,120,128,0.9);margin:0;line-height:1.4}
+.ppt-layout-card-bullets{margin:2px 0 0;padding-left:16px;font-size:10.5px;color:rgba(120,120,128,0.8);line-height:1.4}
 
 /* Doc to Deck Modal */
-.ppt-doc-modal{width:700px;max-width:94vw}
-.ppt-input,.ppt-textarea,.ppt-select{width:100%;border:1px solid var(--ui-stroke-secondary);border-radius:7px;padding:8px 10px;background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:12.5px;box-sizing:border-box;transition:border-color 0.15s ease}
-.ppt-input:focus,.ppt-textarea:focus,.ppt-select:focus{border-color:var(--ui-accent);outline:none}
-.ppt-textarea{resize:vertical;font-family:inherit;line-height:1.55}
-.ppt-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.ppt-doc-modal{width:720px;max-width:94vw}
+.ppt-presets-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+.ppt-presets-label{font-size:11px;font-weight:600;color:rgba(120,120,128,0.9)}
+.ppt-preset-chip{border:1px solid rgba(120,120,128,0.2);background:rgba(120,120,128,0.08);color:inherit;border-radius:980px;padding:4px 10px;font-size:11.5px;cursor:pointer;transition:all 0.15s ease;display:inline-flex;align-items:center;gap:4px}
+.ppt-preset-chip:hover:not(:disabled){background:rgba(0,113,227,0.12);border-color:rgba(0,113,227,0.35);color:#0071e3;transform:translateY(-1px)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-preset-chip:hover:not(:disabled){color:#2997ff;border-color:rgba(10,132,255,0.4)}
+.ppt-upload-chip{border-style:dashed;background:transparent}
+
+.ppt-cupertino-input,.ppt-cupertino-textarea{width:100%;border-radius:10px;border:1px solid rgba(120,120,128,0.22);background:rgba(120,120,128,0.06);color:inherit;font-size:13px;padding:8px 12px;box-sizing:border-box;transition:all 0.15s ease;font-family:inherit}
+.ppt-cupertino-input:focus,.ppt-cupertino-textarea:focus{outline:none;border-color:#0071e3;background:rgba(255,255,255,0.98);box-shadow:0 0 0 3px rgba(0,113,227,0.25)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-cupertino-input:focus,
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-cupertino-textarea:focus{background:rgba(44,44,48,0.98);border-color:#2997ff;box-shadow:0 0 0 3px rgba(10,132,255,0.3)}
+.ppt-cupertino-textarea{resize:vertical;line-height:1.55}
+.ppt-char-counter{font-size:11px;color:rgba(120,120,128,0.85);font-weight:500}
+.ppt-char-counter-valid{color:#34c759;font-weight:600}
+
+/* Segmented Control */
+.ppt-cupertino-segmented{background:rgba(120,120,128,0.12);border-radius:9px;padding:2px;display:flex;gap:2px;user-select:none;border:1px solid rgba(120,120,128,0.08)}
+.ppt-cupertino-segment{flex:1;padding:5px 8px;border-radius:7px;font-size:11.5px;font-weight:500;text-align:center;cursor:pointer;border:none;background:transparent;color:inherit;opacity:0.75;transition:all 0.18s cubic-bezier(0.16,1,0.3,1);white-space:nowrap}
+.ppt-cupertino-segment:hover:not(:disabled){opacity:1}
+.ppt-cupertino-segment-active{background:#ffffff!important;color:#1d1d1f!important;opacity:1!important;box-shadow:0 2px 6px rgba(0,0,0,0.1),0 0.5px 1px rgba(0,0,0,0.08)!important;font-weight:600!important}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-cupertino-segment-active{background:rgba(255,255,255,0.22)!important;color:#ffffff!important;box-shadow:0 2px 6px rgba(0,0,0,0.35)!important}
+
+.ppt-form-grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ppt-form-col{display:flex;flex-direction:column;gap:5px}
-.ppt-form-col label,.ppt-form-row label{font-size:11.5px;font-weight:600;color:var(--ui-text-secondary)}
+
+/* Apple Buttons */
+.ppt-apple-btn-primary{background:linear-gradient(180deg,#0077ED 0%,#0066CC 100%);color:#ffffff;border:none;border-radius:980px;padding:7px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,102,204,0.3);transition:all 0.15s ease;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.ppt-apple-btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#0A84FF 0%,#0071E3 100%);box-shadow:0 4px 14px rgba(0,102,204,0.45);transform:translateY(-0.5px)}
+.ppt-apple-btn-primary:active:not(:disabled){transform:scale(0.97)}
+.ppt-apple-btn-primary:disabled{opacity:0.38;cursor:not-allowed;box-shadow:none}
+
+.ppt-apple-btn-secondary{background:rgba(120,120,128,0.12);color:inherit;border:none;border-radius:980px;padding:7px 18px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s ease}
+.ppt-apple-btn-secondary:hover:not(:disabled){background:rgba(120,120,128,0.22)}
+.ppt-apple-btn-secondary:active:not(:disabled){transform:scale(0.97)}
+.ppt-apple-btn-secondary:disabled{opacity:0.35;cursor:not-allowed}
 .ppt-suggestion-primary{border-color:color-mix(in srgb, var(--ui-accent) 40%, transparent)!important;background:color-mix(in srgb, var(--ui-accent) 10%, transparent)!important}
 
 @media(max-width:1000px){
