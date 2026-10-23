@@ -41,10 +41,11 @@ describe('theme typography emoji fallback (#40364)', () => {
 
 // The pre-GitHub Nous palette stays available as nous-alt; the default name
 // still means GitHub chrome + brand blue.
-describe('nous-alt is the retired Nous, not the default', () => {
-  it('is registered under its own name and leaves nous as the default', () => {
-    expect(DEFAULT_SKIN_NAME).toBe('nous')
+describe('cupertino is the ForX default theme', () => {
+  it('is registered under its own name and sets cupertino as the default', () => {
+    expect(DEFAULT_SKIN_NAME).toBe('cupertino')
     expect(BUILTIN_THEMES['nous-alt']).toBe(nousAltTheme)
+    expect(BUILTIN_THEMES.cupertino).toBeDefined()
     expect(BUILTIN_THEMES.nous).not.toBe(nousAltTheme)
     expect(nousAltTheme.darkColors?.background).toBe('#0D2F86')
     expect(BUILTIN_THEMES.nous.darkColors?.background).not.toBe(nousAltTheme.darkColors?.background)
