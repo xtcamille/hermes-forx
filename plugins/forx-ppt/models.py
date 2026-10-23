@@ -284,11 +284,54 @@ def new_deck(name, slides, theme_name="business", ratio="16:9"):
     return Deck.model_validate(deck.model_dump())
 
 
+def extract_bullets_from_text(text: str) -> list[str]:
+    if not text:
+        return []
+    lines = [line.strip().lstrip("-*•0123456789.、 \t") for line in text.split("\n") if line.strip()]
+    if len(lines) > 1:
+        return [l for l in lines if l]
+    colon_idx = max(text.find(":"), text.find("："))
+    target = text[colon_idx + 1:] if colon_idx != -1 else text
+    parts = re.split(r"[；;。，,、|]", target)
+    parts = [p.strip().lstrip("-*•0123456789.、 \t") for p in parts if len(p.strip()) >= 2]
+    if len(parts) >= 2:
+        return parts[:6]
+    clean = text.strip().lstrip("-*•0123456789.、 \t")
+    return [clean] if clean else []
+
+
+def default_bullets_for_layout(layout_id: str, title: str = "") -> list[str]:
+    defaults = {
+        "L001": [f"{title or '演示文稿'} 核心主旨阐述", "汇报人 / 团队 / 日期"],
+        "L002": ["01 项目背景与核心挑战", "02 系统架构与核心技术", "03 业务落地与运营成果", "04 下一步规划与未来展望"],
+        "L003": [f"{title or '核心观点'} 关键论据与分析展开", "支持性事实与量化推进指标", "全流程协同与预期价值达成"],
+        "L004": ["维度一：核心技术能力深度自研", "维度二：跨系统高可用生态打通", "维度三：全流程监控与安全审计"],
+        "L005": ["感谢各位专家与评委聆听！", "欢迎提问与深入探讨 (Q & A)"],
+        "L006": ["阶段一 (Q1)：需求调研与架构选型", "阶段二 (Q2)：原型研发与功能内测", "阶段三 (Q3)：业务试点与指标验证", "阶段四 (Q4)：全量推广与生态规模化"],
+        "L007": ["核心支柱 1：模块化解耦体系", "核心支柱 2：全端自适应高质量排版", "核心支柱 3：端侧高安全隐私离线存储"],
+        "L008": ["99.99% 核心链路可用性保障", "300% 创作与排版提效倍率", "50,000+ 累计服务企业与团队"],
+        "L009": ["优势 (S)：轻量架构与高效缓存机制", "劣势 (W)：初期外部生态插件库待扩展", "机会 (O)：大模型 Native 应用全面普及", "威胁 (T)：开源工具快速演进与技术同质化"],
+        "L010": ["方案 A (当前方案)：低改造成本、上线快、维护简单", "方案 B (演进方案)：弹性伸缩强、性能上限高、长期架构优秀"],
+    }
+    return defaults.get(layout_id, defaults["L003"])
+
+
 def add_slide(deck, spec):
     spec = SlideDraft.model_validate(spec).model_dump()
     title = str(spec.get("title", "新页面"))
-    slide = Slide(id=allocate(deck, "S"), name=title[:128] or "新页面", layout_id=spec.get("layout_id", "L003"), notes=spec.get("notes", ""))
-    for role, text in (("title", title), ("body", "\n".join(spec.get("bullets", [])))):
+    layout_id = spec.get("layout_id", "L003")
+    notes = spec.get("notes", "")
+    slide = Slide(id=allocate(deck, "S"), name=title[:128] or "新页面", layout_id=layout_id, notes=notes)
+
+    raw_bullets = spec.get("bullets", [])
+    bullets = [str(b).strip() for b in raw_bullets if str(b).strip()]
+    if not bullets and not spec.get("elements"):
+        if notes:
+            bullets = extract_bullets_from_text(notes)
+        if not bullets:
+            bullets = default_bullets_for_layout(layout_id, title)
+
+    for role, text in (("title", title), ("body", "\n".join(bullets))):
         if role == "body" and not text:
             continue
         slide.elements.append(Element(id=allocate(deck, "E"), name="主标题" if role == "title" else "正文",

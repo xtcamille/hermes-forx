@@ -12,10 +12,14 @@ from .storage import Store, encoded
 
 
 class DraftSlide(Model):
-    title: str = Field(min_length=1, max_length=128)
-    bullets: list[str] = Field(default_factory=list, max_length=12)
+    title: str = Field(min_length=1, max_length=128, description="幻灯片页面标题")
+    bullets: list[str] = Field(
+        min_length=1,
+        max_length=12,
+        description="页面正文要点列表（每页必须提供 2-6 条具体阐述要点，不可为空数组，不能仅有标题）",
+    )
     layout_id: Literal["L001", "L002", "L003", "L004", "L005", "L006", "L007", "L008", "L009", "L010"] = "L003"
-    notes: str = Field("", max_length=20000)
+    notes: str = Field("", max_length=20000, description="演讲者备注或补充说明")
 
 
 class Draft(Model):
@@ -107,9 +111,15 @@ async def converse(prompt, request_id, project_id=None, revision=None, selection
                             request_id, label=prompt, fingerprint=fingerprint)
         return {"result": result, "message": plan.message}
     result = await model.acomplete_structured(
-        instructions=INSTRUCTIONS + "\n生成新稿。严格遵守用户总页数（含封面）。一页一个主题，正文每页最多6条短句。版式可选 L001封面、L002目录、L003标题正文、L004图文双栏、L005结束页、L006时间轴、L007多列卡片、L008关键指标、L009四象限SWOT、L010方案对比。没有素材时不虚构图片或绘制无关装饰。",
+        instructions=(
+            INSTRUCTIONS
+            + "\n生成新演示文稿。严格遵守用户总页数（含封面）。一页一个主题。"
+            + "\n【核心要求】每一页必须在 bullets 字段中生成 2-6 条具体的正文要点/论据展开，严禁只生成标题而 bullets 为空数组！严禁将正文内容只写在 notes 中。"
+            + "\n版式可选：L001封面、L002目录、L003标题正文、L004图文双栏、L005结束页、L006时间轴、L007多列卡片、L008关键指标、L009四象限SWOT、L010方案对比。"
+            + "\n没有素材时不虚构图片或绘制无关装饰。"
+        ),
         input=[{"type": "text", "text": prompt}], json_schema=Draft.model_json_schema(),
-        schema_name="forx_ppt_draft", temperature=0.3, max_tokens=12000, timeout=120, purpose="ppt.create")
+        schema_name="forx_ppt_draft", temperature=0.3, max_tokens=14000, timeout=120, purpose="ppt.create")
     if result.parsed is None:
         raise ValueError("模型没有返回有效的页面结构，请补充主题和页数后重试")
     draft = Draft.model_validate(result.parsed)
@@ -145,7 +155,14 @@ async def convert_document(text, title=None, target_pages=8, theme_name="busines
     instructions = (
         INSTRUCTIONS
         + f"\n文档转PPT任务。将输入的长文或大纲萃取为恰好 {target_pages} 页的高质量演示文稿。"
-        + "\n每页聚焦一个明确的核心主题，提炼 3-6 条要点，文字简练精悍。不要大段照抄原文。"
+        + "\n【核心要求】每一页都必须包含两部分核心内容："
+        + "\n1. title: 该页的鲜明主题大标题。"
+        + "\n2. bullets: 该页的具体正文要点或展开叙述，每页必须提供 2-6 条具体要点（字符串列表）。"
+        + "\n   - 封面页(L001)：bullets 包含副标题与汇报人/日期信息；"
+        + "\n   - 目录页(L002)：bullets 包含各个章节导航条目；"
+        + "\n   - 正文/卡片/对比页：bullets 提炼具体的数据、论据、架构特点或方案对比项；"
+        + "\n   - 致谢页(L005)：bullets 包含致谢语与Q&A提示。"
+        + "\n【严禁行为】严禁只生成 title 而将 bullets 留空！严禁把正文内容只写在 notes 中！bullets 绝对不可为空数组！"
         + "\n根据每一页的内容特性合理挑选最具视觉说服力的版式（L001-L010）："
         + "\n- 第1页必须是 L001 封面；第2页通常为 L002 目录；最后一页为 L005 结束页"
         + "\n- 叙述说明采用 L003 标题正文 或 L004 图文双栏"
