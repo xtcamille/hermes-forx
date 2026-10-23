@@ -1,14 +1,14 @@
 name: forx-ppt
 repo: https://github.com/xtcamille/hermes-forx
-sha: 97deac5b901eaa2d423748abfbefd60fa3db97da
+sha: 47340c22055a7faa4380e9b81c957163bb010e99
 subdir: plugins/forx-ppt
-description: ForX 原生 PPT 创作工作台与规划器：支持可编辑原生对象、母版联动、局部修改、实时换主题与全生命周期版本管理。
+description: ForX 原生 PPT 创作工作台：支持文档一键转PPT (Doc-to-Deck)、10类专业原生版式、母版联动、局部修改、实时换主题与全生命周期版本管理。
 maintainer: ForX
 tier: official
 category: desktop
 requires_hermes: ">=0.1"
 docs_url: https://github.com/xtcamille/hermes-forx/tree/main/plugins/forx-ppt
-version: "0.1.11"
+version: "0.2.0"
 platforms: []
 capabilities:
   provides_tools: []
