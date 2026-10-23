@@ -19,25 +19,13 @@ const Icon = {
     h('line', { x1: 8, y1: 21, x2: 16, y2: 21 }),
     h('line', { x1: 12, y1: 17, x2: 12, y2: 21 })
   ),
-  plus: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-    h('line', { x1: 12, y1: 5, x2: 12, y2: 19 }),
-    h('line', { x1: 5, y1: 12, x2: 19, y2: 12 })
+  sidebarLeft: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+    h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2 }),
+    h('line', { x1: 9, y1: 3, x2: 9, y2: 21 })
   ),
-  undo: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-    h('path', { d: 'M3 7v6h6' }),
-    h('path', { d: 'M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13' })
-  ),
-  redo: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-    h('path', { d: 'M21 7v6h-6' }),
-    h('path', { d: 'M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7' })
-  ),
-  sparkle: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-    h('path', { d: 'M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z' })
-  ),
-  layers: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-    h('polygon', { points: '12 2 2 7 12 12 22 7 12 2' }),
-    h('polyline', { points: '2 17 12 22 22 17' }),
-    h('polyline', { points: '2 12 12 17 22 12' })
+  sidebarRight: () => h('svg', { width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+    h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2 }),
+    h('line', { x1: 15, y1: 3, x2: 15, y2: 21 })
   ),
 }
 
@@ -72,6 +60,7 @@ function controller(ctx, owner) {
     owner, ctx, $doc: atom(null), $slide: atom(null), $selection: atom([]), $numbers: atom(true),
     $busy: atom(null), $error: atom(''), $messages: atom([]), $draft: atom(''),
     $before: atom(null), $compare: atom(false), $refresh: atom(0),
+    $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -168,6 +157,7 @@ function controller(ctx, owner) {
 
 function Toolbar({ c }) {
   const doc = useValue(c.$doc), busy = useValue(c.$busy), numbers = useValue(c.$numbers)
+  const leftOpen = useValue(c.$leftOpen), rightOpen = useValue(c.$rightOpen)
   const upload = useRef(null)
   return h('header', { className: 'ppt-toolbar' },
     h('div', { className: 'ppt-brand' },
@@ -176,9 +166,13 @@ function Toolbar({ c }) {
     ),
     doc && h('div', { className: 'ppt-doc-badge' },
       h('span', { className: 'ppt-status-dot' }),
-      h('span', { className: 'ppt-muted' }, `${doc.deck.name} · v${doc.revision} · 已保存`),
+      h('span', { className: 'ppt-muted', title: `${doc.deck.name} · v${doc.revision}` }, `${doc.deck.name} · v${doc.revision} · 已保存`),
     ),
-    h('div', { style: { flex: 1 } }),
+    h('div', { className: 'ppt-toolbar-spacer' }),
+    h('div', { className: 'ppt-btn-group' },
+      button(leftOpen ? '收起列表' : '页面列表', () => c.$leftOpen.set(!c.$leftOpen.get()), false, { className: leftOpen ? 'ppt-btn-active' : '' }),
+      button(rightOpen ? '收起面板' : '展开面板', () => c.$rightOpen.set(!c.$rightOpen.get()), false, { className: rightOpen ? 'ppt-btn-active' : '' }),
+    ),
     h('div', { className: 'ppt-btn-group' },
       button('空白新建', c.create, !!busy),
       button('导入', () => upload.current.click(), !!busy),
@@ -251,7 +245,7 @@ function Navigation({ c }) {
       h('option', { value: '', disabled: true }, '选择已保存文稿'),
       ...(projects.data?.projects || []).map(p => h('option', { key: p.id, value: p.id }, p.name))),
     doc && button('＋ 新增页面', () => c.edit([{ action: 'add_slide', slide: { title: '新页面', bullets: [] } }], '新增页面'), !!c.$busy.get(), { className: 'ppt-add-slide-btn' }),
-    h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' } },
+    h('div', { className: 'ppt-thumbs-list' },
       ...(doc?.deck.slides || []).map((slide, i) => h(Thumbnail, { key: slide.id, c, doc, slide, index: i }))
     ),
   )
@@ -280,7 +274,7 @@ function Canvas({ c }) {
           h('span', null, '🚀 生成一份 8 页的区块链技术与架构介绍'),
           h('small', { className: 'ppt-muted' }, '点击填入')
         ),
-        h('button', { className: 'ppt-suggestion-chip', onClick: () => c.$draft.set('生成一份 10 页的企业产品方案与商业商业计划书。') },
+        h('button', { className: 'ppt-suggestion-chip', onClick: () => c.$draft.set('生成一份 10 页的企业商业计划书与方案。') },
           h('span', null, '💼 生成一份 10 页的企业商业计划书与方案'),
           h('small', { className: 'ppt-muted' }, '点击填入')
         ),
@@ -300,9 +294,9 @@ function Canvas({ c }) {
     h('div', { className: 'ppt-stage-header' },
       h('div', { className: 'ppt-stage-title' },
         h('span', { className: 'ppt-pill-badge' }, slideId),
-        h('span', null, doc.deck.slides.find(s => s.id === slideId)?.name || '当前幻灯片')
+        h('span', { className: 'ppt-stage-slide-name' }, doc.deck.slides.find(s => s.id === slideId)?.name || '当前幻灯片')
       ),
-      h('div', { style: flex },
+      h('div', { className: 'ppt-btn-group' },
         before?.project === doc.deck.id && before?.slide === slideId && button(showingBefore ? '返回当前版本' : '查看修改前', () => c.$compare.set(!c.$compare.get())),
         showingBefore && h('span', { className: 'ppt-muted' }, `修改前 v${before.revision}`),
         button('复制本页', () => c.edit([{ action: 'duplicate_slide', target: c.$slide.get() }], '复制页面'), !!c.$busy.get()),
@@ -311,16 +305,22 @@ function Canvas({ c }) {
         button('后移', () => { const d = c.$doc.get(); return c.edit([{ action: 'move_slide', target: c.$slide.get(), index: Math.min(d.deck.slides.length - 1, d.deck.slides.findIndex(s => s.id === c.$slide.get()) + 1) }], '页面后移') }, !!c.$busy.get())
       )
     ),
-    h('div', { className: 'ppt-canvas ppt-canvas-wrapper', style: { aspectRatio: `${doc.deck.width}/${doc.deck.height}` },
-      onClick: event => {
-        if (showingBefore) return
-        const id = event.target.closest?.('[data-element-id]')?.dataset.elementId
-        const current = c.$selection.get()
-        c.$selection.set(id ? (event.ctrlKey || event.metaKey ? (current.includes(id) ? current.filter(v => v !== id) : [...current, id]) : [id]) : [])
-      } },
-      svg ? h('div', { className: 'ppt-svg', dangerouslySetInnerHTML: { __html: svg } }) : h('p', { role: view.error ? 'alert' : 'status', style: { padding: 32 } }, view.error?.message || '正在更新预览…'),
-      !showingBefore && !!boxes.length && h('svg', { className: 'ppt-selection', viewBox: `0 0 ${doc.deck.width * 72} ${doc.deck.height * 72}` },
-        ...boxes.map(e => h('rect', { key: e.id, x: e.box.x * 72, y: e.box.y * 72, width: e.box.width * 72, height: e.box.height * 72, fill: 'none', stroke: 'var(--ui-accent)', strokeWidth: 2, strokeDasharray: '6 3' }))
+    h('div', { className: 'ppt-canvas-viewport' },
+      h('div', { className: 'ppt-canvas ppt-canvas-wrapper', style: { aspectRatio: `${doc.deck.width}/${doc.deck.height}` },
+        onClick: event => {
+          if (showingBefore) return
+          const id = event.target.closest?.('[data-element-id]')?.dataset.elementId
+          const current = c.$selection.get()
+          const next = id ? (event.ctrlKey || event.metaKey ? (current.includes(id) ? current.filter(v => v !== id) : [...current, id]) : [id]) : []
+          c.$selection.set(next)
+          if (next.length > 0) {
+            c.$rightOpen.set(true)
+          }
+        } },
+        svg ? h('div', { className: 'ppt-svg', dangerouslySetInnerHTML: { __html: svg } }) : h('p', { role: view.error ? 'alert' : 'status', style: { padding: 32 } }, view.error?.message || '正在更新预览…'),
+        !showingBefore && !!boxes.length && h('svg', { className: 'ppt-selection', viewBox: `0 0 ${doc.deck.width * 72} ${doc.deck.height * 72}` },
+          ...boxes.map(e => h('rect', { key: e.id, x: e.box.x * 72, y: e.box.y * 72, width: e.box.width * 72, height: e.box.height * 72, fill: 'none', stroke: 'var(--ui-accent)', strokeWidth: 2, strokeDasharray: '6 3' }))
+        )
       )
     ),
     h('div', { className: 'ppt-canvas-footer' },
@@ -331,7 +331,7 @@ function Canvas({ c }) {
   )
 }
 
-function Properties({ c }) {
+function Properties({ c, expanded = false }) {
   const doc = useValue(c.$doc), selection = useValue(c.$selection), slideId = useValue(c.$slide), busy = useValue(c.$busy)
   const [search, setSearch] = useState(''), [text, setText] = useState(''), [name, setName] = useState(''), [fontSize, setFontSize] = useState(''), [masterSize, setMasterSize] = useState('32')
   const upload = useRef(null)
@@ -340,7 +340,7 @@ function Properties({ c }) {
   const chosen = selection.length === 1 ? elements.find(e => e.id === selection[0]) : null
   useEffect(() => { setText(chosen?.text || ''); setName(chosen?.name || ''); setFontSize(String(chosen?.style?.font_size || '')) }, [chosen?.id, chosen?.text, chosen?.name, chosen?.style?.font_size])
   if (!doc) return null
-  return h('section', { className: 'ppt-properties ppt-panel-section' },
+  return h('section', { className: `ppt-properties ppt-panel-section ${expanded ? 'ppt-panel-expanded' : ''}` },
     h('div', { className: 'ppt-panel-header' },
       h('h3', null, '元素与母版'),
       h('span', { className: 'ppt-pill-badge' }, `${elements.length} 个元素`)
@@ -412,11 +412,11 @@ function Properties({ c }) {
   )
 }
 
-function Conversation({ c }) {
+function Conversation({ c, expanded = false }) {
   const doc = useValue(c.$doc), draft = useValue(c.$draft), messages = useValue(c.$messages), busy = useValue(c.$busy), error = useValue(c.$error), selection = useValue(c.$selection)
   const history = useQuery({ queryKey: ['forx-ppt', c.owner, 'history', doc?.deck.id, doc?.revision], enabled: !!doc,
     queryFn: () => c.request(`/projects/${doc.deck.id}/history`), retry: 1 })
-  return h('section', { className: 'ppt-chat ppt-panel-section' },
+  return h('section', { className: `ppt-chat ppt-panel-section ${expanded ? 'ppt-panel-expanded' : ''}` },
     h('div', { className: 'ppt-panel-header' },
       h('h3', null, '对话编辑'),
       h('span', { className: 'ppt-pill-badge' }, busy ? '正在生成…' : '就绪')
@@ -464,98 +464,119 @@ function Conversation({ c }) {
 }
 
 const css = `
-.forx-ppt{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--ui-bg-base);color:var(--ui-text-primary);font-size:13px;line-height:1.5;user-select:none}
+.forx-ppt{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--ui-bg-base);color:var(--ui-text-primary);font-size:13px;line-height:1.5;user-select:none;overflow:hidden}
 .forx-ppt h3{font-size:13px;font-weight:600;margin:0}
 .forx-ppt p{line-height:1.6}
 .forx-ppt select{max-width:100%;border:1px solid var(--ui-stroke-secondary);border-radius:6px;padding:5px 8px;background:var(--ui-bg-base);color:var(--ui-text-primary);font-size:12px}
 
 /* Toolbar */
-.ppt-toolbar{height:52px;min-height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;background:color-mix(in srgb, var(--ui-bg-base) 85%, var(--ui-bg-elevated));border-bottom:1px solid var(--ui-stroke-secondary);backdrop-filter:blur(8px);z-index:10}
-.ppt-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-0.2px;color:var(--ui-text-primary)}
+.ppt-toolbar{min-height:50px;display:flex;align-items:center;flex-wrap:wrap;row-gap:6px;column-gap:8px;padding:6px 14px;background:color-mix(in srgb, var(--ui-bg-base) 85%, var(--ui-bg-elevated));border-bottom:1px solid var(--ui-stroke-secondary);backdrop-filter:blur(8px);z-index:10;flex-shrink:0}
+.ppt-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;letter-spacing:-0.2px;color:var(--ui-text-primary);flex-shrink:0}
 .ppt-brand-icon{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg, var(--ui-accent), color-mix(in srgb, var(--ui-accent) 60%, #ec4899));color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px color-mix(in srgb, var(--ui-accent) 30%, transparent)}
-.ppt-doc-badge{display:flex;align-items:center;gap:7px;padding:4px 10px;border-radius:9999px;background:color-mix(in srgb, var(--ui-bg-elevated) 80%, transparent);border:1px solid var(--ui-stroke-secondary);font-size:12px;color:var(--ui-text-secondary)}
-.ppt-status-dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6);animation:ppt-pulse 2s infinite ease-in-out}
+.ppt-doc-badge{display:flex;align-items:center;gap:7px;padding:3px 9px;border-radius:9999px;background:color-mix(in srgb, var(--ui-bg-elevated) 80%, transparent);border:1px solid var(--ui-stroke-secondary);font-size:11.5px;color:var(--ui-text-secondary);max-width:240px;flex-shrink:1;overflow:hidden}
+.ppt-doc-badge .ppt-muted{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppt-status-dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6);animation:ppt-pulse 2s infinite ease-in-out;flex-shrink:0}
 @keyframes ppt-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
 
-.ppt-btn-group{display:flex;align-items:center;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:8px;padding:2px;gap:2px}
-.ppt-btn-group button{border:none!important;background:transparent!important;border-radius:6px!important;padding:4px 9px!important;height:28px!important;font-size:12px!important}
+.ppt-toolbar-spacer{flex:1;min-width:8px}
+.ppt-btn-group{display:flex;align-items:center;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:8px;padding:2px;gap:2px;flex-shrink:0}
+.ppt-btn-group button{border:none!important;background:transparent!important;border-radius:6px!important;padding:4px 8px!important;height:26px!important;font-size:11.5px!important}
 .ppt-btn-group button:hover:not(:disabled){background:color-mix(in srgb, var(--ui-text-primary) 10%, transparent)!important}
-.ppt-theme-select{padding:5px 10px;border-radius:8px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:12px;font-weight:500;cursor:pointer;outline:none}
+.ppt-btn-active{color:var(--ui-accent)!important;background:color-mix(in srgb, var(--ui-accent) 15%, transparent)!important}
+.ppt-theme-select{padding:4px 8px;border-radius:8px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:11.5px;font-weight:500;cursor:pointer;outline:none;flex-shrink:0}
 .ppt-btn-primary{background:var(--ui-accent)!important;color:#fff!important;border-radius:8px!important;font-weight:500!important;box-shadow:0 2px 8px color-mix(in srgb, var(--ui-accent) 30%, transparent)!important;border:none!important}
 .ppt-btn-primary:hover:not(:disabled){filter:brightness(1.1)!important}
 
-/* 3-column Layout */
-.ppt-layout{display:grid;grid-template-columns:200px minmax(340px,1fr) 340px;flex:1;min-height:0;overflow:hidden}
+/* Main Flex Layout */
+.ppt-layout{display:flex;flex:1;min-height:0;min-width:0;overflow:hidden;position:relative}
 
 /* Left Sidebar - Slides Navigation */
-.ppt-pages{background:color-mix(in srgb, var(--ui-bg-base) 92%, var(--ui-bg-elevated));border-right:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;padding:14px 12px;gap:12px;overflow-y:auto}
-.ppt-pages-header{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--ui-text-secondary);text-transform:uppercase;letter-spacing:0.5px}
-.ppt-project-select{width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:12px;cursor:pointer;outline:none}
-.ppt-add-slide-btn{width:100%;border-radius:8px;border:1px dashed var(--ui-stroke-primary)!important;background:transparent!important;padding:8px!important;font-size:12px!important;font-weight:500!important;color:var(--ui-text-secondary)!important;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all 0.15s ease}
+.ppt-pages{width:200px;min-width:170px;max-width:240px;background:color-mix(in srgb, var(--ui-bg-base) 92%, var(--ui-bg-elevated));border-right:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;padding:12px 10px;gap:10px;flex-shrink:0;overflow:hidden}
+.ppt-pages-header{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--ui-text-secondary);text-transform:uppercase;letter-spacing:0.5px}
+.ppt-project-select{width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-primary);font-size:11.5px;cursor:pointer;outline:none}
+.ppt-add-slide-btn{width:100%;border-radius:6px;border:1px dashed var(--ui-stroke-primary)!important;background:transparent!important;padding:7px!important;font-size:11.5px!important;font-weight:500!important;color:var(--ui-text-secondary)!important;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all 0.15s ease}
 .ppt-add-slide-btn:hover:not(:disabled){border-color:var(--ui-accent)!important;color:var(--ui-accent)!important;background:color-mix(in srgb, var(--ui-accent) 8%, transparent)!important}
 
-.ppt-thumb-card{position:relative;border-radius:8px;padding:6px;background:var(--ui-bg-elevated);border:1.5px solid transparent;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all 0.18s ease;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-align:left}
+.ppt-thumbs-list{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0;padding-right:2px}
+.ppt-thumb-card{position:relative;border-radius:6px;padding:5px;background:var(--ui-bg-elevated);border:1.5px solid transparent;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:all 0.18s ease;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-align:left}
 .ppt-thumb-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.1);border-color:color-mix(in srgb, var(--ui-stroke-secondary) 80%, var(--ui-accent))}
 .ppt-thumb-card.ppt-active{border-color:var(--ui-accent);box-shadow:0 0 0 2px color-mix(in srgb, var(--ui-accent) 25%, transparent),0 4px 14px rgba(0,0,0,0.12);background:color-mix(in srgb, var(--ui-bg-elevated) 90%, var(--ui-accent))}
-.ppt-thumb-badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;backdrop-filter:blur(4px);z-index:2}
-.ppt-mini{aspect-ratio:16/9;border-radius:5px;overflow:hidden;background:#111;position:relative}
+.ppt-thumb-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#fff;font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:4px;backdrop-filter:blur(4px);z-index:2}
+.ppt-mini{aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:#111;position:relative}
 .ppt-mini svg{width:100%;height:100%;display:block}
 .ppt-thumb-info{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ui-text-secondary);padding:0 2px}
 .ppt-thumb-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 
 /* Center Stage */
-.ppt-canvas-area{display:flex;flex-direction:column;height:100%;background:radial-gradient(circle, color-mix(in srgb, var(--ui-stroke-secondary) 60%, transparent) 1px, transparent 1px);background-size:24px 24px;overflow-y:auto;padding:20px;gap:14px;align-items:center;justify-content:flex-start}
-.ppt-stage-header{width:100%;max-width:960px;display:flex;align-items:center;justify-content:space-between;background:color-mix(in srgb, var(--ui-bg-elevated) 85%, transparent);border:1px solid var(--ui-stroke-secondary);border-radius:10px;padding:8px 14px;backdrop-filter:blur(8px)}
-.ppt-stage-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
-.ppt-canvas-wrapper{position:relative;width:100%;max-width:960px;box-shadow:0 16px 40px -10px rgba(0,0,0,0.35),0 0 0 1px var(--ui-stroke-secondary);border-radius:10px;overflow:hidden;background:#ffffff;flex-shrink:0}
+.ppt-canvas-area{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;background:radial-gradient(circle, color-mix(in srgb, var(--ui-stroke-secondary) 60%, transparent) 1px, transparent 1px);background-size:24px 24px;overflow:auto;padding:14px;gap:10px;align-items:center;justify-content:flex-start}
+.ppt-stage-header{width:100%;max-width:960px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;row-gap:6px;column-gap:8px;background:color-mix(in srgb, var(--ui-bg-elevated) 85%, transparent);border:1px solid var(--ui-stroke-secondary);border-radius:8px;padding:6px 12px;backdrop-filter:blur(8px);flex-shrink:0}
+.ppt-stage-title{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.ppt-stage-slide-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.ppt-canvas-viewport{width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 0}
+.ppt-canvas-wrapper{position:relative;width:min(100%, calc((100vh - 200px) * 16 / 9));max-width:960px;box-shadow:0 16px 40px -10px rgba(0,0,0,0.35),0 0 0 1px var(--ui-stroke-secondary);border-radius:8px;overflow:hidden;background:#ffffff;flex-shrink:0;margin:auto 0}
 .ppt-svg{position:absolute;inset:0;width:100%;height:100%}
 .ppt-selection{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.ppt-canvas-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--ui-text-tertiary)}
+.ppt-canvas-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--ui-text-tertiary);flex-shrink:0}
 
 /* Empty State Hero */
-.ppt-empty-hero{max-width:580px;margin:auto;text-align:center;padding:40px 32px;background:color-mix(in srgb, var(--ui-bg-elevated) 90%, transparent);border:1px solid var(--ui-stroke-secondary);border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,0.1);display:flex;flex-direction:column;align-items:center;gap:14px}
-.ppt-empty-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg, color-mix(in srgb, var(--ui-accent) 25%, transparent), color-mix(in srgb, #8b5cf6 25%, transparent));color:var(--ui-accent);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px color-mix(in srgb, var(--ui-accent) 20%, transparent)}
-.ppt-empty-hero h2{font-size:18px;font-weight:700;margin:0;color:var(--ui-text-primary);letter-spacing:-0.2px}
-.ppt-empty-hero p{color:var(--ui-text-secondary);margin:0;font-size:12.5px;max-width:440px;line-height:1.6}
-.ppt-suggestion-grid{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px}
-.ppt-suggestion-chip{text-align:left;padding:9px 12px;border-radius:8px;background:color-mix(in srgb, var(--ui-bg-base) 70%, var(--ui-bg-elevated));border:1px solid var(--ui-stroke-secondary);font-size:12px;color:var(--ui-text-primary);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.15s ease}
+.ppt-empty-hero{max-width:540px;margin:auto;text-align:center;padding:36px 24px;background:color-mix(in srgb, var(--ui-bg-elevated) 90%, transparent);border:1px solid var(--ui-stroke-secondary);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,0.1);display:flex;flex-direction:column;align-items:center;gap:12px}
+.ppt-empty-icon{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg, color-mix(in srgb, var(--ui-accent) 25%, transparent), color-mix(in srgb, #8b5cf6 25%, transparent));color:var(--ui-accent);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px color-mix(in srgb, var(--ui-accent) 20%, transparent)}
+.ppt-empty-hero h2{font-size:17px;font-weight:700;margin:0;color:var(--ui-text-primary);letter-spacing:-0.2px}
+.ppt-empty-hero p{color:var(--ui-text-secondary);margin:0;font-size:12px;max-width:420px;line-height:1.6}
+.ppt-suggestion-grid{display:flex;flex-direction:column;gap:7px;width:100%;margin-top:6px}
+.ppt-suggestion-chip{text-align:left;padding:8px 12px;border-radius:7px;background:color-mix(in srgb, var(--ui-bg-base) 70%, var(--ui-bg-elevated));border:1px solid var(--ui-stroke-secondary);font-size:11.5px;color:var(--ui-text-primary);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.15s ease}
 .ppt-suggestion-chip:hover{border-color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 10%, transparent);transform:translateX(2px)}
 
 /* Right Sidebar */
-.ppt-side{background:color-mix(in srgb, var(--ui-bg-base) 94%, var(--ui-bg-elevated));border-left:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;overflow-y:auto;min-height:0}
-.ppt-panel-section{padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--ui-stroke-secondary)}
-.ppt-panel-header{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--ui-text-primary)}
+.ppt-side{width:330px;min-width:290px;max-width:400px;background:color-mix(in srgb, var(--ui-bg-base) 94%, var(--ui-bg-elevated));border-left:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;overflow-y:auto;min-height:0;flex-shrink:0}
+.ppt-side-tabs{display:flex;background:var(--ui-bg-elevated);border-bottom:1px solid var(--ui-stroke-secondary);padding:4px;gap:4px;flex-shrink:0}
+.ppt-side-tab{flex:1;padding:5px 8px;border-radius:6px;border:none;background:transparent;color:var(--ui-text-secondary);font-size:11.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all 0.15s ease}
+.ppt-side-tab:hover{color:var(--ui-text-primary);background:color-mix(in srgb, var(--ui-text-primary) 6%, transparent)}
+.ppt-side-tab.ppt-side-tab-active{color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 12%, transparent);font-weight:600}
+.ppt-tab-dot{width:6px;height:6px;border-radius:50%;background:var(--ui-accent)}
+
+.ppt-panel-section{padding:12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--ui-stroke-secondary)}
+.ppt-panel-expanded{flex:1;min-height:0;display:flex;flex-direction:column;border-bottom:none}
+.ppt-panel-expanded .ppt-messages-box{flex:1;max-height:none!important}
+.ppt-panel-expanded .ppt-element-chips{max-height:220px}
+.ppt-panel-expanded .ppt-chat-input-box{margin-top:auto}
+
+.ppt-panel-header{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--ui-text-primary)}
 .ppt-pill-badge{font-size:10px;padding:2px 7px;border-radius:9999px;background:color-mix(in srgb, var(--ui-accent) 15%, transparent);color:var(--ui-accent);font-weight:600}
 
 /* Chat Section */
-.ppt-messages-box{min-height:90px;max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
-.ppt-msg-bubble{padding:8px 12px;border-radius:10px;font-size:12px;line-height:1.55;max-width:92%;word-break:break-word}
+.ppt-messages-box{min-height:80px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
+.ppt-msg-bubble{padding:8px 11px;border-radius:9px;font-size:12px;line-height:1.55;max-width:92%;word-break:break-word}
 .ppt-msg-user{align-self:flex-end;background:color-mix(in srgb, var(--ui-accent) 18%, transparent);border:1px solid color-mix(in srgb, var(--ui-accent) 30%, transparent);color:var(--ui-text-primary);border-bottom-right-radius:2px}
 .ppt-msg-assistant{align-self:flex-start;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);color:var(--ui-text-primary);border-bottom-left-radius:2px}
-.ppt-chat-input-box{border:1px solid var(--ui-stroke-secondary);border-radius:10px;background:var(--ui-bg-elevated);padding:8px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s ease,box-shadow 0.15s ease}
+.ppt-chat-input-box{border:1px solid var(--ui-stroke-secondary);border-radius:9px;background:var(--ui-bg-elevated);padding:8px;display:flex;flex-direction:column;gap:7px;transition:border-color 0.15s ease,box-shadow 0.15s ease}
 .ppt-chat-input-box:focus-within{border-color:var(--ui-accent);box-shadow:0 0 0 2px color-mix(in srgb, var(--ui-accent) 20%, transparent)}
-.ppt-chat-input-box textarea{border:none!important;background:transparent!important;padding:0!important;box-shadow:none!important;resize:none;font-size:12.5px;line-height:1.5;outline:none!important}
+.ppt-chat-input-box textarea{border:none!important;background:transparent!important;padding:0!important;box-shadow:none!important;resize:none;font-size:12px;line-height:1.5;outline:none!important}
 .ppt-input-footer{display:flex;align-items:center;justify-content:space-between;padding-top:4px;border-top:1px solid color-mix(in srgb, var(--ui-stroke-secondary) 50%, transparent)}
 
 /* Properties */
-.ppt-element-chips{display:flex;flex-wrap:wrap;gap:5px;max-height:130px;overflow-y:auto;padding:2px}
-.ppt-elem-chip{padding:4px 8px;border-radius:6px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-secondary);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.12s ease}
+.ppt-element-chips{display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow-y:auto;padding:2px}
+.ppt-elem-chip{padding:3px 7px;border-radius:5px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-elevated);color:var(--ui-text-secondary);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.12s ease}
 .ppt-elem-chip:hover{border-color:var(--ui-stroke-primary);color:var(--ui-text-primary)}
 .ppt-elem-chip.ppt-active{border-color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 15%, transparent);color:var(--ui-accent);font-weight:500}
-.ppt-inspector-card{background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:9px}
-.ppt-form-row{display:flex;flex-direction:column;gap:6px}
-.ppt-field-label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:500;color:var(--ui-text-secondary);width:100%}
+.ppt-inspector-card{background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.ppt-form-row{display:flex;flex-direction:column;gap:5px}
+.ppt-field-label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:500;color:var(--ui-text-secondary);width:100%}
 
 .ppt-muted{color:var(--ui-text-tertiary);font-size:11px}
 .ppt-error,.ppt-issue{color:var(--ui-text-primary);background:color-mix(in srgb, #ef4444 12%, transparent);border:1px solid color-mix(in srgb, #ef4444 35%, transparent);border-radius:8px;padding:8px 12px;text-align:left;font-size:12px;margin:0}
 .ppt-connecting{padding:40px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;max-width:480px;margin:auto}
 
-@media(max-width:1100px){.ppt-layout{grid-template-columns:160px minmax(260px,1fr) 300px}}
-@media(max-width:760px){.ppt-layout{grid-template-columns:minmax(240px,1fr) 280px}.ppt-pages{display:none}}
+@media(max-width:1000px){
+  .ppt-pages{width:170px;min-width:150px}
+  .ppt-side{width:290px;min-width:260px}
+}
 `
 
 function Workbench({ c }) {
   const doc = useValue(c.$doc), busy = useValue(c.$busy), gateway = useValue(host.state.gateway)
+  const leftOpen = useValue(c.$leftOpen), rightOpen = useValue(c.$rightOpen), panelTab = useValue(c.$panelTab)
+  const selection = useValue(c.$selection)
   const restored = useRef(false)
   const status = useQuery({ queryKey: ['forx-ppt', c.owner, 'status', gateway], queryFn: () => c.request('/status'), enabled: gateway === 'open', retry: 1 })
   const current = useQuery({ queryKey: ['forx-ppt', c.owner, 'current', doc?.deck.id], enabled: !!doc && gateway === 'open' && !busy,
@@ -579,11 +600,19 @@ function Workbench({ c }) {
   return h('section', { className: 'forx-ppt', 'aria-label': 'PPT 创作台' }, h('style', null, css),
     h(Toolbar, { c }),
     h('div', { className: 'ppt-layout' },
-      h(Navigation, { c }),
+      leftOpen && h(Navigation, { c }),
       h(Canvas, { c }),
-      h('aside', { className: 'ppt-side' },
-        h(Conversation, { c }),
-        h(Properties, { c })
+      rightOpen && h('aside', { className: 'ppt-side' },
+        doc && h('div', { className: 'ppt-side-tabs' },
+          h('button', { className: `ppt-side-tab ${panelTab === 'all' ? 'ppt-side-tab-active' : ''}`, onClick: () => c.$panelTab.set('all') }, '全部'),
+          h('button', { className: `ppt-side-tab ${panelTab === 'chat' ? 'ppt-side-tab-active' : ''}`, onClick: () => c.$panelTab.set('chat') }, '✨ AI 对话'),
+          h('button', { className: `ppt-side-tab ${panelTab === 'properties' ? 'ppt-side-tab-active' : ''}`, onClick: () => c.$panelTab.set('properties') },
+            '🎨 元素设计',
+            selection.length ? h('span', { className: 'ppt-tab-dot' }) : null
+          ),
+        ),
+        (panelTab === 'all' || panelTab === 'chat') && h(Conversation, { c, expanded: panelTab === 'chat' }),
+        (panelTab === 'all' || panelTab === 'properties') && h(Properties, { c, expanded: panelTab === 'properties' })
       )
     )
   )
