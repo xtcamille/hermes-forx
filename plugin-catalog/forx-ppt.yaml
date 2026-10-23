@@ -1,6 +1,6 @@
 name: forx-ppt
 repo: https://github.com/xtcamille/hermes-forx
-sha: 0b92e7fbe499f57ebbf7c20c02167d4fdf807e32
+sha: 53b7fde363260988f2337631ddfddcbfe6fa66a1
 subdir: plugins/forx-ppt
 description: ForX 原生 PPT 创作工作台与规划器：支持可编辑原生对象、母版联动、局部修改、实时换主题与全生命周期版本管理。
 maintainer: ForX
