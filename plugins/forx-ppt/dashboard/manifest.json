@@ -1,0 +1,9 @@
+{
+  "name": "forx-ppt",
+  "label": "PPT 创作台",
+  "description": "对话制作可编辑 PPT，按编号精确修改，联动母版与主题。",
+  "icon": "Presentation",
+  "version": "0.1.0",
+  "tab": { "hidden": true },
+  "api": "plugin_api.py"
+}
