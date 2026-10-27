@@ -103,6 +103,7 @@ class TestResolveSubdirWithin:
 
 
 
+    @pytest.mark.require_symlinks
     def test_rejects_symlink_escape(self, tmp_path):
         clone = tmp_path / "clone"
         clone.mkdir()
@@ -201,9 +202,10 @@ class TestGitPullPluginDirAutostash:
         git(origin, "init", "-q", "-b", "main")
         git(origin, "config", "user.email", "t@t")
         git(origin, "config", "user.name", "t")
+        git(origin, "config", "core.autocrlf", "false")
         pad = "\n".join(f"# pad {i}" for i in range(12))
         (origin / "plugin.py").write_text(
-            f"VALUE = 1\n{pad}\nOTHER = 'a'\n", encoding="utf-8"
+            f"VALUE = 1\n{pad}\nOTHER = 'a'\n", encoding="utf-8", newline="\n"
         )
         git(origin, "add", ".")
         git(origin, "commit", "-qm", "init")
@@ -212,6 +214,7 @@ class TestGitPullPluginDirAutostash:
         git(tmp_path, "clone", "-q", str(origin), str(checkout))
         git(checkout, "config", "user.email", "t@t")
         git(checkout, "config", "user.name", "t")
+        git(checkout, "config", "core.autocrlf", "false")
         return origin, checkout, git
 
     @staticmethod
@@ -220,7 +223,7 @@ class TestGitPullPluginDirAutostash:
         f = repo / "plugin.py"
         lines = f.read_text(encoding="utf-8").splitlines()
         lines = [new_line if ln.startswith(prefix) else ln for ln in lines]
-        f.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        f.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
     def test_dirty_checkout_pulls_and_reapplies_local_edit(self, tmp_path):
         import hermes_cli.plugins_cmd as pc
