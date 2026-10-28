@@ -482,8 +482,11 @@ def extract_legacy_cache_skills():
             for agent in data["agents"]:
                 if not isinstance(agent, dict):
                     continue
+                name = agent.get("identifier", agent.get("meta", {}).get("title", "unknown"))
+                ident = agent.get("identifier") or name
+                install_cmd = f"forx skills install lobehub/{ident}" if source_label == "LobeHub" else f"forx skills install {ident}"
                 skills.append({
-                    "name": agent.get("identifier", agent.get("meta", {}).get("title", "unknown")),
+                    "name": name,
                     "description": (agent.get("meta", {}).get("description", "") or "").split("\n")[0][:200],
                     "category": _guess_category(agent.get("meta", {}).get("tags", [])),
                     "categoryLabel": "",
@@ -492,6 +495,8 @@ def extract_legacy_cache_skills():
                     "platforms": [],
                     "author": agent.get("author", ""),
                     "version": "",
+                    "identifier": ident,
+                    "installCmd": install_cmd,
                 })
             continue
 
@@ -501,8 +506,11 @@ def extract_legacy_cache_skills():
                     continue
                 if "skills" in entry and isinstance(entry["skills"], list):
                     continue
+                name = entry.get("name", "")
+                ident = entry.get("identifier") or name
+                install_cmd = f"forx skills install {ident}"
                 skills.append({
-                    "name": entry.get("name", ""),
+                    "name": name,
                     "description": entry.get("description", ""),
                     "category": "uncategorized",
                     "categoryLabel": "",
@@ -511,6 +519,8 @@ def extract_legacy_cache_skills():
                     "platforms": [],
                     "author": "",
                     "version": "",
+                    "identifier": ident,
+                    "installCmd": install_cmd,
                 })
 
     for s in skills:
