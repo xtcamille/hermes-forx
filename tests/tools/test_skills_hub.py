@@ -1714,7 +1714,7 @@ class TestInstallPathSafety:
         """Installing a skill whose name matches an existing category directory
         that contains other skills must NOT silently wipe that entire directory.
 
-        Regression test for GitHub issue #75983: ``hermes skills install … --name
+        Regression test for GitHub issue #75983: ``forx skills install … --name
         research`` deleted the whole ``skills/research/`` category bucket,
         destroying 16 unrelated skills.
         """

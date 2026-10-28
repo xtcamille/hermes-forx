@@ -1436,7 +1436,7 @@ DEFAULT_CONFIG = {
         # code via terminal() ungated, so it mostly blocks prose with risky keywords. On: a
         # dangerous verdict is a tool error the agent can retry. Hub installs are always scanned.
         "guard_agent_created": False,
-        # Advisory NVIDIA SkillEvaluator Tier 1 scan on `hermes skills install` (alongside the
+        # Advisory NVIDIA SkillEvaluator Tier 1 scan on `forx skills install` (alongside the
         # enforcing built-in guard), only if `skillevaluator` is on PATH (uv tool install
         # "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git"). Informational, never
         # blocking; secrets-class findings shown red. No-op without it.

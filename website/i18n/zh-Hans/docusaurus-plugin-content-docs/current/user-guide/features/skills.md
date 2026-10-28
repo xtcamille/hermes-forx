@@ -387,12 +387,12 @@ hermes skills search kubernetes                   # Search all sources
 hermes skills search react --source skills-sh     # Search the skills.sh directory
 hermes skills search https://mintlify.com/docs --source well-known
 hermes skills inspect openai/skills/k8s           # Preview before installing
-hermes skills install openai/skills/k8s           # Install with security scan
-hermes skills install official/security/1password
-hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
-hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
-hermes skills install https://sharethis.chat/SKILL.md              # 直接 URL（含引用的支持文件）
-hermes skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none
+forx skills install openai/skills/k8s           # Install with security scan
+forx skills install official/security/1password
+forx skills install skills-sh/vercel-labs/json-render/json-render-react --force
+forx skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
+forx skills install https://sharethis.chat/SKILL.md              # 直接 URL（含引用的支持文件）
+forx skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none
 hermes skills list --source hub                   # List hub-installed skills
 hermes skills check                               # Check installed hub skills for upstream updates
 hermes skills update                              # Reinstall hub skills with upstream changes when needed
@@ -430,7 +430,7 @@ Hermes 目前与以下 skills 生态系统和发现来源集成：
 
 ```bash
 hermes skills browse --source official
-hermes skills install official/security/1password
+forx skills install official/security/1password
 ```
 
 #### 2. skills.sh（`skills-sh`）
@@ -445,7 +445,7 @@ hermes skills install official/security/1password
 ```bash
 hermes skills search react --source skills-sh
 hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
-hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
+forx skills install skills-sh/vercel-labs/json-render/json-render-react --force
 ```
 
 #### 3. Well-known skill 端点（`well-known`）
@@ -459,7 +459,7 @@ hermes skills install skills-sh/vercel-labs/json-render/json-render-react --forc
 ```bash
 hermes skills search https://mintlify.com/docs --source well-known
 hermes skills inspect well-known:https://mintlify.com/docs/.well-known/skills/mintlify
-hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
+forx skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
 ```
 
 #### 4. 直接 GitHub skills（`github`）
@@ -477,7 +477,7 @@ Hermes 可以直接从 GitHub 仓库和基于 GitHub 的 tap 安装。当你已�
 - 示例：
 
 ```bash
-hermes skills install openai/skills/k8s
+forx skills install openai/skills/k8s
 hermes skills tap add myorg/skills-repo
 ```
 
@@ -509,7 +509,7 @@ Hermes 与 [browse.sh](https://browse.sh) 集成，这是 Browserbase 的目录�
 ```bash
 hermes skills search airbnb --source browse-sh
 hermes skills inspect browse-sh/airbnb.com/search-listings-ddgioa
-hermes skills install browse-sh/airbnb.com/search-listings-ddgioa
+forx skills install browse-sh/airbnb.com/search-listings-ddgioa
 ```
 
 标识符使用 `browse-sh/<hostname>/<task-id>` 的形式，与 browse.sh 目录公开的 slug 匹配。内容通过每个 skill 的详情端点（`/api/skills/<slug>` → `skillMdUrl`）解析，而不是通过目录的 GitHub `sourceUrl`。
@@ -523,8 +523,8 @@ hermes skills install browse-sh/airbnb.com/search-listings-ddgioa
 - 范围：`SKILL.md` 加上允许目录中明确引用的支持文件。Hermes 不会枚举或复制托管站点上的其他文件。
 
 ```bash
-hermes skills install https://sharethis.chat/SKILL.md
-hermes skills install https://example.com/my-skill/SKILL.md --category productivity
+forx skills install https://sharethis.chat/SKILL.md
+forx skills install https://example.com/my-skill/SKILL.md --category productivity
 ```
 
 名称解析顺序：
@@ -535,7 +535,7 @@ hermes skills install https://example.com/my-skill/SKILL.md --category productiv
 
 ```bash
 # Frontmatter 没有名称且 URL slug 无意义——手动提供：
-hermes skills install https://example.com/SKILL.md --name sharethis-chat
+forx skills install https://example.com/SKILL.md --name sharethis-chat
 
 # 或在聊天会话中：
 /skills install https://example.com/SKILL.md --name sharethis-chat
@@ -558,7 +558,7 @@ hermes skills install https://example.com/SKILL.md --name sharethis-chat
 当你已审查第三方 skill 并希望覆盖非危险性策略阻止时，使用 `--force`：
 
 ```bash
-hermes skills install skills-sh/anthropics/skills/pdf --force
+forx skills install skills-sh/anthropics/skills/pdf --force
 ```
 
 重要行为：
@@ -655,7 +655,7 @@ Step 1: ...
 ```bash
 hermes skills tap add my-org/hermes-skills
 hermes skills search deploy
-hermes skills install my-org/hermes-skills/deploy-runbook
+forx skills install my-org/hermes-skills/deploy-runbook
 ```
 
 #### 非默认路径
@@ -677,7 +677,7 @@ hermes skills install my-org/hermes-skills/deploy-runbook
 用户也可以从任何公开 GitHub 仓库安装单个 skill，而无需将整个仓库添加为 tap：
 
 ```bash
-hermes skills install owner/repo/skills/my-workflow
+forx skills install owner/repo/skills/my-workflow
 ```
 
 当你想分享一个 skill 而不要求用户订阅你的整个注册表时非常有用。

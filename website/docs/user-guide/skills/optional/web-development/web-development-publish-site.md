@@ -14,7 +14,7 @@ Versioned site deploys to GitHub/Cloudflare/Netlify Pages.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/web-development/publish-site` |
+| Source | Optional — install with `forx skills install official/web-development/publish-site` |
 | Path | `optional-skills/web-development/publish-site` |
 | Version | `1.0.0` |
 | Author | Hermes Agent (Nous Research) |

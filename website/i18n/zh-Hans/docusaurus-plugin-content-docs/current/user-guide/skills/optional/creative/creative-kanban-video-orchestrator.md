@@ -14,7 +14,7 @@ description: "规划、搭建并监控由 Hermes Kanban 支撑的多智能体视
 
 | | |
 |---|---|
-| 来源 | 可选 — 通过 `hermes skills install official/creative/kanban-video-orchestrator` 安装 |
+| 来源 | 可选 — 通过 `forx skills install official/creative/kanban-video-orchestrator` 安装 |
 | 路径 | `optional-skills/creative/kanban-video-orchestrator` |
 | 版本 | `1.0.0` |
 | 作者 | ['SHL0MS', 'alt-glitch'] |

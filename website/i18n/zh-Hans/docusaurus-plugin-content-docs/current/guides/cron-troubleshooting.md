@@ -109,7 +109,7 @@ cron:
 hermes skills list
 ```
 
-Skill 必须先安装才能附加到 cron 任务。若 skill 缺失，先用 `hermes skills install <skill-name>` 安装，或在 CLI 中通过 `/skills` 安装。
+Skill 必须先安装才能附加到 cron 任务。若 skill 缺失，先用 `forx skills install <skill-name>` 安装，或在 CLI 中通过 `/skills` 安装。
 
 ### 检查 2：检查 skill 名称与 skill 文件夹名称
 
@@ -153,7 +153,7 @@ hermes cron edit <job_id> --script ~/.hermes/scripts/your-script.py
 ```
 
 **任务执行时报 "Skill not found"**
-Skill 必须安装在运行调度器的机器上。若你在不同机器间切换，skill 不会自动同步——请用 `hermes skills install <skill-name>` 重新安装。
+Skill 必须安装在运行调度器的机器上。若你在不同机器间切换，skill 不会自动同步——请用 `forx skills install <skill-name>` 重新安装。
 
 **任务运行但没有投递任何内容**
 可能是投递目标问题（见上方"投递失败"部分）或响应被静默抑制（`[SILENT]`）。

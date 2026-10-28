@@ -14,7 +14,7 @@ llama.cpp local GGUF inference + HF Hub model discovery.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/llama-cpp` |
+| Source | Optional — install with `forx skills install official/mlops/llama-cpp` |
 | Path | `optional-skills/mlops/inference/llama-cpp` |
 | Version | `2.1.2` |
 | Author | Orchestra Research |

@@ -1028,7 +1028,7 @@ hooks:
 ```bash
 hermes skills tap add myorg/skills-repo
 hermes skills search my-workflow --source myorg/skills-repo
-hermes skills install myorg/skills-repo/my-workflow
+forx skills install myorg/skills-repo/my-workflow
 ```
 
 发布你自己的 tap 只需一个包含 `skills/<skill-name>/SKILL.md` 目录的 GitHub 仓库——无需服务器或注册表注册。

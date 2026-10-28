@@ -14,7 +14,7 @@ Draw code changes as animated architecture/data-flow SVGs.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/software-development/pr-lens` |
+| Source | Optional — install with `forx skills install official/software-development/pr-lens` |
 | Path | `optional-skills/software-development/pr-lens` |
 | Version | `1.0.0` |
 | Author | Coldtea AI (adapted by Nous Research) |

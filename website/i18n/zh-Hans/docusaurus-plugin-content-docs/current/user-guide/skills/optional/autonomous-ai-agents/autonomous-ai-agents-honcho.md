@@ -14,7 +14,7 @@ description: "配置并使用 Honcho 记忆功能与 Hermes -- 跨会话用户�
 
 | | |
 |---|---|
-| 来源 | 可选 — 通过 `hermes skills install official/autonomous-ai-agents/honcho` 安装 |
+| 来源 | 可选 — 通过 `forx skills install official/autonomous-ai-agents/honcho` 安装 |
 | 路径 | `optional-skills/autonomous-ai-agents/honcho` |
 | 版本 | `2.0.0` |
 | 作者 | Hermes Agent |

@@ -14,7 +14,7 @@ Automate Unreal Engine editor scenes, actors, and renders.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/creative/unreal-mcp` |
+| Source | Optional — install with `forx skills install official/creative/unreal-mcp` |
 | Path | `optional-skills/creative/unreal-mcp` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |

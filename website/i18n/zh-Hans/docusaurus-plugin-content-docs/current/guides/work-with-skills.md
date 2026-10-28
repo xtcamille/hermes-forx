@@ -90,13 +90,13 @@ Skills 采用 token 高效的加载模式，agent 不会一次性加载所有内
 
 ```bash
 # 安装官方可选 skill
-hermes skills install official/research/arxiv
+forx skills install official/research/arxiv
 
 # 在聊天会话中从 Hub 安装
 /skills install official/creative/songwriting-and-ai-music
 
 # 从 HTTP(S) URL 安装 SKILL.md 及其引用的支持文件
-hermes skills install https://sharethis.chat/SKILL.md
+forx skills install https://sharethis.chat/SKILL.md
 /skills install https://example.com/SKILL.md --name my-skill
 ```
 

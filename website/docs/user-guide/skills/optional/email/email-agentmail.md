@@ -14,7 +14,7 @@ Use when an agent needs AgentMail CLI email inboxes.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/email/agentmail` |
+| Source | Optional — install with `forx skills install official/email/agentmail` |
 | Path | `optional-skills/email/agentmail` |
 | Version | `1.0.0` |
 | Author | Haakam Aujla (Haakam21), AgentMail |

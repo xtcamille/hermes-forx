@@ -7,7 +7,7 @@ user docs: `website/docs/user-guide/features/skills.md`, `curator.md`.
 
 - **`skills/`** — built-in, loadable by default, organised by category (`skills/github/`, `skills/mlops/`).
 - **`optional-skills/`** — heavier/niche skills shipped but NOT active; installed via
-  `hermes skills install official/<category>/<skill>` (adapter `tools/skills_hub_official.py`
+  `forx skills install official/<category>/<skill>` (adapter `tools/skills_hub_official.py`
   `OptionalSkillSource`). Categories: `autonomous-ai-agents, blockchain, communication, creative,
   devops, email, health, mcp, migration, mlops, productivity, research, security, web-development`.
 

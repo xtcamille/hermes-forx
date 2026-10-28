@@ -14,7 +14,7 @@ Design and build cinematic, award-level web pages.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/creative/auteur` |
+| Source | Optional — install with `forx skills install official/creative/auteur` |
 | Path | `optional-skills/creative/auteur` |
 | Version | `1.3.1` |
 | Author | agiwhitelist (https://github.com/agiwhitelist, upstream agiwhitelist/auteur), ported by Hermes Agent |

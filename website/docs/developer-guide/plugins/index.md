@@ -1683,7 +1683,7 @@ If you maintain a GitHub repo of skills (or want to pull from a community index 
 ```bash
 hermes skills tap add myorg/skills-repo
 hermes skills search my-workflow --source myorg/skills-repo
-hermes skills install myorg/skills-repo/my-workflow
+forx skills install myorg/skills-repo/my-workflow
 ```
 
 Publishing your own tap is just a GitHub repo with `skills/<skill-name>/SKILL.md` directories — no server or registry signup needed.

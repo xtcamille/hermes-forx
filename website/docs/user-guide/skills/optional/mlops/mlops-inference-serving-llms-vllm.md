@@ -14,7 +14,7 @@ vLLM: high-throughput LLM serving, OpenAI API, quantization.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/serving-llms-vllm` |
+| Source | Optional — install with `forx skills install official/mlops/serving-llms-vllm` |
 | Path | `optional-skills/mlops/inference/serving-llms-vllm` |
 | Version | `1.0.1` |
 | Author | Orchestra Research |

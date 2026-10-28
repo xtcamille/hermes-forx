@@ -14,7 +14,7 @@ Present property and rental listings as desktop cards.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/productivity/property-listings` |
+| Source | Optional — install with `forx skills install official/productivity/property-listings` |
 | Path | `optional-skills/productivity/property-listings` |
 | Version | `0.1.0` |
 | Author | Teknium (teknium1), Hermes Agent |
@@ -50,7 +50,7 @@ This is a presentation recipe, not a listing search service or an investment val
 Install this optional skill through the Skills catalog, or use `terminal`:
 
 ```text
-hermes skills install official/productivity/property-listings
+forx skills install official/productivity/property-listings
 ```
 
 Load it with `skill_view(name="property-listings")` when presenting listings.

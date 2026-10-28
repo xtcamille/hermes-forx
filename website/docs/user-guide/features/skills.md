@@ -673,12 +673,12 @@ hermes skills search kubernetes                   # Search all sources
 hermes skills search react --source skills-sh     # Search the skills.sh directory
 hermes skills search https://mintlify.com/docs --source well-known
 hermes skills inspect openai/skills/k8s           # Preview before installing
-hermes skills install openai/skills/k8s           # Install with security scan
-hermes skills install official/security/1password
-hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
-hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
-hermes skills install https://sharethis.chat/SKILL.md              # Direct URL (+ referenced support files)
-hermes skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none
+forx skills install openai/skills/k8s           # Install with security scan
+forx skills install official/security/1password
+forx skills install skills-sh/vercel-labs/json-render/json-render-react --force
+forx skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
+forx skills install https://sharethis.chat/SKILL.md              # Direct URL (+ referenced support files)
+forx skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none
 hermes skills list --source hub                   # List hub-installed skills
 hermes skills check                               # Check installed hub skills for upstream updates
 hermes skills update                              # Reinstall hub skills with upstream changes when needed
@@ -716,7 +716,7 @@ These are maintained in the Hermes repository itself and install with built-in t
 
 ```bash
 hermes skills browse --source official
-hermes skills install official/security/1password
+forx skills install official/security/1password
 ```
 
 #### 2. skills.sh (`skills-sh`)
@@ -731,7 +731,7 @@ This is Vercel's public skills directory. Hermes can search it directly, inspect
 ```bash
 hermes skills search react --source skills-sh
 hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
-hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
+forx skills install skills-sh/vercel-labs/json-render/json-render-react --force
 ```
 
 #### 3. Well-known skill endpoints (`well-known`)
@@ -745,7 +745,7 @@ This is URL-based discovery from sites that publish `/.well-known/skills/index.j
 ```bash
 hermes skills search https://mintlify.com/docs --source well-known
 hermes skills inspect well-known:https://mintlify.com/docs/.well-known/skills/mintlify
-hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
+forx skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
 ```
 
 #### 4. Direct GitHub skills (`github`)
@@ -763,7 +763,7 @@ Default taps (browsable without any setup):
 - Example:
 
 ```bash
-hermes skills install openai/skills/k8s
+forx skills install openai/skills/k8s
 hermes skills tap add myorg/skills-repo
 ```
 
@@ -814,7 +814,7 @@ Hermes integrates with [browse.sh](https://browse.sh), Browserbase's catalog of 
 ```bash
 hermes skills search airbnb --source browse-sh
 hermes skills inspect browse-sh/airbnb.com/search-listings-ddgioa
-hermes skills install browse-sh/airbnb.com/search-listings-ddgioa
+forx skills install browse-sh/airbnb.com/search-listings-ddgioa
 ```
 
 Identifiers use the form `browse-sh/<hostname>/<task-id>` and match the slug exposed by the browse.sh catalog. Content is resolved through the per-skill detail endpoint (`/api/skills/<slug>` → `skillMdUrl`), not through the catalog's GitHub `sourceUrl`.
@@ -828,8 +828,8 @@ Install `SKILL.md` directly from any HTTP(S) URL — useful when an author hosts
 - Scope: `SKILL.md` plus exact referenced support files in the allowlisted directories. Hermes does not enumerate or copy unrelated files from the host.
 
 ```bash
-hermes skills install https://sharethis.chat/SKILL.md
-hermes skills install https://example.com/my-skill/SKILL.md --category productivity
+forx skills install https://sharethis.chat/SKILL.md
+forx skills install https://example.com/my-skill/SKILL.md --category productivity
 ```
 
 Name resolution, in order:
@@ -840,7 +840,7 @@ Name resolution, in order:
 
 ```bash
 # Frontmatter has no name and the URL slug is unhelpful — supply one:
-hermes skills install https://example.com/SKILL.md --name sharethis-chat
+forx skills install https://example.com/SKILL.md --name sharethis-chat
 
 # Or inside a chat session:
 /skills install https://example.com/SKILL.md --name sharethis-chat
@@ -863,7 +863,7 @@ All hub-installed skills go through a **security scanner** that checks for data 
 Use `--force` when you have reviewed a third-party skill and want to override a non-dangerous policy block:
 
 ```bash
-hermes skills install skills-sh/anthropics/skills/pdf --force
+forx skills install skills-sh/anthropics/skills/pdf --force
 ```
 
 Important behavior:
@@ -967,7 +967,7 @@ After pushing that to GitHub, any Hermes user can subscribe and install:
 ```bash
 hermes skills tap add my-org/hermes-skills
 hermes skills search deploy
-hermes skills install my-org/hermes-skills/deploy-runbook
+forx skills install my-org/hermes-skills/deploy-runbook
 ```
 
 #### Non-default paths
@@ -989,7 +989,7 @@ The `hermes skills tap add` CLI defaults new taps to `path: "skills/"`; edit the
 Users can also install a single skill from any public GitHub repo without adding the whole repo as a tap:
 
 ```bash
-hermes skills install owner/repo/skills/my-workflow
+forx skills install owner/repo/skills/my-workflow
 ```
 
 Useful when you want to share one skill without asking the user to subscribe to your whole registry.

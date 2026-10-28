@@ -304,7 +304,7 @@ Hermes ships with a catalog of bundled skills already installed in `~/.hermes/sk
 ```bash
 hermes skills browse                      # list everything available
 hermes skills search kubernetes           # find skills by keyword
-hermes skills install openai/skills/k8s   # install one (runs a security scan first)
+forx skills install openai/skills/k8s   # install one (runs a security scan first)
 ```
 
 The install argument is a `source/path` slug from the hub — `openai/skills/k8s` means the `k8s` skill from OpenAI's catalog. `hermes skills browse` shows the exact slugs to use.

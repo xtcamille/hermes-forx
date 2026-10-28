@@ -256,7 +256,7 @@ def render_pack_review(console, pack: PluginPack, resolved: List[ResolvedPackPlu
     if pack.skills:
         console.print(
             "[yellow]Pack lists skills (NOT auto-installed yet):[/yellow] " + ", ".join(pack.skills))
-        console.print("[dim]Install them manually, e.g. `hermes skills install <id>`.[/dim]")
+        console.print("[dim]Install them manually, e.g. `forx skills install <id>`.[/dim]")
     console.print(
         "\n[dim]Installing a pack runs third-party code × "
         f"{len(resolved)} plugins. Each plugin's declared capabilities still "

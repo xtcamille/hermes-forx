@@ -269,7 +269,7 @@ uv pip install --python ./venv/bin/python -e ".[voice]"
 
 ```bash
 hermes skills search kubernetes
-hermes skills install openai/skills/k8s
+forx skills install openai/skills/k8s
 ```
 
 或在聊天会话中使用 `/skills`。

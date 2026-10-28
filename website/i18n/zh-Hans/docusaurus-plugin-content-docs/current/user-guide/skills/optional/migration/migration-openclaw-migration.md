@@ -14,7 +14,7 @@ description: "将用户的 OpenClaw 自定义配置迁移到 Hermes Agent"
 
 | | |
 |---|---|
-| 来源 | 可选 — 通过 `hermes skills install official/migration/openclaw-migration` 安装 |
+| 来源 | 可选 — 通过 `forx skills install official/migration/openclaw-migration` 安装 |
 | 路径 | `optional-skills/migration/openclaw-migration` |
 | 版本 | `1.0.0` |
 | 作者 | Hermes Agent (Nous Research) |

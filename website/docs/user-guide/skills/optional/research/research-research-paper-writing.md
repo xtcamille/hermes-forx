@@ -14,7 +14,7 @@ Write ML papers for NeurIPS/ICML/ICLR: design→submit.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/research/research-paper-writing` |
+| Source | Optional — install with `forx skills install official/research/research-paper-writing` |
 | Path | `optional-skills/research/research-paper-writing` |
 | Version | `1.1.0` |
 | Author | Orchestra Research |

@@ -2820,7 +2820,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                 install_path = f"official/{'/'.join(rel.parts)}"
                 return (
                     f"The **{command_name}** skill is available but not installed.\n"
-                    f"Install it with: `hermes skills install {install_path}`")
+                    f"Install it with: `forx skills install {install_path}`")
     except Exception:
         pass
     return None

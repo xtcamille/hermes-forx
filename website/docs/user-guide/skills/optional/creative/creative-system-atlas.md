@@ -14,7 +14,7 @@ Build explorable isometric architecture atlases as HTML.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/creative/system-atlas` |
+| Source | Optional — install with `forx skills install official/creative/system-atlas` |
 | Path | `optional-skills/creative/system-atlas` |
 | Version | `1.0.0` |
 | Author | Harshyt Goel (adapted by Nous Research) |

@@ -14,7 +14,7 @@ Plan and run multi-agent video production pipelines.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/creative/kanban-video-orchestrator` |
+| Source | Optional — install with `forx skills install official/creative/kanban-video-orchestrator` |
 | Path | `optional-skills/creative/kanban-video-orchestrator` |
 | Version | `1.0.0` |
 | Author | ['SHL0MS', 'alt-glitch'] |

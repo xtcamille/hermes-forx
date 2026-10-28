@@ -14,7 +14,7 @@ Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/research/blogwatcher` |
+| Source | Optional — install with `forx skills install official/research/blogwatcher` |
 | Path | `optional-skills/research/blogwatcher` |
 | Version | `2.0.0` |
 | Author | JulienTant (fork of Hyaxia/blogwatcher) |

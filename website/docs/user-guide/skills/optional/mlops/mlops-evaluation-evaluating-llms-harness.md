@@ -14,7 +14,7 @@ lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.).
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/evaluating-llms-harness` |
+| Source | Optional — install with `forx skills install official/mlops/evaluating-llms-harness` |
 | Path | `optional-skills/mlops/evaluation/evaluating-llms-harness` |
 | Version | `1.0.1` |
 | Author | Orchestra Research |

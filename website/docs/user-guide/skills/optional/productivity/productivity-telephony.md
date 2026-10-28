@@ -14,7 +14,7 @@ Provision Twilio numbers, SMS/MMS, and AI outbound calls.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/productivity/telephony` |
+| Source | Optional — install with `forx skills install official/productivity/telephony` |
 | Path | `optional-skills/productivity/telephony` |
 | Version | `1.0.0` |
 | Author | Nous Research |
@@ -158,7 +158,7 @@ This is an official optional skill, so install it from the Skills Hub:
 
 ```bash
 hermes skills search telephony
-hermes skills install official/productivity/telephony
+forx skills install official/productivity/telephony
 ```
 
 ## Provider setup

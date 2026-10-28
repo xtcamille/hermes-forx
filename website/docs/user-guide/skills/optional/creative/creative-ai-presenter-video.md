@@ -14,7 +14,7 @@ Make a verified AI presenter video from script + image.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/creative/ai-presenter-video` |
+| Source | Optional — install with `forx skills install official/creative/ai-presenter-video` |
 | Path | `optional-skills/creative/ai-presenter-video` |
 | Version | `1.0.0` |
 | Author | cclank (https://github.com/cclank/lanshu-create-ai-presenter-video), ported by Hermes Agent |

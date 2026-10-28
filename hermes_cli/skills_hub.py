@@ -64,7 +64,7 @@ def _truncate(text: str, width: int) -> str:
 def _ident_col(style: str) -> tuple:
     # overflow="fold" keeps the full slug visible (wraps instead of ellipsis-truncating):
     # browse.sh slugs end in a `-XXXXXX` hash that is part of the identifier users must
-    # copy into `hermes skills install`.
+    # copy into `forx skills install`.
     return "Identifier", {"style": style, "overflow": "fold", "no_wrap": False}
 
 
@@ -344,8 +344,8 @@ def do_search(query: str, source: str = "all", limit: int = 10, console: Optiona
         table.add_row(r.name, _truncate(r.description, 60), _display_source(r),
                       _trust_cell(r.trust_level, r.source), r.identifier)
     c.print(table)
-    c.print("[dim]Use: hermes skills inspect <identifier> to preview, "
-            "hermes skills install <identifier> to install "
+    c.print("[dim]Use: forx skills inspect <identifier> to preview, "
+            "forx skills install <identifier> to install "
             "(--json for scripting)[/]\n")
 
 
@@ -413,9 +413,9 @@ def _render_browse_page(c: Console, deduped, page_items, page: int, total_pages:
     if timed_out:
         c.print(f"  [yellow]⚡ Slow sources skipped: {', '.join(timed_out)} "
                 f"— run again for cached results[/]")
-    c.print("[dim]Tip: 'hermes skills inspect <identifier>' to preview, "
-            "'hermes skills install <identifier>' to install, "
-            "'hermes skills search <query>' to search deeper[/]\n")
+    c.print("[dim]Tip: 'forx skills inspect <identifier>' to preview, "
+            "'forx skills install <identifier>' to install, "
+            "'forx skills search <query>' to search deeper[/]\n")
 
 
 def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
@@ -476,7 +476,7 @@ def do_inspect(identifier: str, console: Optional[Console] = None) -> None:
     c.print(Panel("\n".join(info_lines), title=f"Skill: {meta.name}"))
     preview = _skill_md_preview(bundle)
     if preview is not None:
-        c.print(Panel(preview, title="SKILL.md Preview", subtitle="hermes skills install <id> to install"))
+        c.print(Panel(preview, title="SKILL.md Preview", subtitle="forx skills install <id> to install"))
     c.print()
 
 
@@ -546,7 +546,7 @@ def _resolve_url_bundle_name(c: Console, bundle, meta, identifier: str,
                 "and the URL path doesn't produce a valid identifier.[/]\n\n"
                 "Retry with an explicit name:\n"
                 f"  [bold]/skills install {url} --name <your-name>[/]\n"
-                f"  [bold]hermes skills install {url} --name <your-name>[/]\n\n"
+                f"  [bold]forx skills install {url} --name <your-name>[/]\n\n"
                 "[dim]Or ask the SKILL.md's author to add a `name:` field to "
                 "its YAML frontmatter.[/]\n")
         return False

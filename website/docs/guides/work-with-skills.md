@@ -90,13 +90,13 @@ Official optional skills ship with Hermes but aren't active by default. Install 
 
 ```bash
 # Install an official optional skill
-hermes skills install official/research/arxiv
+forx skills install official/research/arxiv
 
 # Install from the hub in a chat session
 /skills install official/creative/songwriting-and-ai-music
 
 # Install SKILL.md and its referenced support files from an HTTP(S) URL
-hermes skills install https://sharethis.chat/SKILL.md
+forx skills install https://sharethis.chat/SKILL.md
 /skills install https://example.com/SKILL.md --name my-skill
 ```
 

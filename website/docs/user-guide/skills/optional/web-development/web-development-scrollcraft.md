@@ -14,7 +14,7 @@ Premium scroll-driven landing pages; scroll = timeline.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/web-development/scrollcraft` |
+| Source | Optional — install with `forx skills install official/web-development/scrollcraft` |
 | Path | `optional-skills/web-development/scrollcraft` |
 | Version | `1.0.0` |
 | Author | nateherkai (upstream scroll-craft), ported by Hermes Agent |

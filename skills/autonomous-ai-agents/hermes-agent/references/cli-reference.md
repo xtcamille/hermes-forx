@@ -54,11 +54,11 @@ hermes status [--all]       Component status
 ```
 hermes tools [list|enable NAME|disable NAME]   Per-platform toolsets (curses UI with no args)
 
-hermes skills list|browse|search QUERY|inspect ID
-hermes skills install ID    Hub identifier OR a direct https://…/SKILL.md URL
-hermes skills config        Enable/disable skills per platform
-hermes skills check|update|uninstall|publish PATH
-hermes skills tap add REPO  Add a GitHub repo as a skill source
+forx skills list|browse|search QUERY|inspect ID
+forx skills install ID    Hub identifier OR a direct https://…/SKILL.md URL
+forx skills config        Enable/disable skills per platform
+forx skills check|update|uninstall|publish PATH
+forx skills tap add REPO  Add a GitHub repo as a skill source
 hermes bundles              Skill bundles (one /<name> alias loads several skills)
 ```
 
