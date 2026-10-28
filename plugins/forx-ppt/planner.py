@@ -12,11 +12,11 @@ from .storage import Store, encoded
 
 
 class DraftSlide(Model):
-    title: str = Field(min_length=1, max_length=128, description="幻灯片页面标题")
+    title: str = Field(min_length=1, max_length=128, description="幻灯片页面标题（鲜明有力的核心主旨句）")
     bullets: list[str] = Field(
         min_length=1,
         max_length=12,
-        description="页面正文要点列表（每页必须提供 2-6 条具体阐述要点，不可为空数组，不能仅有标题）",
+        description="页面正文要点列表（每页提供 2-6 条高信息密度要点，格式采用【论点/核心模块】+ 详实阐述或量化指标，不可为空数组）",
     )
     layout_id: Literal["L001", "L002", "L003", "L004", "L005", "L006", "L007", "L008", "L009", "L010"] = "L003"
     notes: str = Field("", max_length=20000, description="演讲者备注或补充说明")
@@ -114,9 +114,17 @@ async def converse(prompt, request_id, project_id=None, revision=None, selection
         instructions=(
             INSTRUCTIONS
             + "\n生成新演示文稿。严格遵守用户总页数（含封面）。一页一个主题。"
-            + "\n【核心要求】每一页必须在 bullets 字段中生成 2-6 条具体的正文要点/论据展开，严禁只生成标题而 bullets 为空数组！严禁将正文内容只写在 notes 中。"
-            + "\n版式可选：L001封面、L002目录、L003标题正文、L004图文双栏、L005结束页、L006时间轴、L007多列卡片、L008关键指标、L009四象限SWOT、L010方案对比。"
-            + "\n没有素材时不虚构图片或绘制无关装饰。"
+            + "\n【内容生成质量与结构要求】"
+            + "\n1. 每一页必须在 bullets 字段中生成 2-6 条高质量正文要点，严禁空数组或仅生成标题！"
+            + "\n2. 要点采用结构化专业表述：【核心论点/模块名】+ 具体事实/落地措施/技术方案/量化指标，避免单薄的空泛短语。"
+            + "\n3. 版式内容特化要求："
+            + "\n   - L008 关键指标：每条必须包含具体的量化指标数值与说明（如 '99.99% 可用性保障：跨机房双活容灾'、'300% 创作提效：AI全流程赋能'）。"
+            + "\n   - L007 多列卡片：每条代表一个核心支柱模块（如 '模块化解耦体系：微内核插件架构，降低研发开销'）。"
+            + "\n   - L006 时间轴：每条按阶段推进规划（如 '阶段一 (Q1 启动期)：需求调研与架构选型 — 完成PoC原型验证'）。"
+            + "\n   - L009 四象限SWOT：依次包含优势(S)、劣势(W)、机会(O)、威胁(T)四项深度洞察。"
+            + "\n   - L010 方案对比：两条分别对应方案A（基准）与方案B（推荐目标方案），突出收益与对比差异。"
+            + "\n   - L004 图文双栏：左侧为论述要点，右侧自动预留适配专业插图与视觉卡片。"
+            + "\n4. 没有素材时不虚构图片或绘制无关装饰。"
         ),
         input=[{"type": "text", "text": prompt}], json_schema=Draft.model_json_schema(),
         schema_name="forx_ppt_draft", temperature=0.3, max_tokens=14000, timeout=120, purpose="ppt.create")
@@ -154,14 +162,18 @@ async def convert_document(text, title=None, target_pages=8, theme_name="busines
     model = client or llm_client()
     instructions = (
         INSTRUCTIONS
-        + f"\n文档转PPT任务。将输入的长文或大纲萃取为恰好 {target_pages} 页的高质量演示文稿。"
-        + "\n【核心要求】每一页都必须包含两部分核心内容："
-        + "\n1. title: 该页的鲜明主题大标题。"
-        + "\n2. bullets: 该页的具体正文要点或展开叙述，每页必须提供 2-6 条具体要点（字符串列表）。"
-        + "\n   - 封面页(L001)：bullets 包含副标题与汇报人/日期信息；"
-        + "\n   - 目录页(L002)：bullets 包含各个章节导航条目；"
-        + "\n   - 正文/卡片/对比页：bullets 提炼具体的数据、论据、架构特点或方案对比项；"
-        + "\n   - 致谢页(L005)：bullets 包含致谢语与Q&A提示。"
+        + f"\n文档转PPT任务。将输入的长文或大纲萃取为恰好 {target_pages} 页的高质量专业级演示文稿。"
+        + "\n【深度提炼与要点结构要求】"
+        + "\n1. 深度提炼：提炼原文关键论点、架构设计、技术选型与量化成果，剔除冗余修饰，保证咨询报告级信息密度。"
+        + "\n2. 结构化要点：每页必须在 bullets 字段生成 2-6 条具体正文要点（字符串列表），格式统一采用【核心论点/模块名】+ 具体事实/量化数据/实施措施。"
+        + "\n   - 封面页(L001)：bullets 包含副标题与汇报人/日期/团队信息；"
+        + "\n   - 目录页(L002)：bullets 包含4个清晰聚焦的章节导航条目（带章节编号与主旨）；"
+        + "\n   - 关键指标页(L008)：bullets 必须提供明确量化数字（如 99.99%、300%、50K+ 等）与指标业务说明；"
+        + "\n   - 多列卡片页(L007)：bullets 提炼3-4个清晰解耦的核心支柱或能力模块；"
+        + "\n   - 时间轴页(L006)：bullets 按 Q1/Q2/Q3/Q4 或 阶段一至阶段四 划分推进历程与里程碑；"
+        + "\n   - 四象限SWOT(L009)：分别对应优势(S)、劣势(W)、机会(O)、威胁(T)四维度；"
+        + "\n   - 方案对比(L010)：分别对应方案 A 与方案 B，提炼核心差异与优劣势；"
+        + "\n   - 结束页(L005)：bullets 包含致谢语与Q&A互动提示。"
         + "\n【严禁行为】严禁只生成 title 而将 bullets 留空！严禁把正文内容只写在 notes 中！bullets 绝对不可为空数组！"
         + "\n根据每一页的内容特性合理挑选最具视觉说服力的版式（L001-L010）："
         + "\n- 第1页必须是 L001 封面；第2页通常为 L002 目录；最后一页为 L005 结束页"

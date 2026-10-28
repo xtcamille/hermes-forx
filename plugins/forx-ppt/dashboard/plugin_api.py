@@ -28,6 +28,7 @@ storage = __import__(_name + ".storage", fromlist=["Store"])
 planner = __import__(_name + ".planner", fromlist=["converse"])
 preview = __import__(_name + ".preview", fromlist=["render"])
 themes = __import__(_name + ".themes", fromlist=["THEMES"])
+visual_gen = __import__(_name + ".visual_gen", fromlist=["create_presentation_visual"])
 
 
 class ScopedRoute(APIRoute):
@@ -104,6 +105,15 @@ class Cancel(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
 
+class GenerateImage(Body):
+    prompt: str = Field(min_length=1, max_length=2000)
+    aspect_ratio: str = "landscape"
+    style: str = "illustration"
+    project_id: str | None = None
+    slide_id: str | None = None
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 @router.get("/status")
 async def status():
     from hermes_constants import hermes_home_key
@@ -145,6 +155,79 @@ async def from_doc(body: DocToDeck):
         import logging
         logging.getLogger(__name__).exception("PPT doc conversion failed")
         raise HTTPException(502, "文档转 PPT 失败，请检查模型连接与文本内容后重试。") from exc
+
+
+@router.post("/generate-image")
+async def generate_image(body: GenerateImage):
+    clean_prompt = body.prompt.strip()
+    presets = {
+        "illustration": "Minimalist modern flat vector illustration for enterprise presentation, clean geometric shapes, sophisticated corporate color palette, white background, no text, high resolution",
+        "tech": "Futuristic deep tech cyberspace illustration, dark mode, glowing cyan and azure accents, sleek isometric digital infrastructure, professional presentation visual, 8k",
+        "3d": "Modern 3D clay and glassmorphic isometric render, clean lighting, soft shadows, vibrant aesthetic, enterprise business concept, studio lighting",
+        "photo": "Professional high-end commercial corporate photography, cinematic lighting, ultra-detailed, depth of field, 8k resolution",
+    }
+    style_addon = presets.get(body.style, presets["illustration"])
+    enhanced_prompt = f"{clean_prompt}, {style_addon}"
+
+    raw_png_bytes = None
+    provider_name = "visual-engine"
+    try:
+        from agent.image_gen_registry import get_active_provider
+        active_p = get_active_provider()
+        if active_p is not None and getattr(active_p, "is_available", lambda: False)():
+            res = active_p.generate(enhanced_prompt, aspect_ratio=body.aspect_ratio)
+            if res.get("success") and res.get("image"):
+                img_path = res["image"]
+                from pathlib import Path
+                if Path(img_path).is_file():
+                    raw_png_bytes = Path(img_path).read_bytes()
+                    provider_name = res.get("provider", "ai-provider")
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Active image gen provider failed, falling back to visual generator: %s", exc)
+
+    if raw_png_bytes is None:
+        raw_png_bytes = visual_gen.create_presentation_visual(clean_prompt, aspect_ratio=body.aspect_ratio, style=body.style)
+        provider_name = "forx-visual-engine"
+
+    store = storage.Store()
+    asset_info = store.upload(raw_png_bytes)
+    asset_id = asset_info["asset_id"]
+
+    updated_deck = None
+    if body.project_id and body.slide_id:
+        try:
+            curr = store.get(body.project_id)
+            target_slide = next((s for s in curr["deck"]["slides"] if s["id"] == body.slide_id), None)
+            w = curr["deck"].get("width", 13.333333)
+            if target_slide and target_slide.get("layout_id") == "L004":
+                box = {"x": round(w / 2 + 0.3, 3), "y": 1.9, "width": round(w / 2 - 0.9, 3), "height": 4.8}
+            else:
+                box = {"x": round(w - 6.0, 3), "y": 2.0, "width": 5.4, "height": 4.6}
+            op = {
+                "action": "add_element",
+                "slide_id": body.slide_id,
+                "element": {
+                    "name": f"AI配图: {clean_prompt[:16]}",
+                    "kind": "image",
+                    "asset_id": asset_id,
+                    "box": box,
+                }
+            }
+            updated_deck = store.edit(body.project_id, curr["revision"], [op], body.request_id, f"AI生成配图: {clean_prompt[:20]}")
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Auto-insert into slide failed: %s", exc)
+
+    return {
+        "success": True,
+        "asset_id": asset_id,
+        "width": asset_info["width"],
+        "height": asset_info["height"],
+        "provider": provider_name,
+        "prompt": clean_prompt,
+        "result": updated_deck,
+    }
 
 
 @router.get("/projects/{project_id}")

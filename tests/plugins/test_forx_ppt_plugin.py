@@ -156,6 +156,10 @@ def test_discovery_native_objects_inheritance_identity_and_roundtrip(tmp_path, m
         native.shapes.title.text = "外部修改"
         changed = io.BytesIO(); prs.save(changed)
         check(client.post(PREFIX + "/import", json={"format": "pptx", "data": base64.b64encode(changed.getvalue()).decode(), "request_id": uuid.uuid4().hex}), 422)
+        # Test CLI generate-image command
+        assert command["handler_fn"](parser.parse_args(["generate-image", "--prompt", "数据中心架构", "--project", pid])) == 0
+        gen_cli_out = json.loads(capsys.readouterr().out)
+        assert gen_cli_out["success"] is True and gen_cli_out["asset_id"]
         # Test CLI delete command
         assert command["handler_fn"](parser.parse_args(["delete", "--project", pid])) == 0
         del_out = json.loads(capsys.readouterr().out)
@@ -261,6 +265,29 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         l6_res = edit(client, doc_deck, l6_add)
         assert l6_res["deck"]["slides"][-1]["layout_id"] == "L006"
         assert check(client.get(f'{PREFIX}/projects/{b["deck"]["id"]}?profile=ppt-b')) == b
+        # Test AI image generation API
+        img_gen = check(client.post(PREFIX + "/generate-image", json={
+            "prompt": "云原生微服务数据流",
+            "aspect_ratio": "landscape",
+            "style": "tech",
+            "project_id": doc_deck["deck"]["id"],
+            "slide_id": doc_deck["deck"]["slides"][0]["id"],
+            "request_id": "gen-img-1",
+        }))
+        assert img_gen["success"] is True and img_gen["asset_id"]
+        assert img_gen["provider"] in ("forx-visual-engine", "ai-provider", "built-in")
+        doc_updated = check(client.get(f'{PREFIX}/projects/{doc_deck["deck"]["id"]}'))
+        assert any(e["kind"] == "image" for e in doc_updated["deck"]["slides"][0]["elements"])
+
+        # Test fine-grained elements expansion (L007 multi-card layout)
+        l7_add = [{"action": "add_slide", "slide": {"title": "技术优势", "layout_id": "L007", "bullets": ["模块化解耦：微内核架构", "自适应排版：像素级对齐", "离线高安全：数字资产隔离"]}}]
+        l7_res = edit(client, doc_updated, l7_add)
+        new_slide = l7_res["deck"]["slides"][-1]
+        assert new_slide["layout_id"] == "L007"
+        assert len(new_slide["elements"]) >= 10
+        assert any(e["kind"] == "shape" and "卡片背景" in e["name"] for e in new_slide["elements"])
+        assert any(e["kind"] == "text" and "卡片标题" in e["name"] for e in new_slide["elements"])
+
         assert check(client.get(f"{PREFIX}/projects/{pid}"))["revision"] == with_id_res["revision"]
         assert check(client.get(f"{PREFIX}/projects/{pid}/history"))["history"][0]["version"] == with_id_res["revision"]
         # Test project deletion via API

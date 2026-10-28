@@ -9,8 +9,10 @@ from pathlib import Path
 
 
 def setup(parser):
-    parser.add_argument("action", choices=["list", "show", "create", "edit", "delete", "chat", "undo", "redo", "export", "import", "doctor", "doc-to-deck"])
+    parser.add_argument("action", choices=["list", "show", "create", "edit", "delete", "generate-image", "chat", "undo", "redo", "export", "import", "doctor", "doc-to-deck"])
     parser.add_argument("--project", help="Stable project identity")
+    parser.add_argument("--slide-id", help="Target slide id for image insertion")
+    parser.add_argument("--style", default="illustration", choices=["illustration", "tech", "3d", "photo"], help="Visual style preset")
     parser.add_argument("--revision", type=int, help="Expected current revision for writes")
     parser.add_argument("--input", help="UTF-8 JSON draft, document text file path, or operation list")
     parser.add_argument("--prompt", help="Natural language request or document text, using the host's active model")
@@ -99,9 +101,34 @@ def run(args, client=None):
         bundle = import_pptx(blob) if path.suffix.lower() == ".pptx" else json.loads(blob)
         return store.import_bundle(bundle, request_id, hashlib.sha256(blob).hexdigest())
 
+    def generate_image():
+        if not args.prompt:
+            raise ValueError("需要 --prompt 图像描述词")
+        from .visual_gen import create_presentation_visual
+        raw = create_presentation_visual(args.prompt, aspect_ratio="landscape", style=args.style or "illustration")
+        asset_info = store.upload(raw)
+        asset_id = asset_info["asset_id"]
+        res = {"success": True, "asset_id": asset_id, "width": asset_info["width"], "height": asset_info["height"]}
+        if args.project:
+            curr = store.get(args.project)
+            target_slide = args.slide_id or curr["deck"]["slides"][0]["id"]
+            op = {
+                "action": "add_element",
+                "slide_id": target_slide,
+                "element": {
+                    "name": f"AI配图: {args.prompt[:16]}",
+                    "kind": "image",
+                    "asset_id": asset_id,
+                    "box": {"x": 7.2, "y": 2.0, "width": 5.4, "height": 4.6},
+                }
+            }
+            res["deck"] = store.edit(args.project, curr["revision"], [op], request_id, f"AI生成配图: {args.prompt[:20]}")
+        return res
+
     handlers = {
         "list": store.list, "show": lambda: store.get(require_project()), "create": create,
-        "edit": edit, "delete": lambda: store.delete(require_project()), "chat": chat, "export": export, "import": import_file,
+        "edit": edit, "delete": lambda: store.delete(require_project()), "generate-image": generate_image,
+        "chat": chat, "export": export, "import": import_file,
         "doc-to-deck": doc_to_deck,
         "undo": lambda: store.travel(require_project(), args.revision, "undo", request_id),
         "redo": lambda: store.travel(require_project(), args.revision, "redo", request_id),

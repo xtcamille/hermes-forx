@@ -62,6 +62,7 @@ function controller(ctx, owner) {
     $before: atom(null), $compare: atom(false), $refresh: atom(0),
     $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
     $docModalOpen: atom(false), $layoutModalOpen: atom(false), $deleteModalOpen: atom(false),
+    $imageModalOpen: atom(false),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -120,6 +121,26 @@ function controller(ctx, owner) {
     }
     state.$deleteModalOpen.set(false)
     state.$refresh.set(state.$refresh.get() + 1)
+  })
+  state.generateImage = (prompt, style = 'illustration', aspectRatio = 'landscape') => state.perform('正在生成高清配图…', async () => {
+    const current = state.$doc.get()
+    const slideId = state.$slide.get()
+    const res = await state.request('/generate-image', {
+      method: 'POST',
+      timeoutMs: 120000,
+      body: {
+        prompt,
+        style,
+        aspect_ratio: aspectRatio,
+        project_id: current?.deck.id || null,
+        slide_id: slideId || null,
+        request_id: uid(),
+      }
+    })
+    state.$imageModalOpen.set(false)
+    if (res.result) {
+      state.accept(res.result)
+    }
   })
   state.send = () => state.perform('正在理解指令并更新文稿…', async () => {
     const prompt = state.$draft.get().trim()
@@ -193,6 +214,7 @@ function Toolbar({ c }) {
     h('div', { className: 'ppt-btn-group' },
       button('空白新建', c.create, !!busy),
       button('文档转PPT', () => c.$docModalOpen.set(true), !!busy),
+      button('🎨 AI生图', () => c.$imageModalOpen.set(true), !!busy),
       button('导入', () => upload.current.click(), !!busy),
     ),
     h('input', { ref: upload, type: 'file', accept: '.pptx,.forxppt', hidden: true, onChange: event => {
@@ -785,6 +807,142 @@ function DeleteProjectModal({ c }) {
   )
 }
 
+const IMAGE_PROMPT_PRESETS = [
+  { label: '☁️ 云原生架构', prompt: '现代化云原生高可用微服务架构概念图，数据流转与容器集群' },
+  { label: '🚀 战略增长飞轮', prompt: '企业商业战略增长飞轮与数字化推进矩阵示意图，科技极简' },
+  { label: '📊 数据资产大屏', prompt: '全景大数据分析仪表盘与量化监控大屏概念图，发光科技质感' },
+  { label: '🛡️ 企业数字安全', prompt: '企业级零信任数字安全与分布式加密防护盾牌概念插画' },
+  { label: '🤝 组织敏捷协同', prompt: '多团队敏捷协同与数字孪生项目全流程协作场景插画' },
+]
+
+function ImageGenModal({ c }) {
+  const open = useValue(c.$imageModalOpen), busy = useValue(c.$busy)
+  const doc = useValue(c.$doc), slideId = useValue(c.$slide)
+  const [prompt, setPrompt] = useState('')
+  const [style, setStyle] = useState('illustration')
+  const [aspectRatio, setAspectRatio] = useState('landscape')
+
+  if (!open) return null
+
+  const currentSlide = doc?.deck?.slides?.find(s => s.id === slideId)
+
+  const handleExtractFromSlide = () => {
+    if (!currentSlide) return
+    const title = currentSlide.name || ''
+    const bodyText = currentSlide.elements?.find(e => e.role === 'body' || e.kind === 'text')?.text || ''
+    const cleanBody = bodyText.split('\n')[0]?.replace(/[•\-*]/g, '').trim() || ''
+    const autoPrompt = `${title}${cleanBody ? '：' + cleanBody : ''} 现代商业概念配图，极简专业设计`
+    setPrompt(autoPrompt)
+  }
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return
+    await c.generateImage(prompt.trim(), style, aspectRatio)
+  }
+
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$imageModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-image-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'AI Visual'),
+            h('h3', { className: 'ppt-modal-title' }, '🎨 AI 智能内容配图 (Image Gen)')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '根据幻灯片主题或自定描述，AI 实时生成商业级高清配图并自动插入当前页面')
+        ),
+        h('button', {
+          type: 'button',
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          disabled: !!busy,
+          onClick: () => !busy && c.$imageModalOpen.set(false)
+        }, '✕')
+      ),
+      h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+        currentSlide && h('div', { className: 'ppt-ai-extract-card' },
+          h('div', { className: 'ppt-ai-extract-header' },
+            h('span', { className: 'ppt-muted', style: { fontSize: 11.5 } }, `当前页面：${currentSlide.id} · ${currentSlide.name}`),
+            h('button', {
+              type: 'button',
+              className: 'ppt-auto-prompt-btn',
+              disabled: !!busy,
+              onClick: handleExtractFromSlide
+            }, '🪄 从本页提取主旨')
+          )
+        ),
+        h('div', { className: 'ppt-presets-bar' },
+          h('span', { className: 'ppt-presets-label' }, '快捷灵感：'),
+          IMAGE_PROMPT_PRESETS.map((p, idx) => h('button', {
+            key: idx,
+            type: 'button',
+            className: 'ppt-preset-chip',
+            disabled: !!busy,
+            onClick: () => setPrompt(p.prompt)
+          }, p.label))
+        ),
+        h('div', { className: 'ppt-form-row' },
+          h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
+            h('label', { className: 'ppt-field-label', style: { margin: 0 } }, '配图画面描述词 (Prompt) *'),
+            h('span', { className: 'ppt-char-counter' }, `${prompt.trim().length} 字`)
+          ),
+          h('textarea', {
+            className: 'ppt-textarea ppt-cupertino-textarea',
+            rows: 4,
+            placeholder: '例如：云原生高可用微服务架构示意图，深蓝色科技渐变背景，极简矢量图表…',
+            value: prompt,
+            disabled: !!busy,
+            onChange: e => setPrompt(e.target.value)
+          })
+        ),
+        h('div', { className: 'ppt-form-grid-2col' },
+          h('div', { className: 'ppt-form-col' },
+            h('label', { className: 'ppt-field-label' }, '视觉风格 (Style)'),
+            h(SegmentedControl, {
+              value: style,
+              onChange: setStyle,
+              disabled: !!busy,
+              options: [
+                { label: '🎨 扁平插画', value: 'illustration' },
+                { label: '⚡ 科技深色', value: 'tech' },
+                { label: '🧊 3D立体', value: '3d' },
+                { label: '📷 商业摄影', value: 'photo' },
+              ]
+            })
+          ),
+          h('div', { className: 'ppt-form-col' },
+            h('label', { className: 'ppt-field-label' }, '画面比例 (Aspect Ratio)'),
+            h(SegmentedControl, {
+              value: aspectRatio,
+              onChange: setAspectRatio,
+              disabled: !!busy,
+              options: [
+                { label: '16:9 宽屏', value: 'landscape' },
+                { label: '1:1 正方', value: 'square' },
+                { label: '3:4 纵向', value: 'portrait' },
+              ]
+            })
+          )
+        )
+      ),
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '支持 DALL-E / Fal / 离线矢量图形引擎自适应生成'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          disabled: !!busy,
+          onClick: () => c.$imageModalOpen.set(false)
+        }, '取消'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-primary',
+          disabled: !!busy || !prompt.trim(),
+          onClick: handleGenerate
+        }, busy ? '正在生成高清配图…' : '🎨 立即生成并插入')
+      )
+    )
+  )
+}
+
 
 function Navigation({ c }) {
   const doc = useValue(c.$doc), refresh = useValue(c.$refresh)
@@ -1254,6 +1412,14 @@ const css = `
 .ppt-delete-warning-icon{font-size:16px;flex-shrink:0}
 .ppt-delete-warning-text strong{color:#ff3b30}
 
+/* Image Generation Modal Styles */
+.ppt-image-modal{width:640px;max-width:92vw}
+.ppt-ai-extract-card{background:rgba(120,120,128,0.08);border:1px solid rgba(120,120,128,0.18);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.ppt-ai-extract-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ppt-auto-prompt-btn{background:rgba(0,113,227,0.12)!important;color:#0071e3!important;border:1px solid rgba(0,113,227,0.3)!important;border-radius:980px!important;padding:4px 10px!important;font-size:11.5px!important;font-weight:600!important;cursor:pointer;transition:all 0.15s ease}
+.ppt-auto-prompt-btn:hover:not(:disabled){background:rgba(0,113,227,0.22)!important;transform:translateY(-0.5px)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-auto-prompt-btn{color:#2997ff!important;border-color:rgba(41,151,255,0.4)!important}
+
 @media(max-width:1000px){
   .ppt-pages{width:170px;min-width:150px}
   .ppt-side{width:290px;min-width:260px}
@@ -1304,7 +1470,8 @@ function Workbench({ c }) {
     ),
     h(LayoutPickerModal, { c }),
     h(DocToDeckModal, { c }),
-    h(DeleteProjectModal, { c })
+    h(DeleteProjectModal, { c }),
+    h(ImageGenModal, { c })
   )
 }
 

@@ -24,6 +24,11 @@ function mount(chat) {
       if (path === '/chat') return chat(options.body)
       if (path === '/cancel') return { cancelled: true }
       if (path === '/projects/from-doc') { current = makeDocument('文档生成文稿'); return { result: current, message: '转换成功' } }
+      if (path === '/generate-image') {
+        const assetId = 'a'.repeat(64)
+        if (current) current = { ...current, revision: current.revision + 1 }
+        return { success: true, asset_id: assetId, width: 1280, height: 720, provider: 'forx-visual-engine', result: current }
+      }
       if (path === '/projects' && options?.method === 'POST') { current = makeDocument(); return current }
       if (path === '/projects') return { projects: current ? [{ id: current.deck.id, name: current.deck.name }] : [] }
       if (path.startsWith('/projects/') && options?.method === 'DELETE') {
@@ -135,4 +140,20 @@ it('opens delete modal and confirms deck deletion', async () => {
   )).toBe(true))
   await screen.findByText('把想表达的内容变成可编辑 PPT')
   expect(screen.queryByText('测试文稿 · v1 · 已保存')).toBeNull()
+})
+
+it('opens AI image generation modal, fills prompt and generates image', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+  fireEvent.click(screen.getByRole('button', { name: '🎨 AI生图' }))
+  await screen.findByText('🎨 AI 智能内容配图 (Image Gen)')
+  expect(screen.getByText('🪄 从本页提取主旨')).toBeTruthy()
+  fireEvent.click(screen.getByText('🪄 从本页提取主旨'))
+  const textarea = screen.getByPlaceholderText(/例如：云原生高可用微服务架构示意图/)
+  expect(textarea.value).toContain('第一页')
+  fireEvent.click(screen.getByRole('button', { name: '🎨 立即生成并插入' }))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path === '/generate-image' && opts.body.prompt.includes('第一页') && opts.body.project_id === 'project-a'
+  )).toBe(true))
 })

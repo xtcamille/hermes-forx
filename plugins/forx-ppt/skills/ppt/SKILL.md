@@ -23,6 +23,7 @@ Enable the `forx-ppt` plugin and install its declared Python dependencies in the
 3. For precise edits, use `write_file` to create a JSON array of operations and call `hermes ppt edit --project ID --revision REV --input PATH --request-id KEY`. Reuse the same key for a retry of the same payload. Never reuse it for a different instruction.
 4. Export with `hermes ppt export --project ID --revision REV --output /absolute/path/result.pptx`. Use a `.forxppt` output path for a portable project. Import with `hermes ppt import --input PATH`.
 5. Delete a deck with `hermes ppt delete --project ID`.
+6. Generate and insert an AI illustration with `hermes ppt generate-image --prompt "云计算数据中心" --project ID --slide-id S002 --style tech`.
 
 Example targeted operation:
 
