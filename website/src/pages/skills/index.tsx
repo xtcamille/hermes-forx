@@ -299,8 +299,10 @@ function SkillCard({
   /** Picker embed mode: render "+ Add to this Agent" and call this. */
   onPick?: (skill: Skill) => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const src = SOURCE_CONFIG[skill.source] || SOURCE_CONFIG["optional"];
   const icon = CATEGORY_ICONS[skill.category] || "\u{1F4E6}";
+  const installCmd = skill.installCmd || `forx skills install ${skill.name}`;
 
   return (
     <div
@@ -351,6 +353,35 @@ function SkillCard({
             </span>
           ))}
         </div>
+
+        {onPick ? (
+          <button
+            className={styles.pickBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPick(skill);
+            }}
+          >
+            + Add to this Agent
+          </button>
+        ) : (
+          <button
+            className={`${styles.pickBtn} ${copied ? styles.pickBtnCopied : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard?.writeText(installCmd).then(
+                () => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                },
+                () => {},
+              );
+            }}
+            title={`点击复制安装命令: ${installCmd}`}
+          >
+            {copied ? "✓ 已复制安装命令" : "📋 复制命令行安装"}
+          </button>
+        )}
 
         {expanded && (
           <div className={styles.cardDetail}>
@@ -420,22 +451,11 @@ function SkillCard({
               </div>
             )}
             <div className={styles.installHint}>
-              <code>{skill.installCmd || `forx skills install ${skill.name}`}</code>
+              <code>{installCmd}</code>
               <CopyButton
-                text={skill.installCmd || `forx skills install ${skill.name}`}
+                text={installCmd}
               />
             </div>
-            {onPick ? (
-              <button
-                className={styles.pickBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPick(skill);
-                }}
-              >
-                + Add to this Agent
-              </button>
-            ) : null}
             <div className={styles.cardLinks}>
               {skill.docsPath ? (
                 <a
