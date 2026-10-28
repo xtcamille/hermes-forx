@@ -279,9 +279,42 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         doc_updated = check(client.get(f'{PREFIX}/projects/{doc_deck["deck"]["id"]}'))
         assert any(e["kind"] == "image" for e in doc_updated["deck"]["slides"][0]["elements"])
 
+        # Test element-targeted image generation (/generate-image with element_id)
+        target_el = doc_updated["deck"]["slides"][0]["elements"][-1]
+        elem_img_gen = check(client.post(PREFIX + "/generate-image", json={
+            "prompt": "微服务拓扑图",
+            "aspect_ratio": "landscape",
+            "style": "illustration",
+            "project_id": doc_deck["deck"]["id"],
+            "slide_id": doc_deck["deck"]["slides"][0]["id"],
+            "element_id": target_el["id"],
+            "request_id": "gen-img-elem-1",
+        }))
+        assert elem_img_gen["success"] is True and elem_img_gen["asset_id"]
+        doc_elem_updated = check(client.get(f'{PREFIX}/projects/{doc_deck["deck"]["id"]}'))
+        assert any(e["kind"] == "image" and e["asset_id"] == elem_img_gen["asset_id"] for e in doc_elem_updated["deck"]["slides"][0]["elements"])
+
+        # Test multi-format file parsing endpoint (/parse-file)
+        parsed_md = check(client.post(PREFIX + "/parse-file", json={
+            "filename": "tech-specs.md",
+            "data": base64.b64encode(b"# Enterprise Architecture\n- Scalable Microservices\n- High Availability").decode(),
+        }))
+        assert parsed_md["format"] == "md" and "Scalable Microservices" in parsed_md["text"]
+        assert parsed_md["char_count"] > 10
+
+        import zipfile
+        docx_buf = io.BytesIO()
+        with zipfile.ZipFile(docx_buf, "w") as zf:
+            zf.writestr("word/document.xml", '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>业务架构设计说明书与技术方案</w:t></w:r></w:p></w:body></w:document>')
+        parsed_docx = check(client.post(PREFIX + "/parse-file", json={
+            "filename": "architecture.docx",
+            "data": base64.b64encode(docx_buf.getvalue()).decode(),
+        }))
+        assert parsed_docx["format"] == "docx" and "业务架构设计说明书与技术方案" in parsed_docx["text"]
+
         # Test fine-grained elements expansion (L007 multi-card layout)
         l7_add = [{"action": "add_slide", "slide": {"title": "技术优势", "layout_id": "L007", "bullets": ["模块化解耦：微内核架构", "自适应排版：像素级对齐", "离线高安全：数字资产隔离"]}}]
-        l7_res = edit(client, doc_updated, l7_add)
+        l7_res = edit(client, doc_elem_updated, l7_add)
         new_slide = l7_res["deck"]["slides"][-1]
         assert new_slide["layout_id"] == "L007"
         assert len(new_slide["elements"]) >= 10

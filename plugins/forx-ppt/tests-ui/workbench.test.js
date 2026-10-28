@@ -23,6 +23,7 @@ function mount(chat) {
       if (path === '/status') return { ready: true }
       if (path === '/chat') return chat(options.body)
       if (path === '/cancel') return { cancelled: true }
+      if (path === '/parse-file') return { filename: options.body.filename, format: 'docx', size: 1024, char_count: 50, text: '参考文档中的业务架构要点与量化成果指标。' }
       if (path === '/projects/from-doc') { current = makeDocument('文档生成文稿'); return { result: current, message: '转换成功' } }
       if (path === '/generate-image') {
         const assetId = 'a'.repeat(64)
@@ -156,4 +157,70 @@ it('opens AI image generation modal, fills prompt and generates image', async ()
   await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
     path === '/generate-image' && opts.body.prompt.includes('第一页') && opts.body.project_id === 'project-a'
   )).toBe(true))
+})
+
+it('surfaces selection action bar in chat dialog and triggers image generation for selected element', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Select element E0002
+  fireEvent.click(screen.getByRole('button', { name: /E0002 · 主标题/ }))
+
+  // Verify selection quick action bar in chat dialog
+  await screen.findByText(/已选定元素：E0002/)
+  const genBtn = screen.getByRole('button', { name: '🎨 根据选定元素生图' })
+  expect(genBtn).toBeTruthy()
+  fireEvent.click(genBtn)
+
+  // Verify ImageGenModal opens targeted at element E0002
+  await screen.findByText(/为选定元素 E0002 生成配图/)
+  expect(screen.getByRole('button', { name: '🪄 提取元素主旨' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '🪄 提取元素主旨' }))
+
+  const textarea = screen.getByPlaceholderText(/例如：云原生高可用微服务架构示意图/)
+  expect(textarea.value).toContain('主标题')
+
+  fireEvent.click(screen.getByRole('button', { name: '🎨 为选定元素生成并替换' }))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path === '/generate-image' && opts.body.element_id === 'E0002' && opts.body.project_id === 'project-a'
+  )).toBe(true))
+})
+
+it('supports attaching reference files to chat dialog and sending enriched prompt to supplement PPT', async () => {
+  let receivedChat = null
+  const ctx = mount((body) => {
+    receivedChat = body
+    return { result: makeDocument('已补充文稿'), message: '已根据附件内容扩充幻灯片要点' }
+  })
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // In chat input, verify attach button
+  const attachBtn = screen.getByRole('button', { name: '📎 添加参考文件' })
+  expect(attachBtn).toBeTruthy()
+
+  // Simulate attaching a text file
+  const file = new File(['系统架构设计规范：微服务解耦与SLA可用性达到99.99%'], 'arch-spec.md', { type: 'text/markdown' })
+  const input = attachBtn.previousElementSibling
+  expect(input.type).toBe('file')
+  fireEvent.change(input, { target: { files: [file] } })
+
+  // Verify file pill appears in attachments list
+  await screen.findByText('arch-spec.md')
+
+  // Type prompt
+  const field = screen.getByLabelText('PPT 对话指令')
+  fireEvent.change(field, { target: { value: '参考附件中的系统架构设计，为本页补充技术要点' } })
+
+  // Send
+  fireEvent.click(screen.getByRole('button', { name: '发送修改' }))
+
+  await waitFor(() => expect(receivedChat).not.toBeNull())
+  expect(receivedChat.prompt).toContain('【用户上传的参考文件内容】')
+  expect(receivedChat.prompt).toContain('arch-spec.md')
+  expect(receivedChat.prompt).toContain('微服务解耦与SLA可用性达到99.99%')
+  expect(receivedChat.prompt).toContain('参考附件中的系统架构设计，为本页补充技术要点')
+
+  await screen.findByText('已根据附件内容扩充幻灯片要点')
 })

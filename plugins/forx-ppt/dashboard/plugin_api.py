@@ -29,6 +29,7 @@ planner = __import__(_name + ".planner", fromlist=["converse"])
 preview = __import__(_name + ".preview", fromlist=["render"])
 themes = __import__(_name + ".themes", fromlist=["THEMES"])
 visual_gen = __import__(_name + ".visual_gen", fromlist=["create_presentation_visual"])
+file_parser = __import__(_name + ".file_parser", fromlist=["parse_uploaded_file"])
 
 
 class ScopedRoute(APIRoute):
@@ -111,7 +112,13 @@ class GenerateImage(Body):
     style: str = "illustration"
     project_id: str | None = None
     slide_id: str | None = None
+    element_id: str | None = None
     request_id: str = Field(min_length=1, max_length=128)
+
+
+class ParseFile(Body):
+    filename: str = Field(min_length=1, max_length=255)
+    data: str = Field(min_length=1)
 
 
 @router.get("/status")
@@ -198,23 +205,51 @@ async def generate_image(body: GenerateImage):
     if body.project_id and body.slide_id:
         try:
             curr = store.get(body.project_id)
-            target_slide = next((s for s in curr["deck"]["slides"] if s["id"] == body.slide_id), None)
-            w = curr["deck"].get("width", 13.333333)
-            if target_slide and target_slide.get("layout_id") == "L004":
-                box = {"x": round(w / 2 + 0.3, 3), "y": 1.9, "width": round(w / 2 - 0.9, 3), "height": 4.8}
+            if body.element_id:
+                deck_obj = models.Deck.model_validate(curr["deck"])
+                owner, el = models.locate(deck_obj, body.element_id, body.slide_id)
+                _, el_box = models.effective(deck_obj, owner, el)
+                box = {"x": round(el_box.x, 3), "y": round(el_box.y, 3), "width": round(el_box.width, 3), "height": round(el_box.height, 3)}
+                if el.kind == "image":
+                    ops = [{
+                        "action": "update_element",
+                        "target": el.id,
+                        "slide_id": body.slide_id,
+                        "changes": {"asset_id": asset_id, "box": box},
+                    }]
+                else:
+                    ops = [
+                        {"action": "delete_element", "target": el.id, "slide_id": body.slide_id},
+                        {
+                            "action": "add_element",
+                            "slide_id": body.slide_id,
+                            "element": {
+                                "name": f"AI配图: {clean_prompt[:16]}",
+                                "kind": "image",
+                                "asset_id": asset_id,
+                                "box": box,
+                            },
+                        },
+                    ]
+                updated_deck = store.edit(body.project_id, curr["revision"], ops, body.request_id, f"AI更新元素配图: {clean_prompt[:20]}")
             else:
-                box = {"x": round(w - 6.0, 3), "y": 2.0, "width": 5.4, "height": 4.6}
-            op = {
-                "action": "add_element",
-                "slide_id": body.slide_id,
-                "element": {
-                    "name": f"AI配图: {clean_prompt[:16]}",
-                    "kind": "image",
-                    "asset_id": asset_id,
-                    "box": box,
+                target_slide = next((s for s in curr["deck"]["slides"] if s["id"] == body.slide_id), None)
+                w = curr["deck"].get("width", 13.333333)
+                if target_slide and target_slide.get("layout_id") == "L004":
+                    box = {"x": round(w / 2 + 0.3, 3), "y": 1.9, "width": round(w / 2 - 0.9, 3), "height": 4.8}
+                else:
+                    box = {"x": round(w - 6.0, 3), "y": 2.0, "width": 5.4, "height": 4.6}
+                op = {
+                    "action": "add_element",
+                    "slide_id": body.slide_id,
+                    "element": {
+                        "name": f"AI配图: {clean_prompt[:16]}",
+                        "kind": "image",
+                        "asset_id": asset_id,
+                        "box": box,
+                    }
                 }
-            }
-            updated_deck = store.edit(body.project_id, curr["revision"], [op], body.request_id, f"AI生成配图: {clean_prompt[:20]}")
+                updated_deck = store.edit(body.project_id, curr["revision"], [op], body.request_id, f"AI生成配图: {clean_prompt[:20]}")
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("Auto-insert into slide failed: %s", exc)
@@ -228,6 +263,15 @@ async def generate_image(body: GenerateImage):
         "prompt": clean_prompt,
         "result": updated_deck,
     }
+
+
+@router.post("/parse-file")
+async def parse_file(body: ParseFile):
+    try:
+        raw = base64.b64decode(body.data, validate=True)
+    except Exception as exc:
+        raise HTTPException(422, "Base64 文件内容解码失败") from exc
+    return file_parser.parse_uploaded_file(body.filename, raw)
 
 
 @router.get("/projects/{project_id}")

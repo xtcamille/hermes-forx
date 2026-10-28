@@ -62,7 +62,7 @@ function controller(ctx, owner) {
     $before: atom(null), $compare: atom(false), $refresh: atom(0),
     $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
     $docModalOpen: atom(false), $layoutModalOpen: atom(false), $deleteModalOpen: atom(false),
-    $imageModalOpen: atom(false),
+    $imageModalOpen: atom(false), $imageModalTargetElement: atom(null), $attachments: atom([]),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -122,9 +122,44 @@ function controller(ctx, owner) {
     state.$deleteModalOpen.set(false)
     state.$refresh.set(state.$refresh.get() + 1)
   })
-  state.generateImage = (prompt, style = 'illustration', aspectRatio = 'landscape') => state.perform('正在生成高清配图…', async () => {
+  state.addAttachment = (file) => state.perform('正在解析参考文件…', async () => {
+    let parsedText = ''
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    if (['txt', 'md', 'markdown', 'csv', 'json', 'jsonl', 'rst', 'html', 'xml'].includes(ext)) {
+      parsedText = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = e => resolve(String(e.target?.result || ''))
+        reader.onerror = () => reject(new Error('无法读取文件文本'))
+        reader.readAsText(file)
+      })
+    } else {
+      const res = await state.request('/parse-file', {
+        method: 'POST',
+        timeoutMs: 60000,
+        body: { filename: file.name, data: await fileData(file) }
+      })
+      parsedText = res.text || ''
+    }
+    const cleanText = parsedText.trim()
+    if (!cleanText) {
+      throw new Error(`未能从文件《${file.name}》中提取到有效文本`)
+    }
+    const item = {
+      id: uid(),
+      name: file.name,
+      size: file.size,
+      text: cleanText,
+      charCount: cleanText.length
+    }
+    state.$attachments.set([...state.$attachments.get(), item])
+  })
+  state.removeAttachment = (id) => {
+    state.$attachments.set(state.$attachments.get().filter(a => a.id !== id))
+  }
+  state.generateImage = (prompt, style = 'illustration', aspectRatio = 'landscape', elementId = null) => state.perform('正在生成高清配图…', async () => {
     const current = state.$doc.get()
     const slideId = state.$slide.get()
+    const targetEl = elementId || state.$imageModalTargetElement.get() || null
     const res = await state.request('/generate-image', {
       method: 'POST',
       timeoutMs: 120000,
@@ -134,25 +169,54 @@ function controller(ctx, owner) {
         aspect_ratio: aspectRatio,
         project_id: current?.deck.id || null,
         slide_id: slideId || null,
+        element_id: targetEl,
         request_id: uid(),
       }
     })
     state.$imageModalOpen.set(false)
+    state.$imageModalTargetElement.set(null)
     if (res.result) {
       state.accept(res.result)
     }
+    return res
   })
   state.send = () => state.perform('正在理解指令并更新文稿…', async () => {
-    const prompt = state.$draft.get().trim()
-    if (!prompt) return
+    const rawPrompt = state.$draft.get().trim()
+    const attachments = state.$attachments.get()
+    if (!rawPrompt && attachments.length === 0) return
+    const prompt = rawPrompt || (attachments.length > 0 ? '请根据上传的参考文件内容，全面梳理并补充到本演示文稿中' : '')
     const current = state.$doc.get()
+    const selection = state.$selection.get()
+
+    const isImageCmd = /^(根据选定元素生图|为选定元素生图|为选中元素生图|选定元素生图|生图|生成配图|生成图片)[:：\s]*/i.test(prompt)
+    if (isImageCmd && selection.length > 0) {
+      const cleanImgPrompt = prompt.replace(/^(根据选定元素生图|为选定元素生图|为选中元素生图|选定元素生图|生图|生成配图|生成图片)[:：\s]*/i, '').trim() || '现代商业概念插画'
+      state.$messages.set([...state.$messages.get(), { role: 'user', text: prompt }])
+      state.$draft.set('')
+      await state.generateImage(cleanImgPrompt, 'illustration', 'landscape', selection[0])
+      state.$messages.set([...state.$messages.get(), { role: 'assistant', text: `已成功为选定元素 ${selection[0]} 生成高清配图并替换更新！` }])
+      return
+    }
+
+    let fullPrompt = prompt
+    if (attachments.length > 0) {
+      const attachmentsText = attachments.map((att, idx) => `--- 附件 ${idx + 1}：《${att.name}》（${att.charCount || att.text.length} 字）---\n${att.text}`).join('\n\n')
+      fullPrompt = `【用户上传的参考文件内容】\n${attachmentsText}\n\n【用户补充/修改要求】\n${prompt}`
+    }
+
     const requestId = uid()
     state.$busy.set({ ...state.$busy.get(), label: current ? '正在理解指令并更新文稿…' : '正在生成页面…', requestId })
-    state.$messages.set([...state.$messages.get(), { role: 'user', text: prompt }])
+    state.$messages.set([...state.$messages.get(), {
+      role: 'user',
+      text: prompt,
+      attachments: attachments.map(a => a.name)
+    }])
     state.$draft.set('')
+    state.$attachments.set([])
+
     const value = await state.request('/chat', { method: 'POST', timeoutMs: 150000, body: {
-      prompt, project_id: current?.deck.id || null, revision: current?.revision || null,
-      selection: state.$selection.get(), request_id: requestId,
+      prompt: fullPrompt, project_id: current?.deck.id || null, revision: current?.revision || null,
+      selection, request_id: requestId,
     } })
     if (state.$busy.get()?.requestId !== requestId) return
     if (value.result) state.accept(value.result)
@@ -818,6 +882,7 @@ const IMAGE_PROMPT_PRESETS = [
 function ImageGenModal({ c }) {
   const open = useValue(c.$imageModalOpen), busy = useValue(c.$busy)
   const doc = useValue(c.$doc), slideId = useValue(c.$slide)
+  const targetElementId = useValue(c.$imageModalTargetElement)
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState('illustration')
   const [aspectRatio, setAspectRatio] = useState('landscape')
@@ -825,6 +890,8 @@ function ImageGenModal({ c }) {
   if (!open) return null
 
   const currentSlide = doc?.deck?.slides?.find(s => s.id === slideId)
+  const allElements = currentSlide ? flatten(currentSlide.elements || []) : []
+  const targetElem = targetElementId ? allElements.find(e => e.id === targetElementId) : null
 
   const handleExtractFromSlide = () => {
     if (!currentSlide) return
@@ -835,9 +902,16 @@ function ImageGenModal({ c }) {
     setPrompt(autoPrompt)
   }
 
+  const handleExtractFromElement = () => {
+    if (!targetElem) return
+    const name = targetElem.name || '元素'
+    const textSnippet = targetElem.text ? `：${targetElem.text.split('\n')[0].slice(0, 32)}` : ''
+    setPrompt(`${name}${textSnippet} 现代商业概念配图，极简专业设计`)
+  }
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return
-    await c.generateImage(prompt.trim(), style, aspectRatio)
+    await c.generateImage(prompt.trim(), style, aspectRatio, targetElementId)
   }
 
   return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$imageModalOpen.set(false) },
@@ -846,9 +920,9 @@ function ImageGenModal({ c }) {
         h('div', { className: 'ppt-header-text-group' },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
             h('span', { className: 'ppt-apple-badge' }, 'AI Visual'),
-            h('h3', { className: 'ppt-modal-title' }, '🎨 AI 智能内容配图 (Image Gen)')
+            h('h3', { className: 'ppt-modal-title' }, targetElementId ? `🎨 为选定元素 ${targetElementId} 生成配图` : '🎨 AI 智能内容配图 (Image Gen)')
           ),
-          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '根据幻灯片主题或自定描述，AI 实时生成商业级高清配图并自动插入当前页面')
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, targetElementId ? `将为选中的元素【${targetElem?.name || targetElementId}】生成专属视觉配图并精准替换` : '根据幻灯片主题或自定描述，AI 实时生成商业级高清配图并自动插入当前页面')
         ),
         h('button', {
           type: 'button',
@@ -859,7 +933,21 @@ function ImageGenModal({ c }) {
         }, '✕')
       ),
       h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
-        currentSlide && h('div', { className: 'ppt-ai-extract-card' },
+        targetElementId && h('div', { className: 'ppt-ai-extract-card ppt-target-element-card' },
+          h('div', { className: 'ppt-ai-extract-header' },
+            h('span', { className: 'ppt-muted', style: { fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6 } },
+              h('span', { className: 'ppt-apple-badge' }, 'Target Element'),
+              `已选定目标元素：${targetElementId}${targetElem?.name ? ' · ' + targetElem.name : ''}`
+            ),
+            h('button', {
+              type: 'button',
+              className: 'ppt-auto-prompt-btn',
+              disabled: !!busy,
+              onClick: handleExtractFromElement
+            }, '🪄 提取元素主旨')
+          )
+        ),
+        currentSlide && !targetElementId && h('div', { className: 'ppt-ai-extract-card' },
           h('div', { className: 'ppt-ai-extract-header' },
             h('span', { className: 'ppt-muted', style: { fontSize: 11.5 } }, `当前页面：${currentSlide.id} · ${currentSlide.name}`),
             h('button', {
@@ -937,7 +1025,7 @@ function ImageGenModal({ c }) {
           className: 'ppt-apple-btn-primary',
           disabled: !!busy || !prompt.trim(),
           onClick: handleGenerate
-        }, busy ? '正在生成高清配图…' : '🎨 立即生成并插入')
+        }, busy ? '正在生成高清配图…' : (targetElementId ? '🎨 为选定元素生成并替换' : '🎨 立即生成并插入'))
       )
     )
   )
@@ -1150,6 +1238,8 @@ function Properties({ c, expanded = false }) {
 
 function Conversation({ c, expanded = false }) {
   const doc = useValue(c.$doc), draft = useValue(c.$draft), messages = useValue(c.$messages), busy = useValue(c.$busy), error = useValue(c.$error), selection = useValue(c.$selection)
+  const attachments = useValue(c.$attachments) || []
+  const fileInputRef = useRef(null)
   const history = useQuery({ queryKey: ['forx-ppt', c.owner, 'history', doc?.deck.id, doc?.revision], enabled: !!doc,
     queryFn: () => c.request(`/projects/${doc.deck.id}/history`), retry: 1 })
   return h('section', { className: `ppt-chat ppt-panel-section ${expanded ? 'ppt-panel-expanded' : ''}` },
@@ -1160,11 +1250,14 @@ function Conversation({ c, expanded = false }) {
     h('div', { className: 'ppt-messages ppt-messages-box', 'aria-live': 'polite' },
       !messages.length && h('div', { className: 'ppt-msg-bubble ppt-msg-assistant' },
         h('p', { style: { margin: 0, fontWeight: 500 } }, '✨ AI 幻灯片设计助手已就绪'),
-        h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '支持自然语言指令：\n• 生成一份 8 页的产品介绍\n• 将母版标题设为 34 磅\n• 只修改 E0017 为深色强调\n• 全篇换成深色科技风')
+        h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '支持自然语言指令与参考文件补充：\n• 添加参考文件（Word/PPT/Markdown等）补充或扩充PPT\n• 选中任意元素直接点击【根据选定元素生图】\n• 自然语言修改标题、正文、版式与全篇风格')
       ),
       ...messages.map((m, i) => h('div', { key: i, className: `ppt-msg-bubble ${m.role === 'user' ? 'ppt-user-message ppt-msg-user' : 'ppt-msg-assistant'}` },
         h('strong', null, m.role === 'user' ? '你：' : 'PPT：'),
-        m.text
+        h('div', { className: 'ppt-msg-text' }, m.text),
+        m.attachments?.length > 0 && h('div', { className: 'ppt-msg-attachments' },
+          m.attachments.map((name, idx) => h('span', { key: idx, className: 'ppt-msg-att-badge' }, `📎 ${name}`))
+        )
       )),
       busy && h('div', { role: 'status', className: 'ppt-msg-bubble ppt-msg-assistant', style: flex },
         h(GlyphSpinner),
@@ -1172,15 +1265,73 @@ function Conversation({ c, expanded = false }) {
       ),
       error && h('p', { role: 'alert', className: 'ppt-error' }, error)
     ),
-    h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, selection.length ? `已选中：${selection.join('、')}` : doc ? '未选择对象；可按页码、名称或稳定编号描述目标。' : '描述主题、受众与总页数后生成初稿。'),
+    selection.length > 0 && h('div', { className: 'ppt-selection-bar ppt-cupertino-card' },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } },
+        h('span', { className: 'ppt-selection-dot' }),
+        h('span', { className: 'ppt-selection-label' }, `已选定元素：${selection.join('、')}`)
+      ),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 } },
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary ppt-btn-sm',
+          disabled: !!busy,
+          onClick: () => {
+            c.$imageModalTargetElement.set(selection[0])
+            c.$imageModalOpen.set(true)
+          }
+        }, '🎨 根据选定元素生图'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary ppt-btn-sm',
+          onClick: () => c.$selection.set([])
+        }, '取消')
+      )
+    ),
+    h('p', { className: 'ppt-muted', style: { margin: '2px 0 0' } }, selection.length ? `当前将优先针对选中元素操作；也可在输入框直接输入要求。` : doc ? '未选择对象；可按页码、名称描述目标，或添加参考文件补充内容。' : '描述主题、受众与总页数后生成初稿，或添加参考文件。'),
     h('div', { className: 'ppt-chat-input-box' },
-      h(Textarea, { value: draft, rows: 3, disabled: !!busy, placeholder: doc ? '描述本次修改…' : '生成一份……', 'aria-label': 'PPT 对话指令',
+      attachments.length > 0 && h('div', { className: 'ppt-attached-files-list' },
+        attachments.map(att => h('div', { key: att.id, className: 'ppt-file-pill' },
+          h('span', { className: 'ppt-file-pill-icon' }, '📄'),
+          h('span', { className: 'ppt-file-pill-name', title: att.name }, att.name),
+          h('span', { className: 'ppt-file-pill-size' }, `${(att.size / 1024).toFixed(1)} KB`),
+          h('button', {
+            type: 'button',
+            className: 'ppt-file-remove-btn',
+            'aria-label': `移除附件 ${att.name}`,
+            disabled: !!busy,
+            onClick: () => c.removeAttachment(att.id)
+          }, '✕')
+        ))
+      ),
+      h(Textarea, { value: draft, rows: 3, disabled: !!busy, placeholder: doc ? (attachments.length ? '已附带文件，在此输入具体补充或修改要求…' : '描述本次修改，或添加参考文件补充内容…') : (attachments.length ? '已附带文件，在此输入主题与要求…' : '生成一份……或添加文件补充内容'), 'aria-label': 'PPT 对话指令',
         onChange: event => c.$draft.set(event.target.value), onKeyDown: event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void c.send() } } }),
       h('div', { className: 'ppt-input-footer' },
-        h('small', { className: 'ppt-muted' }, 'Ctrl+Enter 发送'),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+          h('input', {
+            type: 'file',
+            multiple: true,
+            hidden: true,
+            ref: fileInputRef,
+            accept: '.docx,.pptx,.txt,.md,.markdown,.csv,.json,.pdf,.forxppt',
+            onChange: async event => {
+              const files = Array.from(event.target.files || [])
+              event.target.value = ''
+              for (const file of files) {
+                await c.addAttachment(file)
+              }
+            }
+          }),
+          h('button', {
+            type: 'button',
+            className: 'ppt-attach-btn ppt-apple-btn-secondary ppt-btn-sm',
+            disabled: !!busy,
+            onClick: () => fileInputRef.current?.click()
+          }, '📎 添加参考文件'),
+          h('small', { className: 'ppt-muted' }, 'Ctrl+Enter 发送')
+        ),
         h('div', { style: flex },
           busy?.requestId && button('取消本次指令', c.cancel),
-          button(doc ? '发送修改' : '生成初稿', c.send, !!busy || !draft.trim(), { className: 'ppt-btn-primary' })
+          button(doc ? '发送修改' : '生成初稿', c.send, !!busy || (!draft.trim() && attachments.length === 0), { className: 'ppt-btn-primary' })
         )
       )
     ),
@@ -1419,6 +1570,25 @@ const css = `
 .ppt-auto-prompt-btn{background:rgba(0,113,227,0.12)!important;color:#0071e3!important;border:1px solid rgba(0,113,227,0.3)!important;border-radius:980px!important;padding:4px 10px!important;font-size:11.5px!important;font-weight:600!important;cursor:pointer;transition:all 0.15s ease}
 .ppt-auto-prompt-btn:hover:not(:disabled){background:rgba(0,113,227,0.22)!important;transform:translateY(-0.5px)}
 :is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-auto-prompt-btn{color:#2997ff!important;border-color:rgba(41,151,255,0.4)!important}
+
+/* Selection Quick Action Bar */
+.ppt-selection-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.22);border-radius:10px;font-size:12px;margin:6px 0 2px;gap:8px}
+.ppt-selection-dot{width:7px;height:7px;border-radius:50%;background:#0071e3;box-shadow:0 0 6px rgba(0,113,227,0.5);flex-shrink:0}
+.ppt-selection-label{font-weight:600;color:var(--ui-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppt-btn-sm{padding:3px 10px!important;font-size:11.5px!important;height:24px!important;border-radius:980px!important}
+.ppt-target-element-card{border-color:rgba(0,113,227,0.35)!important;background:rgba(0,113,227,0.06)!important}
+
+/* File Attachments Pills */
+.ppt-attached-files-list{display:flex;flex-wrap:wrap;gap:6px;padding:6px 8px;border-bottom:1px solid var(--ui-stroke-secondary);background:color-mix(in srgb, var(--ui-bg-elevated) 60%, transparent);border-radius:8px 8px 0 0}
+.ppt-file-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 9px;border-radius:980px;background:rgba(0,113,227,0.09);border:1px solid rgba(0,113,227,0.25);font-size:11.5px;color:var(--ui-text-primary);max-width:100%;transition:all 0.15s ease}
+.ppt-file-pill-icon{font-size:12px;flex-shrink:0}
+.ppt-file-pill-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ppt-file-pill-size{font-size:10px;color:var(--ui-text-secondary);opacity:0.8;flex-shrink:0}
+.ppt-file-remove-btn{border:none;background:rgba(120,120,128,0.18);color:var(--ui-text-secondary);cursor:pointer;border-radius:50%;width:15px;height:15px;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.15s ease}
+.ppt-file-remove-btn:hover:not(:disabled){background:#ff3b30;color:#ffffff}
+.ppt-attach-btn{display:inline-flex;align-items:center;gap:4px}
+.ppt-msg-attachments{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ppt-msg-att-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:6px;background:rgba(120,120,128,0.12);border:1px solid var(--ui-stroke-secondary);font-size:10.5px;color:var(--ui-text-secondary)}
 
 @media(max-width:1000px){
   .ppt-pages{width:170px;min-width:150px}
