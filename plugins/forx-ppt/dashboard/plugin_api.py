@@ -152,6 +152,11 @@ async def get_project(project_id: str):
     return storage.Store().get(project_id)
 
 
+@router.delete("/projects/{project_id}")
+async def delete_project(project_id: str):
+    return storage.Store().delete(project_id)
+
+
 @router.get("/projects/{project_id}/history")
 async def history(project_id: str):
     return {"history": storage.Store().history(project_id)}

@@ -26,6 +26,11 @@ function mount(chat) {
       if (path === '/projects/from-doc') { current = makeDocument('文档生成文稿'); return { result: current, message: '转换成功' } }
       if (path === '/projects' && options?.method === 'POST') { current = makeDocument(); return current }
       if (path === '/projects') return { projects: current ? [{ id: current.deck.id, name: current.deck.name }] : [] }
+      if (path.startsWith('/projects/') && options?.method === 'DELETE') {
+        const id = path.split('/projects/')[1]
+        if (current && current.deck.id === id) current = null
+        return { deleted: true, project_id: id }
+      }
       if (path.endsWith('/history')) return { history: [] }
       if (path.includes('/preview/')) return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><g data-element-id="E0002"><text>标题画布</text></g></svg>', assets: [], elements: [], revision: current?.revision || 1 }
       if (path.endsWith('/edit')) { current = { ...current, revision: current.revision + 1 }; return current }
@@ -113,4 +118,21 @@ it('opens doc-to-deck modal, inputs document content and submits conversion', as
     path === '/projects/from-doc' && opts.body.target_pages === 8 && opts.body.text.includes('# 季度规划')
   )).toBe(true))
   await screen.findByText('文档生成文稿 · v1 · 已保存')
+})
+
+it('opens delete modal and confirms deck deletion', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+  const delBtn = screen.getByRole('button', { name: '删除文稿' })
+  fireEvent.click(delBtn)
+  await screen.findByText('🗑️ 删除演示文稿')
+  expect(screen.getAllByText('测试文稿').length).toBeGreaterThanOrEqual(1)
+  expect(screen.getByText('1 页幻灯片')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '确认删除文稿' }))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path === '/projects/project-a' && opts?.method === 'DELETE'
+  )).toBe(true))
+  await screen.findByText('把想表达的内容变成可编辑 PPT')
+  expect(screen.queryByText('测试文稿 · v1 · 已保存')).toBeNull()
 })

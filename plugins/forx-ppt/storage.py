@@ -88,6 +88,17 @@ class Store:
             return {"deck": deck.model_dump(), "revision": row["version"], "undo_available": row["cursor"] > 0,
                     "redo_available": row["cursor"] < last, "issues": quality_issues(deck), "change": json.loads(change[0]) if change else None}
 
+    def delete(self, project_id):
+        with self.connection() as db, db:
+            self._row(db, project_id)
+            db.execute("DELETE FROM requests WHERE project_id=?", (project_id,))
+            db.execute("DELETE FROM snapshots WHERE project_id=?", (project_id,))
+            db.execute("DELETE FROM events WHERE project_id=?", (project_id,))
+            db.execute("DELETE FROM versions WHERE project_id=?", (project_id,))
+            db.execute("DELETE FROM changes WHERE project_id=?", (project_id,))
+            db.execute("DELETE FROM projects WHERE id=?", (project_id,))
+        return {"deleted": True, "project_id": project_id}
+
     def history(self, project_id):
         with self.connection() as db:
             self._row(db, project_id)

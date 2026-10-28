@@ -156,6 +156,12 @@ def test_discovery_native_objects_inheritance_identity_and_roundtrip(tmp_path, m
         native.shapes.title.text = "外部修改"
         changed = io.BytesIO(); prs.save(changed)
         check(client.post(PREFIX + "/import", json={"format": "pptx", "data": base64.b64encode(changed.getvalue()).decode(), "request_id": uuid.uuid4().hex}), 422)
+        # Test CLI delete command
+        assert command["handler_fn"](parser.parse_args(["delete", "--project", pid])) == 0
+        del_out = json.loads(capsys.readouterr().out)
+        assert del_out["deleted"] is True and del_out["project_id"] == pid
+        assert command["handler_fn"](parser.parse_args(["show", "--project", pid])) == 1
+        assert "未找到文稿" in capsys.readouterr().out
     manager.unload()
 
 
@@ -257,3 +263,8 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         assert check(client.get(f'{PREFIX}/projects/{b["deck"]["id"]}?profile=ppt-b')) == b
         assert check(client.get(f"{PREFIX}/projects/{pid}"))["revision"] == with_id_res["revision"]
         assert check(client.get(f"{PREFIX}/projects/{pid}/history"))["history"][0]["version"] == with_id_res["revision"]
+        # Test project deletion via API
+        del_res = check(client.delete(f"{PREFIX}/projects/{pid}"))
+        assert del_res["deleted"] is True and del_res["project_id"] == pid
+        check(client.get(f"{PREFIX}/projects/{pid}"), 404)
+        check(client.delete(f"{PREFIX}/projects/{pid}"), 404)

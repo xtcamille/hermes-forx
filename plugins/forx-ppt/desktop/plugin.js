@@ -61,7 +61,7 @@ function controller(ctx, owner) {
     $busy: atom(null), $error: atom(''), $messages: atom([]), $draft: atom(''),
     $before: atom(null), $compare: atom(false), $refresh: atom(0),
     $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
-    $docModalOpen: atom(false), $layoutModalOpen: atom(false),
+    $docModalOpen: atom(false), $layoutModalOpen: atom(false), $deleteModalOpen: atom(false),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -104,6 +104,22 @@ function controller(ctx, owner) {
     state.$selection.set([])
     state.$messages.set([])
     state.accept(await state.request('/projects', { method: 'POST', body: { name: '未命名演示文稿', request_id: uid() } }))
+  })
+  state.delete = (id) => state.perform('删除文稿', async () => {
+    const targetId = id || state.$doc.get()?.deck?.id
+    if (!targetId) return
+    await state.request(`/projects/${targetId}`, { method: 'DELETE' })
+    if (state.$doc.get()?.deck?.id === targetId) {
+      state.$doc.set(null)
+      state.$slide.set(null)
+      state.$selection.set([])
+      state.$messages.set([])
+      state.$before.set(null)
+      state.$compare.set(false)
+      ctx.storage.set(`project:${owner}`, null)
+    }
+    state.$deleteModalOpen.set(false)
+    state.$refresh.set(state.$refresh.get() + 1)
   })
   state.send = () => state.perform('正在理解指令并更新文稿…', async () => {
     const prompt = state.$draft.get().trim()
@@ -196,6 +212,7 @@ function Toolbar({ c }) {
       button('重做', () => c.travel('redo'), !!busy || !doc?.redo_available),
     ),
     doc && h('div', { className: 'ppt-btn-group' },
+      button('删除文稿', () => c.$deleteModalOpen.set(true), !!busy, { className: 'ppt-btn-danger' }),
       button('保存项目', () => c.download('project'), !!busy || !doc),
       button('导出 PPTX', () => c.download('pptx'), !!busy || !doc, { className: 'ppt-btn-primary' }),
     ),
@@ -698,6 +715,76 @@ function DocToDeckModal({ c }) {
   )
 }
 
+function DeleteProjectModal({ c }) {
+  const open = useValue(c.$deleteModalOpen), busy = useValue(c.$busy), doc = useValue(c.$doc)
+  if (!open || !doc) return null
+  const deck = doc.deck
+
+  return h('div', {
+    className: 'ppt-modal-backdrop ppt-cupertino-backdrop',
+    onClick: () => !busy && c.$deleteModalOpen.set(false)
+  },
+    h('div', {
+      className: 'ppt-modal ppt-delete-modal ppt-cupertino-sheet',
+      onClick: e => e.stopPropagation()
+    },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge ppt-badge-danger' }, '危险操作'),
+            h('h3', { className: 'ppt-modal-title' }, '🗑️ 删除演示文稿')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '文稿一经删除将无法恢复，请确认是否继续')
+        ),
+        h('button', {
+          type: 'button',
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          disabled: !!busy,
+          onClick: () => !busy && c.$deleteModalOpen.set(false)
+        }, '✕')
+      ),
+      h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+        h('div', { className: 'ppt-delete-info-card' },
+          h('div', { className: 'ppt-delete-info-row' },
+            h('span', { className: 'ppt-muted' }, '文稿名称：'),
+            h('strong', { className: 'ppt-delete-info-title' }, deck.name)
+          ),
+          h('div', { className: 'ppt-delete-info-row' },
+            h('span', { className: 'ppt-muted' }, '页面数量：'),
+            h('span', null, `${deck.slides.length} 页幻灯片`)
+          ),
+          h('div', { className: 'ppt-delete-info-row' },
+            h('span', { className: 'ppt-muted' }, '当前版本：'),
+            h('span', null, `v${doc.revision}`)
+          )
+        ),
+        h('div', { className: 'ppt-delete-warning-box' },
+          h('span', { className: 'ppt-delete-warning-icon' }, '⚠️'),
+          h('div', { className: 'ppt-delete-warning-text' },
+            h('strong', null, '提示：'),
+            h('span', null, '此操作将永久清空该文稿的所有页面、元素样式、历史记录和快照，不可撤销。')
+          )
+        )
+      ),
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          disabled: !!busy,
+          onClick: () => c.$deleteModalOpen.set(false)
+        }, '取消'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-danger',
+          disabled: !!busy,
+          onClick: () => c.delete(deck.id)
+        }, busy ? '正在删除…' : '确认删除文稿')
+      )
+    )
+  )
+}
+
 
 function Navigation({ c }) {
   const doc = useValue(c.$doc), refresh = useValue(c.$refresh)
@@ -705,7 +792,17 @@ function Navigation({ c }) {
   return h('aside', { className: 'ppt-pages' },
     h('div', { className: 'ppt-pages-header' },
       h('label', null, '我的文稿'),
-      doc && h('span', { className: 'ppt-pill-badge' }, `${doc.deck.slides.length} 页`)
+      doc && h('div', { className: 'ppt-pages-header-actions' },
+        h('span', { className: 'ppt-pill-badge' }, `${doc.deck.slides.length} 页`),
+        h('button', {
+          type: 'button',
+          className: 'ppt-icon-btn-danger',
+          title: '删除当前文稿',
+          'aria-label': '删除当前文稿',
+          disabled: !!c.$busy.get(),
+          onClick: () => c.$deleteModalOpen.set(true)
+        }, '🗑️')
+      )
     ),
     h('select', { className: 'ppt-project-select', 'aria-label': '打开文稿', value: doc?.deck.id || '', onChange: event => void c.load(event.target.value) },
       h('option', { value: '', disabled: true }, '选择已保存文稿'),
@@ -1138,6 +1235,25 @@ const css = `
 .ppt-apple-btn-secondary:disabled{opacity:0.35;cursor:not-allowed}
 .ppt-suggestion-primary{border-color:color-mix(in srgb, var(--ui-accent) 40%, transparent)!important;background:color-mix(in srgb, var(--ui-accent) 10%, transparent)!important}
 
+/* Destructive / Delete Styles */
+.ppt-btn-danger{color:#ff3b30!important;background:color-mix(in srgb, #ff3b30 8%, transparent)!important;border-color:color-mix(in srgb, #ff3b30 25%, transparent)!important}
+.ppt-btn-danger:hover:not(:disabled){background:color-mix(in srgb, #ff3b30 18%, transparent)!important;color:#ff453a!important}
+.ppt-pages-header-actions{display:flex;align-items:center;gap:6px}
+.ppt-icon-btn-danger{border:none;background:transparent;cursor:pointer;padding:2px 4px;font-size:12px;opacity:0.65;border-radius:4px;transition:all 0.15s ease;line-height:1}
+.ppt-icon-btn-danger:hover:not(:disabled){opacity:1;transform:scale(1.1);background:rgba(255,59,48,0.15)}
+.ppt-apple-btn-danger{background:linear-gradient(180deg,#FF453A 0%,#FF3B30 100%);color:#ffffff;border:none;border-radius:980px;padding:7px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(255,59,48,0.35);transition:all 0.15s ease;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.ppt-apple-btn-danger:hover:not(:disabled){background:linear-gradient(180deg,#FF5E55 0%,#E02E24 100%);box-shadow:0 4px 14px rgba(255,59,48,0.5);transform:translateY(-0.5px)}
+.ppt-apple-btn-danger:active:not(:disabled){transform:scale(0.97)}
+.ppt-apple-btn-danger:disabled{opacity:0.38;cursor:not-allowed;box-shadow:none}
+.ppt-badge-danger{background:rgba(255,59,48,0.12)!important;color:#ff3b30!important;border:1px solid rgba(255,59,48,0.3)!important}
+.ppt-delete-modal{width:460px;max-width:92vw}
+.ppt-delete-info-card{background:rgba(120,120,128,0.08);border:1px solid rgba(120,120,128,0.18);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.ppt-delete-info-row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px}
+.ppt-delete-info-title{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ui-text-primary)}
+.ppt-delete-warning-box{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);color:var(--ui-text-primary);font-size:12px;line-height:1.5}
+.ppt-delete-warning-icon{font-size:16px;flex-shrink:0}
+.ppt-delete-warning-text strong{color:#ff3b30}
+
 @media(max-width:1000px){
   .ppt-pages{width:170px;min-width:150px}
   .ppt-side{width:290px;min-width:260px}
@@ -1187,7 +1303,8 @@ function Workbench({ c }) {
       )
     ),
     h(LayoutPickerModal, { c }),
-    h(DocToDeckModal, { c })
+    h(DocToDeckModal, { c }),
+    h(DeleteProjectModal, { c })
   )
 }
 

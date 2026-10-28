@@ -161,32 +161,32 @@ def _docs_page_path(rel_dir: str, source_label: str) -> str:
 
 
 def _install_command(source: str, identifier: str, name: str) -> str:
-    """Build the ``hermes skills install …`` command for a unified-index entry.
+    """Build the ``forx skills install …`` command for a unified-index entry.
 
     These show up in the SkillCard panel so users can copy-paste them. We try
     to use the most idiomatic identifier per source.
     """
     if not identifier:
-        return f"hermes skills install {name}"
+        return f"forx skills install {name}"
     src = source.lower()
     if src in {"official", "built-in", "optional"}:
         # OptionalSkillSource emits identifiers like "official/security/1password"
-        return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
     if src in {"skills.sh", "skills-sh"}:
         # Already wrapped as "skills-sh/owner/repo/skill" by the source
-        return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
     if src == "clawhub":
-        return f"hermes skills install clawhub/{identifier}"
+        return f"forx skills install clawhub/{identifier}"
     if src == "browse-sh":
         # Identifier already includes the "browse-sh/" prefix from BrowseShSource
-        return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
     if src == "lobehub":
-        return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
     if src == "github":
-        return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
     if src == "well-known":
-        return f"hermes skills install {identifier}"
-    return f"hermes skills install {identifier}"
+        return f"forx skills install {identifier}"
+    return f"forx skills install {identifier}"
 
 
 def _source_url(source: str, identifier: str, extra: dict) -> str:
@@ -311,8 +311,17 @@ def extract_local_skills():
                 elif isinstance(cmds, str) and cmds.strip():
                     commands = [cmds.strip()]
 
+            skill_name = fm.get("name", os.path.basename(root))
+            if source_label == "optional":
+                rel_ident = rel.replace(os.sep, "/")
+                identifier = f"official/{rel_ident}"
+                install_cmd = f"forx skills install {identifier}"
+            else:
+                identifier = skill_name
+                install_cmd = f"forx skills install {identifier}"
+
             skills.append({
-                "name": fm.get("name", os.path.basename(root)),
+                "name": skill_name,
                 "description": fm.get("description", ""),
                 "overview": overview,
                 "category": category,
@@ -326,6 +335,8 @@ def extract_local_skills():
                 "envVars": env_vars,
                 "commands": commands,
                 "docsPath": _docs_page_path(rel, source_label),
+                "identifier": identifier,
+                "installCmd": install_cmd,
             })
 
     return skills

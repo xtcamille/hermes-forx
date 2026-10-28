@@ -167,7 +167,7 @@ def load_catalog_entries(catalog_dir: Path, stars: dict[str, int] | None = None)
             "docsUrl": str(raw.get("docs_url") or "").strip(),
             "version": _cosmetic(raw.get("version"), VERSION_RE.match, path.name, name, "version"),
             "image": _cosmetic(raw.get("image"), _is_allowed_image_url, path.name, name, "image"),
-            "installCommand": f"hermes plugins install {name}",
+            "installCommand": f"forx plugins install {name}",
             "stars": _repo_stars(repo, stars),
         })
 

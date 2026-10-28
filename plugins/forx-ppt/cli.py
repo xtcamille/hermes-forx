@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def setup(parser):
-    parser.add_argument("action", choices=["list", "show", "create", "edit", "chat", "undo", "redo", "export", "import", "doctor", "doc-to-deck"])
+    parser.add_argument("action", choices=["list", "show", "create", "edit", "delete", "chat", "undo", "redo", "export", "import", "doctor", "doc-to-deck"])
     parser.add_argument("--project", help="Stable project identity")
     parser.add_argument("--revision", type=int, help="Expected current revision for writes")
     parser.add_argument("--input", help="UTF-8 JSON draft, document text file path, or operation list")
@@ -101,7 +101,7 @@ def run(args, client=None):
 
     handlers = {
         "list": store.list, "show": lambda: store.get(require_project()), "create": create,
-        "edit": edit, "chat": chat, "export": export, "import": import_file,
+        "edit": edit, "delete": lambda: store.delete(require_project()), "chat": chat, "export": export, "import": import_file,
         "doc-to-deck": doc_to_deck,
         "undo": lambda: store.travel(require_project(), args.revision, "undo", request_id),
         "redo": lambda: store.travel(require_project(), args.revision, "redo", request_id),
