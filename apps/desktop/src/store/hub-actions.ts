@@ -120,6 +120,21 @@ async function runHubAction(
     // render as installed/removed.
     if (key !== UPDATE_ALL_KEY && exitCode === 0) {
       $hubInstalledOverride.setKey(key, kind !== 'uninstall')
+      const displayName = key.includes('/') ? key.split('/').pop() || key : key
+
+      if (kind === 'install') {
+        notify({
+          kind: 'success',
+          title: `"${displayName}" installed`,
+          message: translateNow('skills.changesApplyNewSessions')
+        })
+      } else if (kind === 'uninstall') {
+        notify({
+          kind: 'success',
+          title: `"${displayName}" uninstalled`,
+          message: translateNow('skills.changesApplyNewSessions')
+        })
+      }
     }
 
     // Refresh the hub's installed map AND the Capabilities Skills list — a hub
