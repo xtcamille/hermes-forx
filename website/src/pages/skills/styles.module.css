@@ -1126,6 +1126,11 @@
   text-decoration: none;
 }
 
+a.pickBtn {
+  text-align: center;
+  text-decoration: none;
+}
+
 .pickBtnCopied {
   background: #10b981 !important;
   color: #ffffff !important;

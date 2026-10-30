@@ -5,10 +5,12 @@ import { closeActiveTab } from '@/app/chat/close-tab'
 import { commandFocusedPreview } from '@/app/chat/right-rail/preview-nav'
 import { openSession } from '@/app/open-session'
 import { $diskPluginsScanPending } from '@/contrib/runtime-loader'
+import { translateNow } from '@/i18n'
 import { resolveDeepLinkAction } from '@/lib/deeplink-routes'
 import { pathFromHermesDeepLink, resolveHermesOpenPath } from '@/lib/hermes-open-target'
 import { storedSessionIdForNotification } from '@/lib/session-ids'
 import { announceNewSessionDraftKey } from '@/store/composer'
+import { installHubSkill, notifyHubActionFailed } from '@/store/hub-actions'
 import { requestMcpInstallFromDeepLink } from '@/store/mcp-deeplink-install'
 import { startMcpHealthChecker, stopMcpHealthChecker } from '@/store/mcp-health'
 import {
@@ -17,6 +19,7 @@ import {
   invokePluginNotifyActivate,
   respondToApprovalAction
 } from '@/store/native-notifications'
+import { notify } from '@/store/notifications'
 import { requestPluginCatalogInstallFromDeepLink } from '@/store/plugin-catalog-install'
 import { openPluginInstallRequest } from '@/store/plugin-install-request'
 import { openFolderAsProject } from '@/store/projects'
@@ -336,6 +339,22 @@ export function useDesktopIntegrations({
 
       if (action.type === 'plugin-catalog-install') {
         void requestPluginCatalogInstallFromDeepLink(action.name)
+
+        return
+      }
+
+      if (action.type === 'skill-install') {
+        const target = action.identifier || action.name
+        const label = action.name || action.identifier
+        const profile = null
+        notify({
+          kind: 'success',
+          title: translateNow('skills.hub.installStarted', label),
+          message: translateNow('skills.hub.actionLog')
+        })
+        void installHubSkill(target, profile).catch(err =>
+          notifyHubActionFailed(err, translateNow('skills.hub.actionFailed'), label, profile)
+        )
 
         return
       }

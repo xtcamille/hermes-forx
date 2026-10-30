@@ -279,6 +279,12 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/** Deep link into the Desktop app's Install Skill action. */
+function desktopSkillInstallLink(skill: Skill): string {
+  const target = skill.identifier || skill.name;
+  return `hermes://skill/install?name=${encodeURIComponent(skill.name)}&identifier=${encodeURIComponent(target)}`;
+}
+
 function SkillCard({
   skill,
   query,
@@ -299,7 +305,6 @@ function SkillCard({
   /** Picker embed mode: render "+ Add to this Agent" and call this. */
   onPick?: (skill: Skill) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const src = SOURCE_CONFIG[skill.source] || SOURCE_CONFIG["optional"];
   const icon = CATEGORY_ICONS[skill.category] || "\u{1F4E6}";
   const installCmd = skill.installCmd || `forx skills install ${skill.name}`;
@@ -365,22 +370,14 @@ function SkillCard({
             + Add to this Agent
           </button>
         ) : (
-          <button
-            className={`${styles.pickBtn} ${copied ? styles.pickBtnCopied : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard?.writeText(installCmd).then(
-                () => {
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                },
-                () => {},
-              );
-            }}
-            title={`点击复制安装命令: ${installCmd}`}
+          <a
+            className={styles.pickBtn}
+            href={desktopSkillInstallLink(skill)}
+            title={`Opens the install dialog in ForX Desktop for ${skill.name}. No app? Use the install command below.`}
+            onClick={(e) => e.stopPropagation()}
           >
-            {copied ? "✓ 已复制安装命令" : "📋 复制命令行安装"}
-          </button>
+            Open in ForX Desktop
+          </a>
         )}
 
         {expanded && (

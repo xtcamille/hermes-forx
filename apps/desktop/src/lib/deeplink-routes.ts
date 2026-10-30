@@ -11,6 +11,7 @@ export type DeepLinkAction =
   /** `hermes://plugin/install?catalog=<name>` — resolved against the curated
    *  catalog by the caller; the raw name is never treated as a git identifier. */
   | { type: 'plugin-catalog-install'; name: string }
+  | { type: 'skill-install'; name: string; identifier: string }
   | { type: 'composer-blueprint'; name: string; params: Record<string, string> }
   | { type: 'ignore' }
 
@@ -31,6 +32,15 @@ export function resolveDeepLinkAction(payload: DeepLinkPayload | null | undefine
 
   if (payload.kind === 'blueprint' && payload.name) {
     return { type: 'composer-blueprint', name: payload.name, params: payload.params || {} }
+  }
+
+  if ((payload.kind === 'skill' || payload.kind === 'skills') && payload.name === 'install') {
+    const name = (payload.params?.name || payload.params?.identifier || '').trim()
+    const identifier = (payload.params?.identifier || payload.params?.name || '').trim()
+
+    if (name || identifier) {
+      return { type: 'skill-install', name: name || identifier, identifier: identifier || name }
+    }
   }
 
   // A `catalog` param claims the link outright: even when a `repo` rides along

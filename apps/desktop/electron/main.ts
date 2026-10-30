@@ -18409,7 +18409,7 @@ ipcMain.handle('hermes:vscode-theme:search', async (_event, query) => searchMark
 // ---------------------------------------------------------------------------
 const HERMES_PROTOCOL = DEV_SERVER ? 'hermes-dev' : 'hermes'
 /** Schemes accepted when parsing inbound URLs (dev accepts both). */
-const DEEPLINK_SCHEMES = DEV_SERVER ? ['hermes-dev', 'hermes'] : ['hermes']
+const DEEPLINK_SCHEMES = DEV_SERVER ? ['hermes-dev', 'hermes', 'forx-dev', 'forx'] : ['hermes', 'forx']
 let _pendingDeepLink = null
 let _rendererReadyForDeepLink = false
 // Set by sendOpenUpdatesRequested() when the renderer cannot hear it yet.
@@ -18498,17 +18498,20 @@ ipcMain.handle('hermes:deep-link-ready', () => {
 
 function registerDeepLinkProtocol() {
   try {
-    if (process.defaultApp && process.argv.length >= 2) {
-      // Dev: register with the electron exec path + entry script so the OS can
-      // relaunch us with the URL. argv[1] is usually "." when launched via
-      // `electron .` from apps/desktop — resolve against cwd.
-      const entry = path.resolve(process.argv[1])
-      app.setAsDefaultProtocolClient(HERMES_PROTOCOL, process.execPath, [entry])
-    } else {
-      app.setAsDefaultProtocolClient(HERMES_PROTOCOL)
-    }
+    const protocols = DEV_SERVER ? ['hermes-dev', 'forx-dev'] : ['hermes', 'forx']
+    for (const proto of protocols) {
+      if (process.defaultApp && process.argv.length >= 2) {
+        // Dev: register with the electron exec path + entry script so the OS can
+        // relaunch us with the URL. argv[1] is usually "." when launched via
+        // `electron .` from apps/desktop — resolve against cwd.
+        const entry = path.resolve(process.argv[1])
+        app.setAsDefaultProtocolClient(proto, process.execPath, [entry])
+      } else {
+        app.setAsDefaultProtocolClient(proto)
+      }
 
-    rememberLog(`[deeplink] registered ${HERMES_PROTOCOL}:// handler`)
+      rememberLog(`[deeplink] registered ${proto}:// handler`)
+    }
   } catch (err) {
     rememberLog(`[deeplink] protocol registration failed: ${err.message}`)
   }

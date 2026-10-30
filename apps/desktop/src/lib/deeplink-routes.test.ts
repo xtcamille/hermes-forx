@@ -62,4 +62,30 @@ describe('resolveDeepLinkAction', () => {
       params: { time: '08:00' }
     })
   })
+
+  it('routes skill install deeplinks', () => {
+    expect(
+      resolveDeepLinkAction({
+        kind: 'skill',
+        name: 'install',
+        params: { name: 'apple-notes', identifier: 'official/productivity/apple-notes' }
+      })
+    ).toEqual({
+      type: 'skill-install',
+      name: 'apple-notes',
+      identifier: 'official/productivity/apple-notes'
+    })
+
+    expect(
+      resolveDeepLinkAction({
+        kind: 'skills',
+        name: 'install',
+        params: { name: 'web-search' }
+      })
+    ).toEqual({
+      type: 'skill-install',
+      name: 'web-search',
+      identifier: 'web-search'
+    })
+  })
 })
