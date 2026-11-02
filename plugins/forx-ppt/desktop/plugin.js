@@ -530,7 +530,7 @@ function Toolbar({ c }) {
     ),
     doc && h('div', { className: 'ppt-btn-group' },
       button('▶ 放映', () => c.$presenting.set(true), !doc, { title: '全屏演示放映 (快捷键 F5)', className: 'ppt-btn-present' }),
-      button('📤 导出', () => c.$exportModalOpen.set(true), !doc, { className: 'ppt-btn-primary', title: '导出 PPTX、PDF、长图与工程包' }),
+      button('📤 导出', () => c.$exportModalOpen.set(true), !doc, { className: 'ppt-btn-primary ppt-btn-export', title: '导出 PPTX、PDF、长图与工程包' }),
       button('保存项目', () => c.download('project'), !!busy || !doc),
       button('导出 PPTX', () => c.download('pptx'), !!busy || !doc),
       button('删除文稿', () => c.$deleteModalOpen.set(true), !!busy, { className: 'ppt-btn-danger' }),
@@ -1881,75 +1881,92 @@ function ExportModal({ c }) {
 
   const currentSlide = doc.deck.slides.find(s => s.id === slideId) || doc.deck.slides[0]
 
-  return h('div', { className: 'ppt-modal-backdrop', onClick: () => c.$exportModalOpen.set(false) },
-    h('div', { className: 'ppt-modal-sheet ppt-export-modal-sheet', onClick: e => e.stopPropagation() },
-      h('div', { className: 'ppt-modal-sheet-header' },
-        h('div', null,
-          h('h2', { className: 'ppt-sheet-title' }, '导出与分享演示文稿'),
-          h('p', { className: 'ppt-sheet-subtitle' }, '支持 Office 原生排版、高清打印矢量 PDF、以及适合微信/飞书分享的长图')
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => c.$exportModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-cupertino-sheet ppt-export-modal-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'Export'),
+            h('h3', { className: 'ppt-modal-title' }, '导出与分享演示文稿')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '支持 Office 原生排版、高清打印矢量 PDF、以及适合微信/飞书分享的长图')
         ),
-        h('button', { className: 'ppt-sheet-close', onClick: () => c.$exportModalOpen.set(false) }, '✕')
+        h('button', {
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          onClick: () => c.$exportModalOpen.set(false)
+        }, '✕')
       ),
-      h('div', { className: 'ppt-export-grid' },
-        h('div', {
-          className: 'ppt-export-card',
-          onClick: () => !busy && c.exportPptx()
-        },
-          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(216, 59, 1, 0.12)', color: '#d83b01' } }, '💼'),
-          h('div', { className: 'ppt-export-card-info' },
-            h('div', { className: 'ppt-export-card-title' }, 'PowerPoint 演示文稿 (.pptx)'),
-            h('p', { className: 'ppt-export-card-desc' }, '原生可编辑对象、矢量形状、原生嵌入图表与幻灯片母版，支持在 Office / WPS 中深度二次排版。'),
-            h('span', { className: 'ppt-export-badge' }, '标准格式 · 原生可编辑')
-          )
-        ),
+      h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+        h('div', { className: 'ppt-export-grid' },
+          h('div', {
+            className: 'ppt-export-card',
+            onClick: () => !busy && c.exportPptx()
+          },
+            h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(216, 59, 1, 0.12)', color: '#d83b01' } }, '💼'),
+            h('div', { className: 'ppt-export-card-info' },
+              h('div', { className: 'ppt-export-card-title' }, 'PowerPoint 演示文稿 (.pptx)'),
+              h('p', { className: 'ppt-export-card-desc' }, '原生可编辑对象、矢量形状、原生嵌入图表与幻灯片母版，支持在 Office / WPS 中深度二次排版。'),
+              h('span', { className: 'ppt-export-badge' }, '标准格式 · 原生可编辑')
+            )
+          ),
 
-        h('div', {
-          className: 'ppt-export-card',
-          onClick: () => !busy && c.exportPdf()
-        },
-          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(255, 59, 48, 0.12)', color: '#ff3b30' } }, '📑'),
-          h('div', { className: 'ppt-export-card-info' },
-            h('div', { className: 'ppt-export-card-title' }, '矢量 PDF 文档 (.pdf)'),
-            h('p', { className: 'ppt-export-card-desc' }, '高保真矢量打印排版，字体排版无损缩放，适合商务汇报归档、邮件附件发送及跨平台查阅。'),
-            h('span', { className: 'ppt-export-badge' }, '高保真 · 矢量打印')
-          )
-        ),
+          h('div', {
+            className: 'ppt-export-card',
+            onClick: () => !busy && c.exportPdf()
+          },
+            h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(255, 59, 48, 0.12)', color: '#ff3b30' } }, '📑'),
+            h('div', { className: 'ppt-export-card-info' },
+              h('div', { className: 'ppt-export-card-title' }, '矢量 PDF 文档 (.pdf)'),
+              h('p', { className: 'ppt-export-card-desc' }, '高保真矢量打印排版，字体排版无损缩放，适合商务汇报归档、邮件附件发送及跨平台查阅。'),
+              h('span', { className: 'ppt-export-badge' }, '高保真 · 矢量打印')
+            )
+          ),
 
-        h('div', {
-          className: 'ppt-export-card',
-          onClick: () => !busy && c.exportLongImage()
-        },
-          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(0, 113, 227, 0.12)', color: '#0071e3' } }, '📱'),
-          h('div', { className: 'ppt-export-card-info' },
-            h('div', { className: 'ppt-export-card-title' }, '全篇高清长图海报 (.png)'),
-            h('p', { className: 'ppt-export-card-desc' }, '将全篇幻灯片串联渲染为单张高清长图，带有页面标题与页码标牌，非常适合在微信、飞书、企业微信群直接分享与手机滑动浏览。'),
-            h('span', { className: 'ppt-export-badge' }, '微信/飞书分享神器')
-          )
-        ),
+          h('div', {
+            className: 'ppt-export-card',
+            onClick: () => !busy && c.exportLongImage()
+          },
+            h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(0, 113, 227, 0.12)', color: '#0071e3' } }, '📱'),
+            h('div', { className: 'ppt-export-card-info' },
+              h('div', { className: 'ppt-export-card-title' }, '全篇高清长图海报 (.png)'),
+              h('p', { className: 'ppt-export-card-desc' }, '将全篇幻灯片串联渲染为单张高清长图，带有页面标题与页码标牌，非常适合在微信、飞书、企业微信群直接分享与手机滑动浏览。'),
+              h('span', { className: 'ppt-export-badge' }, '微信/飞书分享神器')
+            )
+          ),
 
-        h('div', {
-          className: 'ppt-export-card',
-          onClick: () => !busy && c.exportSlideImage(currentSlide.id)
-        },
-          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(52, 199, 89, 0.12)', color: '#34c759' } }, '🖼️'),
-          h('div', { className: 'ppt-export-card-info' },
-            h('div', { className: 'ppt-export-card-title' }, `当前页高清图 (${currentSlide.id} · .png)`),
-            h('p', { className: 'ppt-export-card-desc' }, `导出第 ${doc.deck.slides.findIndex(s => s.id === currentSlide.id) + 1} 页《${currentSlide.name}》的超清图片，用于单独插图或封面海报。`),
-            h('span', { className: 'ppt-export-badge' }, '1080P/4K 单页图')
-          )
-        ),
+          h('div', {
+            className: 'ppt-export-card',
+            onClick: () => !busy && c.exportSlideImage(currentSlide.id)
+          },
+            h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(52, 199, 89, 0.12)', color: '#34c759' } }, '🖼️'),
+            h('div', { className: 'ppt-export-card-info' },
+              h('div', { className: 'ppt-export-card-title' }, `当前页高清图 (${currentSlide.id} · .png)`),
+              h('p', { className: 'ppt-export-card-desc' }, `导出第 ${doc.deck.slides.findIndex(s => s.id === currentSlide.id) + 1} 页《${currentSlide.name}》的超清图片，用于单独插图或封面海报。`),
+              h('span', { className: 'ppt-export-badge' }, '1080P/4K 单页图')
+            )
+          ),
 
-        h('div', {
-          className: 'ppt-export-card',
-          onClick: () => !busy && c.exportProject()
-        },
-          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(175, 82, 222, 0.12)', color: '#af52de' } }, '📦'),
-          h('div', { className: 'ppt-export-card-info' },
-            h('div', { className: 'ppt-export-card-title' }, '项目工程包 (.forxppt)'),
-            h('p', { className: 'ppt-export-card-desc' }, '包含所有版本历史分支、母版样式、对象编号及原始素材的工程备份，随时随地一键导入恢复。'),
-            h('span', { className: 'ppt-export-badge' }, '完整工程备份')
+          h('div', {
+            className: 'ppt-export-card',
+            onClick: () => !busy && c.exportProject()
+          },
+            h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(175, 82, 222, 0.12)', color: '#af52de' } }, '📦'),
+            h('div', { className: 'ppt-export-card-info' },
+              h('div', { className: 'ppt-export-card-title' }, '项目工程包 (.forxppt)'),
+              h('p', { className: 'ppt-export-card-desc' }, '包含所有版本历史分支、母版样式、对象编号及原始素材的工程备份，随时随地一键导入恢复。'),
+              h('span', { className: 'ppt-export-badge' }, '完整工程备份')
+            )
           )
         )
+      ),
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '所有格式均在本地高保真渲染生成，无需联网上传数据'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          onClick: () => c.$exportModalOpen.set(false)
+        }, '关闭')
       )
     )
   )
@@ -2841,43 +2858,95 @@ const css = `
 .ppt-laser-pointer-dot{position:fixed;width:12px;height:12px;border-radius:50%;background:#ff3b30;box-shadow:0 0 10px #ff3b30, 0 0 20px #ff3b30, 0 0 3px #ffffff;pointer-events:none;transform:translate(-50%, -50%);z-index:10002;transition:transform 0.04s ease}
 
 /* Presentation Floating HUD */
-.ppt-presentation-hud{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(30,30,32,0.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:980px;box-shadow:0 12px 36px rgba(0,0,0,0.5);z-index:10000;transition:opacity 0.25s ease, transform 0.25s ease}
+.ppt-presentation-hud{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(18,18,22,0.94)!important;backdrop-filter:blur(28px)!important;-webkit-backdrop-filter:blur(28px)!important;border:1px solid rgba(255,255,255,0.22)!important;border-radius:980px;box-shadow:0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(0,0,0,0.5)!important;z-index:10000;transition:opacity 0.25s ease, transform 0.25s ease}
 .ppt-hud-visible{opacity:1;pointer-events:all}
 .ppt-hud-hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px)}
-.ppt-hud-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#ffffff;border-radius:980px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s ease}
-.ppt-hud-btn:hover:not(:disabled){background:rgba(255,255,255,0.18);transform:translateY(-1px)}
+.ppt-hud-btn{background:rgba(255,255,255,0.14)!important;border:1px solid rgba(255,255,255,0.22)!important;color:#ffffff!important;border-radius:980px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s ease;text-shadow:0 1px 2px rgba(0,0,0,0.6);box-shadow:0 2px 6px rgba(0,0,0,0.25)}
+.ppt-hud-btn:hover:not(:disabled){background:rgba(255,255,255,0.26)!important;border-color:rgba(255,255,255,0.45)!important;transform:translateY(-1px)}
 .ppt-hud-btn:disabled{opacity:0.3;cursor:not-allowed}
-.ppt-hud-active{background:#0071e3!important;border-color:#0071e3!important;box-shadow:0 0 12px rgba(0,113,227,0.5)}
-.ppt-hud-exit{background:rgba(255,59,48,0.15)!important;border-color:rgba(255,59,48,0.3)!important;color:#ff453a!important}
-.ppt-hud-exit:hover{background:rgba(255,59,48,0.3)!important}
-.ppt-hud-counter{display:flex;align-items:center;font-size:12px;padding:0 6px;color:#ffffff;font-variant-numeric:tabular-nums}
-.ppt-hud-index{font-weight:600}
-.ppt-hud-total{color:rgba(255,255,255,0.5)}
-.ppt-hud-divider{width:1px;height:16px;background:rgba(255,255,255,0.15);margin:0 2px}
+.ppt-hud-active{background:#0071e3!important;border-color:#58a6ff!important;color:#ffffff!important;box-shadow:0 0 16px rgba(0,113,227,0.75)!important}
+.ppt-hud-exit{background:rgba(255,59,48,0.25)!important;border-color:rgba(255,59,48,0.5)!important;color:#ff6961!important}
+.ppt-hud-exit:hover{background:rgba(255,59,48,0.45)!important;color:#ffffff!important}
+.ppt-hud-counter{display:flex;align-items:center;font-size:12px;padding:0 6px;color:#ffffff;font-variant-numeric:tabular-nums;font-weight:600}
+.ppt-hud-index{font-weight:700;color:#ffffff}
+.ppt-hud-total{color:rgba(255,255,255,0.65)}
+.ppt-hud-divider{width:1px;height:16px;background:rgba(255,255,255,0.22);margin:0 2px}
 
 /* Presentation Notes HUD */
-.ppt-presentation-notes-hud{position:fixed;bottom:90px;right:32px;width:340px;max-height:280px;background:rgba(24,24,26,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.16);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.6);z-index:10000;display:flex;flex-direction:column;overflow:hidden;animation:pptFadeUp 0.2s ease}
-.ppt-notes-hud-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.1)}
-.ppt-notes-hud-title{font-size:12px;font-weight:600;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ppt-notes-hud-close{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px}
-.ppt-notes-hud-close:hover{color:#ffffff;background:rgba(255,255,255,0.1)}
-.ppt-notes-hud-body{padding:12px 14px;overflow-y:auto;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.92)}
-.ppt-notes-empty{color:rgba(255,255,255,0.4);font-style:italic;margin:0}
+.ppt-presentation-notes-hud{position:fixed;bottom:90px;right:32px;width:360px;max-height:300px;background:rgba(18,18,22,0.95)!important;backdrop-filter:blur(28px)!important;-webkit-backdrop-filter:blur(28px)!important;border:1px solid rgba(255,255,255,0.22)!important;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.8)!important;z-index:10000;display:flex;flex-direction:column;overflow:hidden;animation:pptFadeUp 0.2s ease}
+.ppt-notes-hud-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.12)}
+.ppt-notes-hud-title{font-size:12.5px;font-weight:600;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppt-notes-hud-close{background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:13px;padding:3px 7px;border-radius:6px;transition:all 0.15s ease}
+.ppt-notes-hud-close:hover{color:#ffffff;background:rgba(255,255,255,0.2)}
+.ppt-notes-hud-body{padding:14px 16px;overflow-y:auto;font-size:13px;line-height:1.65;color:rgba(255,255,255,0.95)}
+.ppt-notes-empty{color:rgba(255,255,255,0.5);font-style:italic;margin:0}
 
 /* Notes Card in Properties Panel */
 .ppt-notes-card{background:color-mix(in srgb, var(--ui-bg-elevated) 90%, var(--ui-accent))!important;border:1px solid color-mix(in srgb, var(--ui-stroke-secondary) 70%, var(--ui-accent))!important}
-.ppt-btn-present{background:linear-gradient(135deg, #0071e3, #47a3ff)!important;color:#ffffff!important;font-weight:600!important}
+
+/* Toolbar Action Buttons (Present & Export) */
+.ppt-btn-group button.ppt-btn-present,
+button.ppt-btn-present{
+  background:#0071e3!important;
+  color:#ffffff!important;
+  font-weight:600!important;
+  border-radius:6px!important;
+  padding:4px 10px!important;
+  box-shadow:0 1px 4px rgba(0,113,227,0.4)!important;
+  border:1px solid rgba(255,255,255,0.2)!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  transition:all 0.15s ease!important;
+}
+.ppt-btn-group button.ppt-btn-present:hover:not(:disabled),
+button.ppt-btn-present:hover:not(:disabled){
+  background:#0077ed!important;
+  color:#ffffff!important;
+  transform:translateY(-0.5px)!important;
+  box-shadow:0 2px 8px rgba(0,113,227,0.5)!important;
+}
+
+.ppt-btn-group button.ppt-btn-primary,
+.ppt-btn-group button.ppt-btn-export,
+button.ppt-btn-export{
+  background:rgba(0,113,227,0.12)!important;
+  color:#0071e3!important;
+  font-weight:600!important;
+  border-radius:6px!important;
+  padding:4px 10px!important;
+  border:1px solid rgba(0,113,227,0.3)!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  transition:all 0.15s ease!important;
+}
+.ppt-btn-group button.ppt-btn-primary:hover:not(:disabled),
+.ppt-btn-group button.ppt-btn-export:hover:not(:disabled),
+button.ppt-btn-export:hover:not(:disabled){
+  background:rgba(0,113,227,0.22)!important;
+  color:#0071e3!important;
+  transform:translateY(-0.5px)!important;
+}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-btn-group button.ppt-btn-primary,
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-btn-group button.ppt-btn-export,
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) button.ppt-btn-export{
+  background:rgba(41,151,255,0.18)!important;
+  color:#2997ff!important;
+  border-color:rgba(41,151,255,0.4)!important;
+}
 
 /* Export Modal Sheet */
 .ppt-export-modal-sheet{max-width:680px!important;padding:24px 28px!important}
-.ppt-export-grid{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-.ppt-export-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:12px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);cursor:pointer;transition:all 0.16s ease}
-.ppt-export-card:hover{border-color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 6%, var(--ui-bg-elevated));transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
-.ppt-export-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.ppt-export-card-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.ppt-export-card-title{font-size:13.5px;font-weight:600;color:var(--ui-text-primary)}
-.ppt-export-card-desc{font-size:11.5px;color:var(--ui-text-secondary);margin:0;line-height:1.45}
-.ppt-export-badge{align-self:flex-start;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,113,227,0.1);color:#0071e3;margin-top:3px}
+.ppt-export-grid{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.ppt-export-card{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:14px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);cursor:pointer;transition:all 0.16s ease;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.ppt-export-card:hover{border-color:#0071e3!important;background:color-mix(in srgb, #0071e3 8%, var(--ui-bg-elevated))!important;transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,113,227,0.12)}
+.ppt-export-card-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ppt-export-card-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ppt-export-card-title{font-size:14px;font-weight:600;color:var(--ui-text-primary)}
+.ppt-export-card-desc{font-size:12px;color:var(--ui-text-secondary);margin:0;line-height:1.5}
+.ppt-export-badge{align-self:flex-start;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(0,113,227,0.1);color:#0071e3;border:1px solid rgba(0,113,227,0.2);margin-top:4px}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-export-badge{color:#2997ff;border-color:rgba(41,151,255,0.3);background:rgba(41,151,255,0.12)}
 
 /* Brand Kit Modal */
 .ppt-brandkit-modal{max-width:680px!important;padding:24px 28px!important}
