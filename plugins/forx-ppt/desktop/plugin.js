@@ -13,6 +13,15 @@ const fileData = file => new Promise((resolve, reject) => {
   reader.readAsDataURL(file)
 })
 
+const THEME_PRESETS = [
+  { id: 'business', name: '💼 商务深蓝', primary: '#2459A8', accent: '#168C92', bg: '#FFFFFF', desc: '经典严谨商务质感，沉稳大气' },
+  { id: 'technology', name: '⚡ 深色科技', primary: '#64AAFF', accent: '#49DEC5', bg: '#101C30', desc: '深蓝底色与荧光青，高科技极客范' },
+  { id: 'minimal', name: '🌿 清新极简', primary: '#35745B', accent: '#B16B36', bg: '#F7F9F5', desc: '莫兰迪绿与暖木棕，典雅自然' },
+  { id: 'crimson', name: '🍎 活力果红', primary: '#FF3B30', accent: '#FF9500', bg: '#FFFFFF', desc: 'Apple 红色与暖橙，张力十足' },
+  { id: 'royal', name: '👑 尊贵雅致', primary: '#7C3AED', accent: '#C084FC', bg: '#0F0C20', desc: '暗夜曜紫与荧光紫，奢华高贵' },
+  { id: 'elegant', name: '🍸 香槟轻奢', primary: '#A3704C', accent: '#D4A373', bg: '#FDFBF7', desc: '香槟暖金与咖啡棕，温馨雅致' }
+]
+
 const Icon = {
   ppt: () => h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
     h('rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }),
@@ -65,7 +74,7 @@ function controller(ctx, owner) {
     $imageModalOpen: atom(false), $imageModalTargetElement: atom(null), $attachments: atom([]),
     $reLayoutModalOpen: atom(false),
     $presenting: atom(false), $laserActive: atom(false), $presenterNotesOpen: atom(false), $blackout: atom(false),
-    $exportModalOpen: atom(false),
+    $exportModalOpen: atom(false), $brandKitModalOpen: atom(false),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -497,13 +506,22 @@ function Toolbar({ c }) {
     h('input', { ref: upload, type: 'file', accept: '.pptx,.forxppt', hidden: true, onChange: event => {
       const file = event.target.files[0]; event.target.value = ''; if (file) void c.importFile(file)
     } }),
+    doc && h('div', { className: 'ppt-btn-group' },
+      button('🎨 品牌规范', () => c.$brandKitModalOpen.set(true), !doc, { title: '自定义品牌配色盘与母版企业Logo' }),
+    ),
     doc && h('select', { className: 'ppt-theme-select', 'aria-label': 'PPT 主题', disabled: !!busy,
-      value: Object.keys({ business: 1, technology: 1, minimal: 1 }).find(k => ({ business: '商务简洁', technology: '深色科技', minimal: '清新极简' })[k] === doc.deck.theme.name) || '',
+      value: Object.keys({ business: 1, technology: 1, minimal: 1, crimson: 1, royal: 1, elegant: 1 }).find(k => ({
+        business: '商务简洁', technology: '深色科技', minimal: '清新极简',
+        crimson: '活力果红', royal: '尊贵雅致', elegant: '香槟轻奢'
+      })[k] === doc.deck.theme.name) || '',
       onChange: event => void c.edit([{ action: 'theme', changes: { preset: event.target.value } }], '切换文稿主题') },
       h('option', { value: '', disabled: true }, '选择主题风格'),
       h('option', { value: 'business' }, '💼 商务简洁'),
       h('option', { value: 'technology' }, '⚡ 深色科技'),
-      h('option', { value: 'minimal' }, '🌿 清新极简')
+      h('option', { value: 'minimal' }, '🌿 清新极简'),
+      h('option', { value: 'crimson' }, '🍎 活力果红'),
+      h('option', { value: 'royal' }, '👑 尊贵雅致'),
+      h('option', { value: 'elegant' }, '🍸 香槟轻奢')
     ),
     doc && h('div', { className: 'ppt-btn-group' },
       button(numbers ? '隐藏编号' : '显示编号', () => c.$numbers.set(!c.$numbers.get())),
@@ -903,6 +921,197 @@ function SlideReLayoutModal({ c }) {
   )
 }
 
+function BrandKitModal({ c }) {
+  const doc = useValue(c.$doc)
+  const open = useValue(c.$brandKitModalOpen)
+  const busy = useValue(c.$busy)
+  const [primary, setPrimary] = useState('#2459A8')
+  const [accent, setAccent] = useState('#168C92')
+  const [bg, setBg] = useState('#FFFFFF')
+  const [text, setText] = useState('#17243B')
+  const [logoCorner, setLogoCorner] = useState('tr')
+  const logoInputRef = useRef(null)
+
+  useEffect(() => {
+    if (doc?.deck?.theme) {
+      setPrimary(doc.deck.theme.primary || '#2459A8')
+      setAccent(doc.deck.theme.accent || '#168C92')
+      setBg(doc.deck.theme.background || '#FFFFFF')
+      setText(doc.deck.theme.text || '#17243B')
+    }
+  }, [doc?.deck?.theme])
+
+  if (!open || !doc) return null
+
+  const masterLogo = doc.deck.master.elements.find(e => e.kind === 'image' && (e.name.includes('Logo') || e.name.includes('logo')))
+
+  const handleApplyPalette = () => {
+    c.edit([{
+      action: 'theme',
+      changes: { primary, accent, background: bg, text }
+    }], '应用自定义品牌色盘')
+  }
+
+  const handleApplyPreset = (presetId) => {
+    c.edit([{
+      action: 'theme',
+      changes: { preset: presetId }
+    }], `切换品牌主题 · ${presetId}`)
+  }
+
+  const handleUploadLogo = async (file) => {
+    if (!file) return
+    await c.perform('正在设置全局母版 Logo…', async () => {
+      const asset = await c.request('/assets', { method: 'POST', body: { data: await fileData(file) } })
+      const logoW = 1.4, logoH = 0.5
+      const coords = {
+        tl: { x: 0.6, y: 0.3 },
+        tr: { x: doc.deck.width - logoW - 0.6, y: 0.3 },
+        bl: { x: 0.6, y: doc.deck.height - logoH - 0.4 },
+        br: { x: doc.deck.width - logoW - 0.6, y: doc.deck.height - logoH - 0.4 }
+      }[logoCorner] || { x: doc.deck.width - logoW - 0.6, y: 0.3 }
+
+      const operation = masterLogo
+        ? { action: 'update_element', target: masterLogo.id, changes: { asset_id: asset.asset_id, box: { ...coords, width: logoW, height: logoH } } }
+        : { action: 'add_element', target: 'M001', element: { kind: 'image', name: `品牌Logo (${file.name.slice(0, 32)})`, asset_id: asset.asset_id, box: { ...coords, width: logoW, height: logoH } } }
+
+      await c.edit([operation], '设置全局母版 Logo')
+    })
+  }
+
+  const handleRemoveLogo = () => {
+    if (!masterLogo) return
+    c.edit([{ action: 'delete_element', target: masterLogo.id }], '移除全局母版 Logo')
+  }
+
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$brandKitModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-brandkit-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'Brand Kit'),
+            h('h3', { className: 'ppt-modal-title' }, '🎨 企业品牌规范与资产设定')
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '统一管理全篇幻灯片的品牌色盘、主辅色系及母版全局 Logo 资产')
+        ),
+        h('button', {
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          disabled: !!busy,
+          onClick: () => !busy && c.$brandKitModalOpen.set(false)
+        }, '✕')
+      ),
+      h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+        h('div', { className: 'ppt-brandkit-section' },
+          h('h4', { className: 'ppt-section-title' }, '1. 快速切换精选品牌主题'),
+          h('div', { className: 'ppt-preset-themes-grid' },
+            THEME_PRESETS.map(t => {
+              const isCurrent = doc.deck.theme.name === t.name.replace(/^[^\s]+\s*/, '')
+              return h('div', {
+                key: t.id,
+                className: `ppt-theme-card ${isCurrent ? 'ppt-theme-card-active' : ''}`,
+                onClick: () => !busy && handleApplyPreset(t.id)
+              },
+                h('div', { className: 'ppt-theme-palette-bar' },
+                  h('span', { style: { background: t.primary } }),
+                  h('span', { style: { background: t.accent } }),
+                  h('span', { style: { background: t.bg } })
+                ),
+                h('div', { className: 'ppt-theme-card-body' },
+                  h('strong', { className: 'ppt-theme-name' }, t.name),
+                  h('p', { className: 'ppt-theme-desc' }, t.desc)
+                ),
+                isCurrent && h('span', { className: 'ppt-theme-current-badge' }, '✓ 当前')
+              )
+            })
+          )
+        ),
+        h('div', { className: 'ppt-brandkit-section' },
+          h('h4', { className: 'ppt-section-title' }, '2. 自定义精确色盘'),
+          h('div', { className: 'ppt-custom-colors-grid' },
+            h('div', { className: 'ppt-color-picker-item' },
+              h('label', { className: 'ppt-color-label' }, '主品牌色 (Primary)'),
+              h('div', { className: 'ppt-color-input-wrapper' },
+                h('input', { type: 'color', value: primary, onChange: e => setPrimary(e.target.value) }),
+                h('input', { className: 'ppt-hex-input', value: primary, onChange: e => setPrimary(e.target.value) })
+              )
+            ),
+            h('div', { className: 'ppt-color-picker-item' },
+              h('label', { className: 'ppt-color-label' }, '辅助强调色 (Accent)'),
+              h('div', { className: 'ppt-color-input-wrapper' },
+                h('input', { type: 'color', value: accent, onChange: e => setAccent(e.target.value) }),
+                h('input', { className: 'ppt-hex-input', value: accent, onChange: e => setAccent(e.target.value) })
+              )
+            ),
+            h('div', { className: 'ppt-color-picker-item' },
+              h('label', { className: 'ppt-color-label' }, '画布底色 (Background)'),
+              h('div', { className: 'ppt-color-input-wrapper' },
+                h('input', { type: 'color', value: bg, onChange: e => setBg(e.target.value) }),
+                h('input', { className: 'ppt-hex-input', value: bg, onChange: e => setBg(e.target.value) })
+              )
+            ),
+            h('div', { className: 'ppt-color-picker-item' },
+              h('label', { className: 'ppt-color-label' }, '正文字色 (Text)'),
+              h('div', { className: 'ppt-color-input-wrapper' },
+                h('input', { type: 'color', value: text, onChange: e => setText(e.target.value) }),
+                h('input', { className: 'ppt-hex-input', value: text, onChange: e => setText(e.target.value) })
+              )
+            )
+          ),
+          button('应用自定义色盘到文稿', handleApplyPalette, !!busy, { className: 'ppt-apple-btn-primary', style: { alignSelf: 'flex-start', marginTop: 10 } })
+        ),
+        h('div', { className: 'ppt-brandkit-section' },
+          h('h4', { className: 'ppt-section-title' }, '3. 全局母版企业 Logo (跨全篇展示)'),
+          h('div', { className: 'ppt-logo-asset-card' },
+            h('div', { className: 'ppt-logo-preview-box' },
+              masterLogo ? h('span', { className: 'ppt-logo-active-text' }, `✓ 已设置全局 Logo：${masterLogo.name}`) : h('span', { className: 'ppt-muted' }, '尚未设置全局母版 Logo')
+            ),
+            h('div', { className: 'ppt-logo-controls' },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                h('span', { className: 'ppt-field-label', style: { width: 'auto' } }, '图钉位置：'),
+                h('select', {
+                  className: 'ppt-input ppt-cupertino-input',
+                  style: { width: 140 },
+                  value: logoCorner,
+                  onChange: e => setLogoCorner(e.target.value)
+                },
+                  h('option', { value: 'tr' }, '↗️ 右上角 (推荐)'),
+                  h('option', { value: 'tl' }, '↖️ 左上角'),
+                  h('option', { value: 'br' }, '↘️ 右下角'),
+                  h('option', { value: 'bl' }, '↙️ 左下角')
+                )
+              ),
+              h('input', {
+                type: 'file',
+                accept: 'image/png,image/jpeg,image/svg+xml,image/webp',
+                style: { display: 'none' },
+                ref: logoInputRef,
+                onChange: e => {
+                  const f = e.target.files?.[0]
+                  if (f) void handleUploadLogo(f)
+                  e.target.value = ''
+                }
+              }),
+              h('div', { style: { display: 'flex', gap: 8 } },
+                button('上传并应用全局 Logo', () => logoInputRef.current?.click(), !!busy, { className: 'ppt-apple-btn-primary' }),
+                masterLogo && button('移除全局 Logo', handleRemoveLogo, !!busy, { className: 'ppt-btn-danger' })
+              )
+            )
+          )
+        )
+      ),
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '母版 Logo 写入 M001，导出为 PPTX 后在 Office 中位于真正的幻灯片母版层'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          onClick: () => c.$brandKitModalOpen.set(false)
+        }, '完成')
+      )
+    )
+  )
+}
+
 function DocToDeckModal({ c }) {
   const open = useValue(c.$docModalOpen), busy = useValue(c.$busy)
   const [docText, setDocText] = useState('')
@@ -910,6 +1119,8 @@ function DocToDeckModal({ c }) {
   const [theme, setTheme] = useState('business')
   const [targetPages, setTargetPages] = useState(8)
   const [ratio, setRatio] = useState('16:9')
+  const [step, setStep] = useState('input')
+  const [outlineData, setOutlineData] = useState(null)
 
   if (!open) return null
 
@@ -932,9 +1143,58 @@ function DocToDeckModal({ c }) {
         }
       })
       c.$docModalOpen.set(false)
+      setStep('input')
+      setOutlineData(null)
       setDocText('')
       setTitle('')
       c.accept(res.result)
+    })
+  }
+
+  const handleGenerateOutline = async () => {
+    if (!docText.trim() || docText.trim().length < 5) {
+      c.$error.set('请输入至少5个字符的文档正文或大纲内容')
+      return
+    }
+    await c.perform('正在智能规划演示文稿大纲…', async () => {
+      const res = await c.request('/projects/generate-outline', {
+        method: 'POST',
+        timeoutMs: 120000,
+        body: {
+          text: docText.trim(),
+          title: title.trim() || undefined,
+          target_pages: parseInt(targetPages, 10) || 8
+        }
+      })
+      setOutlineData(res)
+      setStep('outline')
+    })
+  }
+
+  const handleConfirmOutline = async () => {
+    if (!outlineData?.slides?.length) return
+    await c.perform('正在根据大纲生成完整文稿…', async () => {
+      const payload = {
+        name: outlineData.title || title.trim() || '未命名演示文稿',
+        slides: outlineData.slides.map(s => ({
+          title: s.title,
+          layout_id: s.layout_id,
+          bullets: Array.isArray(s.bullets) ? s.bullets : String(s.bullets).split('\n').filter(Boolean)
+        })),
+        theme,
+        ratio,
+        request_id: uid()
+      }
+      const res = await c.request('/projects', {
+        method: 'POST',
+        body: payload
+      })
+      c.$docModalOpen.set(false)
+      setStep('input')
+      setOutlineData(null)
+      setDocText('')
+      setTitle('')
+      c.accept(res)
     })
   }
 
@@ -957,6 +1217,139 @@ function DocToDeckModal({ c }) {
 
   const charCount = docText.trim().length
   const isTextValid = charCount >= 5
+
+  if (step === 'outline' && outlineData) {
+    return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$docModalOpen.set(false) },
+      h('div', { className: 'ppt-modal ppt-doc-modal ppt-cupertino-sheet ppt-outline-modal-sheet', onClick: e => e.stopPropagation() },
+        h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+          h('div', { className: 'ppt-header-text-group' },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              h('span', { className: 'ppt-apple-badge' }, 'Step 2 / 2'),
+              h('h3', { className: 'ppt-modal-title' }, `📑 确认演示文稿大纲 (${outlineData.slides.length} 页)`)
+            ),
+            h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, outlineData.summary || '确认或调整每页标题、匹配版式与核心要点，点击确认即可生成高质量成稿')
+          ),
+          h('button', {
+            className: 'ppt-cupertino-close-btn',
+            'aria-label': '关闭',
+            disabled: !!busy,
+            onClick: () => !busy && c.$docModalOpen.set(false)
+          }, '✕')
+        ),
+        h('div', { className: 'ppt-modal-body ppt-cupertino-sheet-body' },
+          h('div', { className: 'ppt-form-row' },
+            h('label', { className: 'ppt-field-label' }, '文稿总标题'),
+            h('input', {
+              className: 'ppt-input ppt-cupertino-input',
+              value: outlineData.title,
+              disabled: !!busy,
+              onChange: e => setOutlineData({ ...outlineData, title: e.target.value })
+            })
+          ),
+          h('div', { className: 'ppt-outline-cards-list' },
+            outlineData.slides.map((s, idx) => h('div', { key: idx, className: 'ppt-outline-card ppt-cupertino-card' },
+              h('div', { className: 'ppt-outline-slide-header' },
+                h('span', { className: 'ppt-outline-index-badge' }, `第 ${idx + 1} 页`),
+                h('select', {
+                  className: 'ppt-input ppt-cupertino-input ppt-outline-layout-select',
+                  value: s.layout_id,
+                  disabled: !!busy,
+                  onChange: e => {
+                    const newSlides = [...outlineData.slides]
+                    newSlides[idx] = { ...s, layout_id: e.target.value }
+                    setOutlineData({ ...outlineData, slides: newSlides })
+                  }
+                },
+                  LAYOUTS.map(l => h('option', { key: l.id, value: l.id }, `${l.id} · ${l.name}`))
+                ),
+                h('div', { className: 'ppt-outline-actions' },
+                  h('button', {
+                    type: 'button',
+                    disabled: idx === 0 || !!busy,
+                    onClick: () => {
+                      const newSlides = [...outlineData.slides]
+                      const temp = newSlides[idx]
+                      newSlides[idx] = newSlides[idx - 1]
+                      newSlides[idx - 1] = temp
+                      setOutlineData({ ...outlineData, slides: newSlides })
+                    }
+                  }, '↑'),
+                  h('button', {
+                    type: 'button',
+                    disabled: idx === outlineData.slides.length - 1 || !!busy,
+                    onClick: () => {
+                      const newSlides = [...outlineData.slides]
+                      const temp = newSlides[idx]
+                      newSlides[idx] = newSlides[idx + 1]
+                      newSlides[idx + 1] = temp
+                      setOutlineData({ ...outlineData, slides: newSlides })
+                    }
+                  }, '↓'),
+                  h('button', {
+                    type: 'button',
+                    className: 'ppt-outline-delete-btn',
+                    disabled: outlineData.slides.length <= 1 || !!busy,
+                    onClick: () => {
+                      const newSlides = outlineData.slides.filter((_, i) => i !== idx)
+                      setOutlineData({ ...outlineData, slides: newSlides })
+                    }
+                  }, '🗑️')
+                )
+              ),
+              h('input', {
+                className: 'ppt-input ppt-cupertino-input ppt-outline-title-input',
+                value: s.title,
+                disabled: !!busy,
+                placeholder: '输入本页标题主旨…',
+                onChange: e => {
+                  const newSlides = [...outlineData.slides]
+                  newSlides[idx] = { ...s, title: e.target.value }
+                  setOutlineData({ ...outlineData, slides: newSlides })
+                }
+              }),
+              h('textarea', {
+                className: 'ppt-textarea ppt-cupertino-textarea ppt-outline-bullets-input',
+                rows: 3,
+                disabled: !!busy,
+                value: Array.isArray(s.bullets) ? s.bullets.join('\n') : s.bullets,
+                placeholder: '每行一个要点，例如：【核心论点】具体说明事实与数据…',
+                onChange: e => {
+                  const newSlides = [...outlineData.slides]
+                  newSlides[idx] = { ...s, bullets: e.target.value.split('\n') }
+                  setOutlineData({ ...outlineData, slides: newSlides })
+                }
+              })
+            ))
+          ),
+          h('button', {
+            type: 'button',
+            className: 'ppt-apple-btn-secondary ppt-add-outline-btn',
+            disabled: !!busy,
+            onClick: () => {
+              setOutlineData({
+                ...outlineData,
+                slides: [...outlineData.slides, { title: '新页面标题', layout_id: 'L003', bullets: ['【核心论点】补充业务事实与规划'] }]
+              })
+            }
+          }, '➕ 添加单页大纲')
+        ),
+        h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+          h('button', {
+            type: 'button',
+            className: 'ppt-apple-btn-secondary',
+            disabled: !!busy,
+            onClick: () => setStep('input')
+          }, '← 返回修改原文'),
+          h('button', {
+            type: 'button',
+            className: 'ppt-apple-btn-primary',
+            disabled: !!busy,
+            onClick: handleConfirmOutline
+          }, busy ? '正在生成全篇文稿…' : '✨ 确认大纲，生成完整文稿')
+        )
+      )
+    )
+  }
 
   return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$docModalOpen.set(false) },
     h('div', { className: 'ppt-modal ppt-doc-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
@@ -1034,7 +1427,10 @@ function DocToDeckModal({ c }) {
             options: [
               { label: '💼 商务深蓝', value: 'business' },
               { label: '⚡ 暗夜科技', value: 'technology' },
-              { label: '🌿 极简雅致', value: 'minimal' }
+              { label: '🌿 极简雅致', value: 'minimal' },
+              { label: '🍎 活力果红', value: 'crimson' },
+              { label: '👑 尊贵雅致', value: 'royal' },
+              { label: '🍸 香槟轻奢', value: 'elegant' },
             ]
           })
         ),
@@ -1068,7 +1464,6 @@ function DocToDeckModal({ c }) {
         )
       ),
       h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
-        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '按 Esc 或点击遮罩关闭 · 离线私有优先'),
         h('button', {
           type: 'button',
           className: 'ppt-apple-btn-secondary',
@@ -1077,10 +1472,16 @@ function DocToDeckModal({ c }) {
         }, '取消'),
         h('button', {
           type: 'button',
-          className: 'ppt-apple-btn-primary',
+          className: 'ppt-apple-btn-secondary',
           disabled: !!busy || !docText.trim(),
           onClick: handleConvert
-        }, busy ? '正在智能转换中…' : '开始智能转换')
+        }, busy ? '正在智能转换中…' : '开始智能转换'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-primary',
+          disabled: !!busy || !docText.trim(),
+          onClick: handleGenerateOutline
+        }, busy ? '正在智能规划中…' : '📑 先规划大纲并预览 (推荐)')
       )
     )
   )
@@ -1972,6 +2373,24 @@ function Properties({ c, expanded = false }) {
         ),
         button(chosen.source === 'M001' ? '更新母版文字' : '更新本页文字', () => c.edit([{ action: 'update_element', target: c.$selection.get()[0], changes: { text } }], '更新文字'), !!busy)
       ),
+      chosen.kind === 'chart' && h('div', { className: 'ppt-form-row' },
+        h('label', { className: 'ppt-field-label' }, '图表类型'),
+        h('select', {
+          className: 'ppt-input ppt-cupertino-input',
+          'aria-label': '切换图表类型',
+          value: chosen.chart_type || 'column',
+          disabled: !!busy,
+          onChange: e => c.edit([{ action: 'update_element', target: chosen.id, changes: { chart_type: e.target.value } }], '切换图表类型')
+        },
+          h('option', { value: 'column' }, '📊 垂直柱状图 (Column)'),
+          h('option', { value: 'bar' }, '📶 水平条形图 (Bar)'),
+          h('option', { value: 'line' }, '📈 折线趋势图 (Line)'),
+          h('option', { value: 'area' }, '📉 面积趋势图 (Area)'),
+          h('option', { value: 'pie' }, '🥧 饼图分布 (Pie)'),
+          h('option', { value: 'donut' }, '🍩 环形图占比 (Donut)'),
+          h('option', { value: 'radar' }, '🕸️ 综合雷达图 (Radar)')
+        )
+      ),
       ['text', 'table', 'chart'].includes(chosen.kind) && h('div', { className: 'ppt-form-row' },
         h('label', { className: 'ppt-field-label' }, '局部字号（磅）',
           h(Input, { type: 'number', min: 8, max: 160, value: fontSize, placeholder: '继承', onChange: event => setFontSize(event.target.value) })
@@ -2460,6 +2879,50 @@ const css = `
 .ppt-export-card-desc{font-size:11.5px;color:var(--ui-text-secondary);margin:0;line-height:1.45}
 .ppt-export-badge{align-self:flex-start;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,113,227,0.1);color:#0071e3;margin-top:3px}
 
+/* Brand Kit Modal */
+.ppt-brandkit-modal{max-width:680px!important;padding:24px 28px!important}
+.ppt-brandkit-section{margin-bottom:20px}
+.ppt-section-title{font-size:13px;font-weight:700;color:var(--ui-text-primary);margin:0 0 10px 0}
+.ppt-preset-themes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.ppt-theme-card{display:flex;flex-direction:column;padding:10px 12px;border-radius:12px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);cursor:pointer;position:relative;transition:all 0.16s ease}
+.ppt-theme-card:hover{border-color:var(--ui-accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,0.06)}
+.ppt-theme-card-active{border-color:#0071e3!important;box-shadow:0 0 0 2px rgba(0,113,227,0.3)!important;background:color-mix(in srgb, var(--ui-bg-elevated) 92%, #0071e3)!important}
+.ppt-theme-palette-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-bottom:8px}
+.ppt-theme-palette-bar span{flex:1}
+.ppt-theme-name{font-size:12.5px;color:var(--ui-text-primary);display:block}
+.ppt-theme-desc{font-size:11px;color:var(--ui-text-secondary);margin:2px 0 0 0}
+.ppt-theme-current-badge{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;color:#0071e3;background:rgba(0,113,227,0.12);padding:1px 5px;border-radius:4px}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-theme-current-badge{color:#2997ff}
+
+.ppt-custom-colors-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.ppt-color-picker-item{display:flex;flex-direction:column;gap:5px}
+.ppt-color-label{font-size:11.5px;color:var(--ui-text-secondary);font-weight:500}
+.ppt-color-input-wrapper{display:flex;align-items:center;gap:6px}
+.ppt-color-input-wrapper input[type="color"]{width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0;background:transparent}
+.ppt-hex-input{width:76px;font-family:monospace;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--ui-stroke-secondary);background:var(--ui-bg-input);color:var(--ui-text-primary)}
+
+.ppt-logo-asset-card{padding:14px;border-radius:12px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;gap:12px}
+.ppt-logo-preview-box{min-height:36px;display:flex;align-items:center;padding:8px 12px;border-radius:8px;background:rgba(120,120,128,0.06);font-size:12.5px}
+.ppt-logo-active-text{color:#0071e3;font-weight:600}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-logo-active-text{color:#2997ff}
+.ppt-logo-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+/* Outline Editor in Doc-to-Deck */
+.ppt-outline-modal-sheet{max-width:760px!important;padding:24px 28px!important}
+.ppt-outline-cards-list{display:flex;flex-direction:column;gap:12px;max-height:48vh;overflow-y:auto;padding-right:4px;margin:12px 0}
+.ppt-outline-card{padding:12px 14px;border-radius:12px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);display:flex;flex-direction:column;gap:8px}
+.ppt-outline-slide-header{display:flex;align-items:center;gap:10px}
+.ppt-outline-index-badge{font-size:11.5px;font-weight:700;color:var(--ui-accent);padding:2px 8px;border-radius:980px;background:rgba(0,113,227,0.1);flex-shrink:0}
+.ppt-outline-layout-select{max-width:180px;padding:3px 8px!important;font-size:12px!important;height:28px!important}
+.ppt-outline-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
+.ppt-outline-actions button{background:rgba(120,120,128,0.1);border:1px solid var(--ui-stroke-secondary);border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ui-text-primary);font-size:11px;transition:all 0.15s ease}
+.ppt-outline-actions button:hover:not(:disabled){background:rgba(120,120,128,0.2)}
+.ppt-outline-actions button:disabled{opacity:0.3;cursor:not-allowed}
+.ppt-outline-delete-btn:hover:not(:disabled){background:rgba(255,59,48,0.15)!important;color:#ff3b30!important;border-color:rgba(255,59,48,0.3)!important}
+.ppt-outline-title-input{font-weight:600;font-size:13px!important;padding:5px 10px!important}
+.ppt-outline-bullets-input{font-size:12px!important;line-height:1.5!important;padding:6px 10px!important;resize:vertical}
+.ppt-add-outline-btn{width:100%;margin-top:6px;padding:8px!important;font-size:12.5px!important;border-style:dashed!important}
+
 /* Print Styles for Vector PDF */
 @media print{
   body{background:#ffffff!important;color:#000000!important;margin:0!important;padding:0!important}
@@ -2530,6 +2993,7 @@ function Workbench({ c }) {
     ),
     h(LayoutPickerModal, { c }),
     h(DocToDeckModal, { c }),
+    h(BrandKitModal, { c }),
     h(DeleteProjectModal, { c }),
     h(ImageGenModal, { c }),
     h(SlideReLayoutModal, { c }),

@@ -24,6 +24,27 @@ THEMES = {
         "font_body": "Microsoft YaHei", "title_size": 32, "body_size": 19,
         "shape": "rect", "line_width": 0.75,
     },
+    "crimson": {
+        "name": "活力果红", "background": "#FFFFFF", "text": "#1D1D1F",
+        "muted": "#86868B", "primary": "#FF3B30", "accent": "#FF9500",
+        "surface": "#F5F5F7", "font_title": "Microsoft YaHei",
+        "font_body": "Microsoft YaHei", "title_size": 32, "body_size": 20,
+        "shape": "roundRect", "line_width": 1.0,
+    },
+    "royal": {
+        "name": "尊贵雅致", "background": "#0F0C20", "text": "#F5F3FF",
+        "muted": "#9E97C2", "primary": "#7C3AED", "accent": "#C084FC",
+        "surface": "#1E1838", "font_title": "Microsoft YaHei",
+        "font_body": "Microsoft YaHei", "title_size": 34, "body_size": 20,
+        "shape": "roundRect", "line_width": 1.25,
+    },
+    "elegant": {
+        "name": "香槟轻奢", "background": "#FDFBF7", "text": "#2C2523",
+        "muted": "#7E7571", "primary": "#A3704C", "accent": "#D4A373",
+        "surface": "#F4EFEA", "font_title": "Microsoft YaHei",
+        "font_body": "Microsoft YaHei", "title_size": 32, "body_size": 19,
+        "shape": "rect", "line_width": 1.0,
+    },
 }
 COLOR_KEYS = {"background", "text", "muted", "primary", "accent", "surface"}
 STYLE_KEYS = {"font_size", "font_family", "bold", "color", "fill", "line", "line_width", "align"}
@@ -31,7 +52,7 @@ STYLE_KEYS = {"font_size", "font_family", "bold", "color", "fill", "line", "line
 
 def theme(name="business"):
     if not isinstance(name, str) or name not in THEMES:
-        raise ValueError("未知主题，请选择 business、technology 或 minimal")
+        raise ValueError(f"未知主题，支持的主题为：{'、'.join(THEMES.keys())}")
     return deepcopy(THEMES[name])
 
 

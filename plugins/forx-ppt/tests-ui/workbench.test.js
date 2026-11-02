@@ -5,9 +5,14 @@ import { host, QueryClient, QueryClientProvider } from './sdk.js'
 import plugin from '../desktop/plugin.js'
 
 const makeDocument = (name = '测试文稿') => ({ revision: 1, undo_available: false, redo_available: false, issues: [], deck: {
-  id: 'project-a', name, width: 13.333333, height: 7.5, theme: { name: '商务简洁' },
+  id: 'project-a', name, width: 13.333333, height: 7.5, theme: { name: '商务简洁', primary: '#2459A8', accent: '#168C92', background: '#FFFFFF', text: '#17243B' },
   master: { id: 'M001', elements: [{ id: 'E0001', name: '品牌', kind: 'text', text: 'ACME', style: {}, box: { x: 10, y: .2, width: 2, height: .5 } }] },
-  slides: [{ id: 'S001', name: '第一页', elements: [{ id: 'E0002', name: '主标题', kind: 'text', role: 'title', text: '原始标题', style: {} }] }],
+  slides: [{
+    id: 'S001', name: '第一页', elements: [
+      { id: 'E0002', name: '主标题', kind: 'text', role: 'title', text: '原始标题', style: {} },
+      { id: 'E0003', name: '数据趋势', kind: 'chart', chart_type: 'column', box: { x: 1, y: 2, width: 6, height: 3 }, categories: ['A', 'B'], series: [{ name: '数值', values: [10, 20] }], style: {} }
+    ]
+  }],
 } })
 let clients = []
 beforeEach(() => { host.state.connectionId.set('local'); host.state.profile.set('default') })
@@ -23,14 +28,31 @@ function mount(chat) {
       if (path === '/status') return { ready: true }
       if (path === '/chat') return chat(options.body)
       if (path === '/cancel') return { cancelled: true }
+      if (path === '/assets') return { asset_id: 'logo-asset-123', width: 200, height: 80 }
       if (path === '/parse-file') return { filename: options.body.filename, format: 'docx', size: 1024, char_count: 50, text: '参考文档中的业务架构要点与量化成果指标。' }
       if (path === '/projects/from-doc') { current = makeDocument('文档生成文稿'); return { result: current, message: '转换成功' } }
+      if (path === '/projects/generate-outline') {
+        return {
+          title: options?.body?.title || '智能架构演进方案',
+          target_pages: 3,
+          summary: '从痛点分析到平台架构设计',
+          slides: [
+            { title: '业务痛点分析', layout_id: 'L001', bullets: ['高延迟', '单点故障'] },
+            { title: '微服务架构设计', layout_id: 'L003', bullets: ['服务治理', '网关路由'] },
+            { title: '收益与实施规划', layout_id: 'L006', bullets: ['SLA 99.99%', '降本30%'] },
+          ]
+        }
+      }
       if (path === '/generate-image') {
         const assetId = 'a'.repeat(64)
         if (current) current = { ...current, revision: current.revision + 1 }
         return { success: true, asset_id: assetId, width: 1280, height: 720, provider: 'forx-visual-engine', result: current }
       }
-      if (path === '/projects' && options?.method === 'POST') { current = makeDocument(); return current }
+      if (path === '/projects' && options?.method === 'POST') {
+        const title = options?.body?.slides ? (options?.body?.name || '大纲生成文稿') : '测试文稿'
+        current = makeDocument(title)
+        return current
+      }
       if (path === '/projects') return { projects: current ? [{ id: current.deck.id, name: current.deck.name }] : [] }
       if (path.startsWith('/projects/') && options?.method === 'DELETE') {
         const id = path.split('/projects/')[1]
@@ -38,7 +60,7 @@ function mount(chat) {
         return { deleted: true, project_id: id }
       }
       if (path.endsWith('/history')) return { history: [] }
-      if (path.includes('/preview/')) return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><g data-element-id="E0002"><text>标题画布</text></g></svg>', assets: [], elements: [{ id: 'E0002', name: '主标题', kind: 'text', role: 'title', box: { x: 0.6, y: 0.7, width: 8.0, height: 1.0 } }], revision: current?.revision || 1 }
+      if (path.includes('/preview/')) return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><g data-element-id="E0002"><text>标题画布</text></g><g data-element-id="E0003"><text>图表</text></g></svg>', assets: [], elements: [{ id: 'E0002', name: '主标题', kind: 'text', role: 'title', box: { x: 0.6, y: 0.7, width: 8.0, height: 1.0 } }, { id: 'E0003', name: '数据趋势', kind: 'chart', box: { x: 1.0, y: 2.0, width: 6.0, height: 3.0 } }], revision: current?.revision || 1 }
       if (path.includes('/generate-notes')) {
         const generatedNotes = '各位观众好，本页为业务架构演示，核心关注高可用与微服务演进。'
         if (current) {
@@ -371,4 +393,108 @@ it('opens export modal and supports exporting pptx and triggering vector pdf pri
   expect(printSpy).toHaveBeenCalled()
 
   printSpy.mockRestore()
+})
+
+it('switches chart type to radar, donut, bar or area in properties inspector', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Select chart element E0003
+  fireEvent.click(screen.getByRole('button', { name: /E0003 · 数据趋势/ }))
+
+  // Find chart type selector in properties panel
+  const chartTypeSelect = screen.getByLabelText('切换图表类型')
+  expect(chartTypeSelect).toBeTruthy()
+  expect(chartTypeSelect.value).toBe('column')
+
+  // Switch to radar
+  fireEvent.change(chartTypeSelect, { target: { value: 'radar' } })
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'update_element' && opts.body.operations[0].target === 'E0003' && opts.body.operations[0].changes.chart_type === 'radar'
+  )).toBe(true))
+
+  // Switch to donut
+  fireEvent.change(chartTypeSelect, { target: { value: 'donut' } })
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'update_element' && opts.body.operations[0].target === 'E0003' && opts.body.operations[0].changes.chart_type === 'donut'
+  )).toBe(true))
+})
+
+it('opens brand kit modal, customizes palette colors and uploads master logo', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Click 🎨 品牌规范 button in toolbar
+  const brandKitBtn = screen.getByRole('button', { name: '🎨 品牌规范' })
+  expect(brandKitBtn).toBeTruthy()
+  fireEvent.click(brandKitBtn)
+
+  // Verify modal is open
+  await screen.findByText('🎨 企业品牌规范与资产设定')
+  expect(screen.getByText('🍎 活力果红', { selector: 'strong' })).toBeTruthy()
+  expect(screen.getByText('👑 尊贵雅致', { selector: 'strong' })).toBeTruthy()
+  expect(screen.getByText('🍸 香槟轻奢', { selector: 'strong' })).toBeTruthy()
+
+  // Click preset theme card
+  fireEvent.click(screen.getByText('🍎 活力果红', { selector: 'strong' }))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'theme' && opts.body.operations[0].changes.preset === 'crimson'
+  )).toBe(true))
+
+  // Custom color palette
+  const applyPaletteBtn = screen.getByRole('button', { name: '应用自定义色盘到文稿' })
+  fireEvent.click(applyPaletteBtn)
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'theme' && opts.body.operations[0].changes.primary
+  )).toBe(true))
+
+  // Close brand kit modal
+  fireEvent.click(screen.getByRole('button', { name: '完成' }))
+  await waitFor(() => expect(screen.queryByText('🎨 企业品牌规范与资产设定')).toBeNull())
+})
+
+it('supports outline-first workflow in doc-to-deck modal and confirms deck creation', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Click 📄 文档转PPT in toolbar
+  const docModalBtn = screen.getByRole('button', { name: '📄 文档转PPT' })
+  fireEvent.click(docModalBtn)
+
+  // Verify Step 1 is displayed
+  await screen.findByText('📄 文档一键转 PPT (Doc-to-Deck)')
+  const textarea = screen.getByPlaceholderText(/在此粘贴 Markdown 长文/)
+  fireEvent.change(textarea, { target: { value: '# 企业架构规划\n- 模块解耦与容灾\n- 离线高可用' } })
+
+  // Click 📑 先规划大纲并预览 (推荐)
+  const outlineBtn = screen.getByRole('button', { name: '📑 先规划大纲并预览 (推荐)' })
+  fireEvent.click(outlineBtn)
+
+  // Verify outline endpoint was called
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path]) => path === '/projects/generate-outline')).toBe(true))
+
+  // Verify Step 2 is displayed with 3 outline cards
+  await screen.findByText(/确认演示文稿大纲 \(3 页\)/)
+  expect(screen.getByDisplayValue('业务痛点分析')).toBeTruthy()
+  expect(screen.getByDisplayValue('微服务架构设计')).toBeTruthy()
+  expect(screen.getByDisplayValue('收益与实施规划')).toBeTruthy()
+
+  // Modify first slide title in outline
+  const firstTitleInput = screen.getByDisplayValue('业务痛点分析')
+  fireEvent.change(firstTitleInput, { target: { value: '业务背景与核心痛点' } })
+
+  // Confirm outline to generate full deck
+  const confirmBtn = screen.getByRole('button', { name: '✨ 确认大纲，生成完整文稿' })
+  fireEvent.click(confirmBtn)
+
+  // Verify POST /projects was called with new outline
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path === '/projects' && opts?.method === 'POST' && opts?.body?.slides?.[0]?.title === '业务背景与核心痛点'
+  )).toBe(true))
+
+  // Verify modal is closed
+  await waitFor(() => expect(screen.queryByText(/确认演示文稿大纲/)).toBeNull())
 })

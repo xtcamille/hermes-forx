@@ -71,7 +71,7 @@ class Element(Model):
     column_widths: list[float] = Field(default_factory=list, max_length=20)
     categories: list[str] = Field(default_factory=list, max_length=100)
     series: list[Series] = Field(default_factory=list, max_length=10)
-    chart_type: Literal["column", "line", "pie"] = "column"
+    chart_type: Literal["column", "line", "pie", "bar", "area", "donut", "radar"] = "column"
     children: list[Element] = Field(default_factory=list, max_length=60)
     visible: bool = True
 
@@ -97,8 +97,10 @@ class Element(Model):
         if self.kind == "chart":
             if not self.categories or not self.series or any(len(s.values) != len(self.categories) for s in self.series):
                 raise ValueError("图表分类与每个系列的数据长度必须一致")
-            if self.chart_type == "pie" and (len(self.series) != 1 or any(v < 0 for v in self.series[0].values) or sum(self.series[0].values) <= 0):
-                raise ValueError("饼图需要一个非负且合计大于零的系列")
+            if self.chart_type in ("pie", "donut") and (len(self.series) != 1 or any(v < 0 for v in self.series[0].values) or sum(self.series[0].values) <= 0):
+                raise ValueError("饼图/环形图需要一个非负且合计大于零的系列")
+            if self.chart_type == "radar" and len(self.categories) < 3:
+                raise ValueError("雷达图至少需要 3 个分类维度")
         if self.kind != "group" and self.children:
             raise ValueError("只有组合可以包含子元素")
         if self.kind == "group" and not self.children:

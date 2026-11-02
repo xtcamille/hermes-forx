@@ -200,23 +200,32 @@ def _render_chart(shapes, e, box, style, store):
     data.categories = e.categories
     for series in e.series:
         data.add_series(series.name, series.values)
-    kind = {"column": XL_CHART_TYPE.COLUMN_CLUSTERED, "line": XL_CHART_TYPE.LINE, "pie": XL_CHART_TYPE.PIE}[e.chart_type]
+    kind = {
+        "column": XL_CHART_TYPE.COLUMN_CLUSTERED,
+        "line": XL_CHART_TYPE.LINE,
+        "pie": XL_CHART_TYPE.PIE,
+        "bar": XL_CHART_TYPE.BAR_CLUSTERED,
+        "area": XL_CHART_TYPE.AREA,
+        "donut": XL_CHART_TYPE.DOUGHNUT,
+        "radar": XL_CHART_TYPE.RADAR,
+    }[e.chart_type]
     shape = shapes.add_chart(kind, Inches(box.x), Inches(box.y), Inches(box.width), Inches(box.height), data)
     chart = shape.chart
     chart.has_title = bool(e.text)
     if e.text:
         _text(type("ChartTitle", (), {"text_frame": chart.chart_title.text_frame})(), e.text, style)
+    is_circular = e.chart_type in ("pie", "donut")
     for i, series in enumerate(chart.series):
         value = ("$primary", "$accent", "$muted")[i % 3]
         _set_color(series.format.fill, value)
         _set_color(series.format.line.fill, value)
-        if e.chart_type == "pie":
+        if is_circular:
             for j, point in enumerate(series.points):
                 _set_color(point.format.fill, ("$primary", "$accent", "$muted", "$surface")[j % 4])
-    chart.has_legend = len(e.series) > 1 or e.chart_type == "pie"
+    chart.has_legend = len(e.series) > 1 or is_circular
     if chart.has_legend:
         _font(chart.legend.font, {"font_size": 12, "color": "$text"})
-    if e.chart_type != "pie":
+    if not is_circular and e.chart_type != "radar":
         for axis in (chart.category_axis, chart.value_axis):
             _font(axis.tick_labels.font, {"font_size": 12, "color": "$text"})
     return shape

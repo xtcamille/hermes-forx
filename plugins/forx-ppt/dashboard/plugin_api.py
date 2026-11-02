@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -102,6 +103,12 @@ class DocToDeck(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
 
+class GenerateOutline(Body):
+    text: str = Field(min_length=5, max_length=100000)
+    title: str | None = Field(None, max_length=128)
+    target_pages: int = Field(8, ge=2, le=30)
+
+
 class Cancel(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
@@ -166,6 +173,16 @@ async def from_doc(body: DocToDeck):
         import logging
         logging.getLogger(__name__).exception("PPT doc conversion failed")
         raise HTTPException(502, "文档转 PPT 失败，请检查模型连接与文本内容后重试。") from exc
+
+
+@router.post("/projects/generate-outline")
+async def outline(body: GenerateOutline):
+    try:
+        return await planner.generate_outline(body.text, title=body.title, target_pages=body.target_pages)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("PPT outline generation failed")
+        raise HTTPException(502, "大纲生成失败，请检查文本内容后重试。") from exc
 
 
 @router.post("/generate-image")

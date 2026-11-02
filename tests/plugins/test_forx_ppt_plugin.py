@@ -109,8 +109,8 @@ def test_discovery_native_objects_inheritance_identity_and_roundtrip(tmp_path, m
         current = edit(client, current, [
             {"action": "update_element", "target": table_id, "changes": {"column_widths": [2, 1]}},
             *[{"action": "add_element", "slide_id": sid, "element": {"kind": "chart", "name": kind + "图", "chart_type": kind,
-               "box": {"x": .6, "y": 2, "width": 4, "height": 2}, "categories": ["A", "B"], "series": [{"name": "示例", "values": [10, 20]}]}}
-              for kind in ("line", "pie")],
+               "box": {"x": .6, "y": 2, "width": 4, "height": 2}, "categories": ["A", "B", "C"], "series": [{"name": "示例", "values": [10, 20, 30]}]}}
+              for kind in ("line", "pie", "bar", "area", "donut", "radar")],
         ])
         pid = deck["id"]
         view = check(client.get(f'{PREFIX}/projects/{pid}/preview/{sid}?revision={current["revision"]}&numbers=true'))
@@ -186,7 +186,8 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         async def acomplete_structured(self, **kwargs):
             from types import SimpleNamespace
             calls.append((str(get_hermes_home()), kwargs))
-            if kwargs.get("schema_name") == "forx_ppt_draft":
+            schema = kwargs.get("schema_name")
+            if schema == "forx_ppt_draft":
                 return SimpleNamespace(parsed={
                     "name": "区块链技术介绍",
                     "theme": "technology",
@@ -196,6 +197,19 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
                     ],
                     "message": "初稿已生成。",
                 })
+            if schema == "forx_ppt_outline":
+                return SimpleNamespace(parsed={
+                    "title": "智能转型",
+                    "theme": "technology",
+                    "summary": "转型落地规划",
+                    "slides": [
+                        {"title": "背景诉求", "layout_id": "L001", "bullets": ["痛点分析"]},
+                        {"title": "架构规划", "layout_id": "L003", "bullets": ["分层演进"]},
+                        {"title": "收益落地", "layout_id": "L006", "bullets": ["降本增效"]},
+                    ]
+                })
+            if schema == "forx_ppt_speech_notes":
+                return SimpleNamespace(parsed={"notes": "各位同仁好，本页为业务演进规划。"})
             context = json.loads(kwargs["input"][0]["text"])
             target = context["selected_ids"][0]
             return SimpleNamespace(parsed={"message": "已更新指定标题。", "operations": [{"action": "update_element", "target": target, "changes": {"text": "精准更新"}}]})
@@ -302,6 +316,28 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
         assert parsed_md["format"] == "md" and "Scalable Microservices" in parsed_md["text"]
         assert parsed_md["char_count"] > 10
 
+        # Test outline-first generation endpoint (/projects/generate-outline)
+        outline_res = check(client.post(PREFIX + "/projects/generate-outline", json={
+            "text": "# 企业智能转型方案\n## 实施路径\n- 阶段规划\n- 商业价值",
+            "title": "智能转型",
+            "target_pages": 3,
+        }))
+        assert outline_res["title"] == "智能转型"
+        assert len(outline_res["slides"]) == 3
+        assert outline_res["slides"][0]["title"] == "背景诉求"
+
+        # Test slide speaker notes generation (/generate-notes)
+        notes_res = check(client.post(f"{PREFIX}/projects/{doc_deck['deck']['id']}/slides/{doc_deck['deck']['slides'][0]['id']}/generate-notes"))
+        assert "notes" in notes_res and len(notes_res["notes"]) > 0
+
+        # Test new theme presets: crimson, royal, elegant
+        crimson_deck = edit(client, notes_res["result"], [{"action": "theme", "changes": {"preset": "crimson"}}])
+        assert crimson_deck["deck"]["theme"]["primary"] == "#FF3B30"
+        royal_deck = edit(client, crimson_deck, [{"action": "theme", "changes": {"preset": "royal"}}])
+        assert royal_deck["deck"]["theme"]["primary"] == "#7C3AED"
+        elegant_deck = edit(client, royal_deck, [{"action": "theme", "changes": {"preset": "elegant"}}])
+        assert elegant_deck["deck"]["theme"]["primary"] == "#A3704C"
+
         import zipfile
         docx_buf = io.BytesIO()
         with zipfile.ZipFile(docx_buf, "w") as zf:
@@ -314,7 +350,7 @@ def test_scoped_chat_atomic_retries_history_cancel_and_profile_isolation(tmp_pat
 
         # Test fine-grained elements expansion (L007 multi-card layout)
         l7_add = [{"action": "add_slide", "slide": {"title": "技术优势", "layout_id": "L007", "bullets": ["模块化解耦：微内核架构", "自适应排版：像素级对齐", "离线高安全：数字资产隔离"]}}]
-        l7_res = edit(client, doc_elem_updated, l7_add)
+        l7_res = edit(client, elegant_deck, l7_add)
         new_slide = l7_res["deck"]["slides"][-1]
         assert new_slide["layout_id"] == "L007"
         assert len(new_slide["elements"]) >= 10
