@@ -1,0 +1,9 @@
+{
+  "name": "forx-context",
+  "label": "Context 全景",
+  "description": "Agent 会话上下文深度洞察、Token与成本统计、多维度组成图谱及演化趋势可视化。",
+  "icon": "Gauge",
+  "version": "0.1.0",
+  "tab": { "hidden": true },
+  "api": "plugin_api.py"
+}
