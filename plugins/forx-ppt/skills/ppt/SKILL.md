@@ -1,44 +1,220 @@
 ---
 name: ppt
-description: Create and edit native PPTX projects with stable object IDs.
-version: 0.1.0
+description: Create, structure and refine world-class presentation decks using McKinsey Pyramid principles, SCQA narrative structure, smart layout matching, and stable object operations.
+version: 0.2.0
 author: ForX
 license: MIT
 metadata:
   hermes:
     category: productivity
-    tags: [pptx, presentations, desktop]
+    tags: [pptx, presentations, desktop, mckinsey, keynote, pitch-deck]
 ---
 
-# PPT 创作台
+# PPT 创作台 · 顶尖演示文稿设计与制作指南
 
-## Prerequisites
+本 Skill 将顶级管理咨询机构（McKinsey、BCG、Bain）的结构化思维、科技发布会（Apple Keynote）的叙事张力与 `forx-ppt` 原生 Office 矢量渲染引擎深度融合，指导 Agent 和用户制作高信息密度、逻辑严密、排版精致的商业演示文稿。
 
-Enable the `forx-ppt` plugin and install its declared Python dependencies in the host runtime. The desktop contribution is optional for CLI workflows. Use the `terminal` tool to run the existing `hermes ppt` CLI; the plugin adds no permanent model tool schema.
+---
 
-## Workflow
+## 🎯 核心设计哲学 (Core Craft Principles)
 
-1. Use `hermes ppt list`, then `hermes ppt show --project ID` before editing. Use the returned revision, stable page IDs (`S001`) and document-wide element IDs (`E0003`). A page's current ordinal is not its identity.
-2. To generate an initial draft, use `hermes ppt chat --prompt "生成一份 8 页的产品介绍，业务数据使用待补充占位"`. To create from supplied content without another model call, write a UTF-8 JSON file with `name`, `theme` and `slides` and call `hermes ppt create --input PATH`.
-3. For precise edits, use `write_file` to create a JSON array of operations and call `hermes ppt edit --project ID --revision REV --input PATH --request-id KEY`. Reuse the same key for a retry of the same payload. Never reuse it for a different instruction.
-4. Export with `hermes ppt export --project ID --revision REV --output /absolute/path/result.pptx`. Use a `.forxppt` output path for a portable project. Import with `hermes ppt import --input PATH`.
-5. Delete a deck with `hermes ppt delete --project ID`.
-6. Generate and insert an AI illustration with `hermes ppt generate-image --prompt "云计算数据中心" --project ID --slide-id S002 --style tech`.
+### 1. 麦肯锡金字塔原理 (The Pyramid Principle)
+- **结论先行 (Answer First)**：在开篇前 1-2 页直接亮出核心结论与战略总纲，而不是按时间流水账缓慢推导到末尾才给答案。
+- **以上统下与 MECE 原则**：每一层的论据必须互不重叠、完全穷尽（Mutually Exclusive, Collectively Exhaustive），严禁同义反复或遗漏重大事实。
 
-Example targeted operation:
+### 2. SCQA 黄金叙事弧 (Narrative Arc)
+商业文稿的引言与执行摘要（Executive Summary）必须遵循 SCQA 结构：
+- **S (Situation 现状背景)**：陈述听众毫无争议、高度认可的事实基准。
+- **C (Complication 冲突危机)**：指出现状为何被打破、面临的阻碍、内外部威胁或痛点。
+- **Q (Question 关键议题)**：提出当前必须立即决策并攻克的核心课题。
+- **A (Answer 解决方案)**：亮出我方的顶层应对策略与落地行动路径。
 
-```json
-[{"action":"update_element","target":"E0003","slide_id":"S001","changes":{"text":"产品介绍","style":{"font_size":34}}}]
+### 3. 动作标题法则 (Action Titles · 串联成完整故事线)
+- **严禁使用范畴型名词**：杜绝无信息量的空洞标题（例如：“技术优势”、“市场分析”、“背景介绍”）。
+- **必须采用观点断言句**：每一个标题都必须是一句包含主谓宾、清晰传递洞察的断言句（例如：“分布式微内核架构使核心交易延迟降低 42%”、“华东区域以 35% 增速拉动大盘，有效冲抵海外收缩”）。
+- **串联法则 (Storyboard Test)**：当只把整份文稿的所有单页标题自上而下顺次朗读一遍，听众即使不看任何正文，也能完整理解整场汇报的严密逻辑链。
+
+### 4. 一页一观点 (One Idea Per Slide) 与 3 秒理解原则
+- 每页 PPT 仅承载**一个核心论点**，严禁在单页内塞入不相关的散乱议题。
+- 要点排版采用【核心短语】+ 具体事实与量化支撑的格式，严禁出现没有任何重点标示的散漫段落（Wall of Text）。
+- 追求高数据墨水比（Data-Ink Ratio）：去除杂乱的多余边框与纯装饰图形，让数据和洞察成为视觉第一焦点。
+
+---
+
+## 📐 版式与图表智能决策矩阵 (Design Decision Matrix)
+
+### 1. 10 大专业版式库 (Layout Archetypes L001–L010)
+
+| 版式编号 | 版式名称 | 核心适用场景与内容特征 | 典型页面位置 |
+| :--- | :--- | :--- | :--- |
+| **L001** | **封面 (Cover)** | 文稿大主标、鲜明有力的价值主张副标、汇报人/团队与日期 | 第 1 页 |
+| **L002** | **目录 (Agenda)** | 篇章架构与战略议程，建议 3–5 个模块导航 | 第 2 页 |
+| **L003** | **标题正文 (Statement)** | 核心战略主旨、深度单栏叙事、重要政策或理念阐述 | 承上启下页 |
+| **L004** | **图文双栏 (Split)** | 左右对照、图文互证、理论与案例双栏并列 | 方案解析页 |
+| **L005** | **结束页 (Closing)** | 致谢（Thank You）、核心愿景回顾、行动号召 (CTA) 与 Q&A 问答 | 最后一页 |
+| **L006** | **时间轴 (Timeline)** | 发展历程复盘、季度 Roadmap、分阶段演进演练、重大里程碑 | 规划/规划推进页 |
+| **L007** | **多列卡片 (Cards)** | 3-4 项能力支柱、核心特性矩阵、业务三要素（高信息密度首选） | 核心优势/能力页 |
+| **L008** | **关键指标 (Metrics)** | 经营业绩大屏、KPI 达标战报、ROI 投资回报率（超大数字+说明） | 成果汇报/商业页 |
+| **L009** | **四象限 (SWOT/Matrix)**| 优势/劣势/机会/风险、业务优先级矩阵、重要性-紧迫度象限 | 战略评估/竞争页 |
+| **L010** | **方案对比 (Comparison)**| 双技术方案利弊对标、新旧架构对比、自研 vs 采购选型评估 | 技术选型/决策页 |
+
+### 2. 7 大高级商业图表选择指南
+
+| 图表类型 (`chart_type`) | 表达关系 | 最佳业务场景示例 | 数据准备要点 |
+| :--- | :--- | :--- | :--- |
+| **柱状图 (`column`)** | 离散对比 | 不同业务线、部门或同周期各产品的数值横向对比 | 类别数量 ≤ 8，柱间距均衡 |
+| **水平条形图 (`bar`)** | 排序对比 | 排名列表、各渠道转化率、类别名称较长的排名比较 | 按数值降序排列，自上而下 |
+| **折线图 (`line`)** | 趋势变化 | 连续季度/月份的营收走势、系统响应时间变化曲线 | 强调斜率与转折点 |
+| **面积图 (`area`)** | 累积趋势 | 累计用户体量演进、各分部总产值的面积累加演进 | 数据具备累积性或规模感 |
+| **饼图 (`pie`)** | 总体占比 | 静态市场份额、支出预算结构分布 | 切片 ≤ 5 项，突出最大块 |
+| **环形图 (`donut`)** | 结构与核心值 | 目标完成率、主力产品在全盘中的结构占比（中心留空强调） | 中心展示总额或核心比例 |
+| **雷达图 (`radar`)** | 多维综合评估 | 技术架构选型评估、供应商能力画像、团队综合战力 | 3–6 个维度，使用统一归一量纲 |
+
+---
+
+## 📚 四大高频商业实战 Playbook
+
+### Playbook 1: 🏛️ 技术架构与方案评审 (Tech Architecture & Engineering RFC)
+- **典型受众**：技术委员会、CTO、首席架构师、技术负责人。
+- **推荐篇幅**：8–12 页。
+- **推荐主题**：`technology`（暗夜科技，高精尖技术感）或 `business`（商务深蓝）。
+- **页面节奏编排**：
+  1. `L001 封面`：系统重构与分布式架构演进技术方案
+  2. `L003 现状痛点`：单体架构性能瓶颈与高并发下的可用性危机（SCQA）
+  3. `L007 总体架构`：微内核+插件化架构的三大核心技术支柱
+  4. `L010 架构对比`：自研分布式网关与传统开源方案的多维选型对比
+  5. `L008 关键 SLA`：压测实测指标（吞吐提升 3.8x、P99 延迟 < 15ms、SLA 99.99%）
+  6. `L006 实施路径`：灰度发布与迁移演进时间轴（Phase 1-4）
+  7. `L009 风险应对`：容灾预案与安全降级策略（四象限矩阵）
+  8. `L005 结束页`：总结致谢与 Q&A
+
+### Playbook 2: 📊 经营分析与高管战略汇报 (Executive Business Review)
+- **典型受众**：CEO、董事会成员、部门总裁。
+- **推荐篇幅**：6–10 页。
+- **推荐主题**：`business`（商务深蓝，稳重专业）或 `royal`（尊贵雅致）。
+- **页面节奏编排**：
+  1. `L001 封面`：2024 年度第四季度经营成果复盘与战略规划
+  2. `L003 执行摘要`：结论先行，提炼本季度核心经营结论与财务盈亏总况
+  3. `L008 经营战报`：核心 KPI 数据大屏（营收、净利润、用户留存率、毛利率）
+  4. `L007 业务归因`：三大营收增长引擎归因拆解
+  5. `L004 区域分析`：核心市场与下沉市场的渗透对照
+  6. `L009 挑战破局`：外部竞争阻力与内部效率瓶颈剖析（SWOT）
+  7. `L006 下步计划`：下一季度攻坚作战路线图与里程碑
+  8. `L005 结束页`：战略诉求与总结致谢
+
+### Playbook 3: 🚀 商业计划书与融资路演 (Investor Pitch Deck)
+- **典型受众**：风险投资机构（VC）、天使投资人、战略投资部。
+- **推荐篇幅**：8–12 页。
+- **推荐主题**：`crimson`（活力果红，极富冲击力）或 `technology`。
+- **页面节奏编排**：
+  1. `L001 封面`：一句话颠覆性定位主标（例如：“AI-Native 演示文稿智能生成中枢”）
+  2. `L003 市场痛点`：数十亿美元企业级演示制作的低效与割裂现状
+  3. `L007 颠覆方案`：三大核心技术壁垒与用户体验革命
+  4. `L008 市场空间`：TAM / SAM / SOM 市场天花板测算
+  5. `L010 竞争壁垒`：相较传统 Office 与初级 AI 工具的压倒性对比
+  6. `L006 商业闭环`：商业模式飞轮与已验证的早期增长数据（Traction）
+  7. `L007 核心团队`：全明星背景架构团队（技术与商业互补）
+  8. `L008 融资需求`：本次融资额度规划、资金用途比例与 18 个月里程碑
+  9. `L005 结束页`：共创愿景与联系渠道
+
+### Playbook 4: 💡 新产品发布与解决方案推介 (Product Keynote & Launch)
+- **典型受众**：企业客户、生态合作伙伴、产品发布会现场观众。
+- **推荐篇幅**：8–16 页。
+- **推荐主题**：`minimal`（清新极简）或 `elegant`（香槟轻奢）。
+- **页面节奏编排**：
+  1. `L001 封面`：年度重磅产品发布主视觉
+  2. `L003 宏观愿景`：行业正在经历的底层范式转移
+  3. `L004 痛点场景`：传统工作流的繁重琐碎与价值折损
+  4. `L007 全新能力`：全新一代产品的三大革命性支柱
+  5. `L008 客户价值`：提效 10x 的实际落地成果与客户反馈
+  6. `L010 方案对比`：新方案与市面替代品的体验量化对比
+  7. `L006 商业合作`：生态伙伴赋能计划与准入通道
+  8. `L005 结束页`：立即扫码体验与行动号召 (CTA)
+
+---
+
+## 🎙️ 专业演讲逐字稿与提词备忘标准 (Speaker Notes Mastery)
+
+`forx-ppt` 支持为每一页独立生成并存储**演讲逐字稿 (Speaker Notes)**。放映模式下按 `N` 键可随时调出。撰写讲稿应遵循以下规范：
+
+1. **黄金 15 秒开场**：杜绝“正如这页 PPT 所示”等废话，开场直接点破本页核心业务结论。
+2. **数据洞察翻译法**：观众自己看得到数字，演讲者负责解释**数字背后的意义**（例如：“大家注意看这里的 35%，这不仅是一个数字，它意味着我们在行业淡季成功抢占了头部竞品 3% 的存量份额”）。
+3. **丝滑过渡承上启下**：在每页讲稿结尾处留有一句向下一页引申的“过渡钩子”（例如：“既然我们看到了技术指标的飞跃，那么这些指标又是如何在业务财务报表上产生直接效益的？请看下一页”）。
+4. **口语化与节奏感**：使用通俗利落的短句，标注语气重音与停顿，便于演讲者在真实汇报时保持自然自信的眼神交流。
+
+---
+
+## 🛠️ CLI 与模型指令交互指南 (Tool & Command Reference)
+
+### 1. 终端 CLI 指令全景 (`hermes ppt`)
+```bash
+# 1. 查看现有文稿列表
+hermes ppt list
+
+# 2. 查看文稿元数据、页码列表与元素稳定编号
+hermes ppt show --project <PROJECT_ID>
+
+# 3. 文档一键转 PPT (Doc-to-Deck)
+hermes ppt doc-to-deck --input /path/to/strategy.md --pages 8 --theme business
+
+# 4. 自然语言对话生成或局部修改
+hermes ppt chat --project <PROJECT_ID> --revision 1 --prompt "将第3页改为时间轴版式，规划四阶段演进"
+
+# 5. 精确原子化操作编辑 (JSON Operations)
+hermes ppt edit --project <PROJECT_ID> --revision 1 --input /path/to/operations.json
+
+# 6. 生成并插入 AI 高清配图
+hermes ppt generate-image --project <PROJECT_ID> --slide-id S002 --prompt "云原生微服务数据流" --style tech
+
+# 7. 导出全格式与工程包
+hermes ppt export --project <PROJECT_ID> --output /path/to/deck.pptx
+hermes ppt export --project <PROJECT_ID> --output /path/to/backup.forxppt
 ```
 
-Shared styles use `master_style` with target `title` or `body`. A document theme uses `theme` with changes `{"preset":"technology"}` (`business`, `technology`, `minimal`). The default preserves local overrides. Only clear explicitly named style properties when the user asks to include local customizations.
+### 2. 核心编辑操作协议 (Operations Protocol)
+精准修改操作传递给 `hermes ppt edit` 时，采用 JSON 数组定义：
 
-For natural language follow-ups, `hermes ppt chat --project ID --revision REV --prompt "..."` uses the host model. The desktop page adds selection references and a live preview. Point users to **PPT 创作台** in the sidebar for visual selection.
+```json
+[
+  {
+    "action": "relayout_slide",
+    "target": "S003",
+    "changes": {
+      "layout_id": "L007",
+      "bullets": [
+        "【模块解耦】微内核架构保障核心系统高内聚、低耦合",
+        "【高可用演进】多活容灾实现 99.99% 企业级高可靠运行",
+        "【自适应渲染】像素级对齐与跨端矢量无损导出"
+      ]
+    }
+  },
+  {
+    "action": "add_element",
+    "slide_id": "S004",
+    "element": {
+      "kind": "chart",
+      "name": "营收增长趋势",
+      "chart_type": "column",
+      "box": { "x": 1.0, "y": 2.2, "width": 6.5, "height": 3.6 },
+      "categories": ["2021", "2022", "2023", "2024"],
+      "series": [
+        { "name": "核心业务", "values": [120, 185, 260, 390] },
+        { "name": "创新业务", "values": [30, 75, 140, 230] }
+      ]
+    }
+  },
+  {
+    "action": "theme",
+    "changes": { "preset": "royal" }
+  }
+]
+```
 
-## Guardrails
+---
 
-- Validate the target and scope. Master objects affect all inheriting pages. Clarify an ambiguous name or page/element mismatch; never choose an approximate object.
-- Preserve content and chart data during theme changes. Missing business facts are placeholders, not invented evidence.
-- Undo/redo require the current revision: `hermes ppt undo --project ID --revision REV`.
-- The preview is a structured scene preview; disclose relevant font/layout differences. Arbitrary externally modified PPTX imports and Office/WPS live synchronization are outside this release.
-- Image elements remain replaceable native images; text inside an image is not an editable text box.
+## 🛡️ 质量红线与防错指南 (Guardrails)
+
+1. **保护母版全局一致性**：母版 `M001` 的公共 Logo、页脚、品牌信息作用于全篇；除全局品牌规范配置外，严禁将局部页面的改动误应用到母版对象。
+2. **严禁编造商业事实与数据**：在将用户草稿或长文提炼为 PPT 时，如缺少具体的数值或量化证据，应使用明确的业务占位符（如 `【实测待填%】`），绝不胡乱捏造未经核实的虚假数字。
+3. **版本并发防护**：所有写入操作必须携带当前预期的 `revision`。若遇到版本冲突（HTTP 409），必须重新执行 `show` 或读取最新状态后重试，确保多端协作时原子一致。
+4. **原生对象优先**：表格必须是真正的 Office Native 表格，图表必须是真正的 Office Native 图表，绝不可将图表偷懒渲染为不可二次编辑的静态图片贴图。
