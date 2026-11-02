@@ -63,6 +63,9 @@ function controller(ctx, owner) {
     $leftOpen: atom(true), $rightOpen: atom(true), $panelTab: atom('all'),
     $docModalOpen: atom(false), $layoutModalOpen: atom(false), $deleteModalOpen: atom(false),
     $imageModalOpen: atom(false), $imageModalTargetElement: atom(null), $attachments: atom([]),
+    $reLayoutModalOpen: atom(false),
+    $presenting: atom(false), $laserActive: atom(false), $presenterNotesOpen: atom(false), $blackout: atom(false),
+    $exportModalOpen: atom(false),
   }
   const assertOwner = () => { if (ownerKey() !== owner) throw new Error('连接已切换，请在当前工作区重新操作') }
   state.request = (path, options) => { assertOwner(); return ctx.rest(path, options) }
@@ -180,6 +183,23 @@ function controller(ctx, owner) {
     }
     return res
   })
+  state.relayoutSlide = (layoutId) => state.perform('正在智能重构页面排版…', async () => {
+    const slideId = state.$slide.get()
+    const current = state.$doc.get()
+    if (!slideId || !current) return
+    const l = LAYOUTS.find(x => x.id === layoutId)
+    state.$reLayoutModalOpen.set(false)
+    const result = await state.request(`/projects/${current.deck.id}/edit`, {
+      method: 'POST',
+      body: {
+        revision: current.revision,
+        operations: [{ action: 'relayout_slide', target: slideId, changes: { layout_id: layoutId } }],
+        label: `智能重构页面版式为 · ${l?.name || layoutId}`,
+        request_id: uid(),
+      }
+    })
+    state.accept(result)
+  })
   state.send = () => state.perform('正在理解指令并更新文稿…', async () => {
     const rawPrompt = state.$draft.get().trim()
     const attachments = state.$attachments.get()
@@ -254,6 +274,199 @@ function controller(ctx, owner) {
     } })
     state.$selection.set([]); state.$messages.set([]); state.accept(result)
   })
+  state.generateNotes = (slideId) => state.perform('正在为本页生成演讲讲稿…', async () => {
+    const current = state.$doc.get()
+    const targetId = slideId || state.$slide.get()
+    if (!current || !targetId) return
+    const res = await state.request(`/projects/${current.deck.id}/slides/${targetId}/generate-notes`, {
+      method: 'POST',
+      timeoutMs: 90000,
+      body: { request_id: uid() }
+    })
+    if (res.result) {
+      state.accept(res.result)
+    }
+  })
+  state.updateNotes = (slideId, notes) => state.edit(
+    [{ action: 'update_slide', target: slideId, changes: { notes } }],
+    '更新演讲备注'
+  )
+  state.exportPptx = () => {
+    state.$exportModalOpen.set(false)
+    return state.download('pptx')
+  }
+  state.exportProject = () => {
+    state.$exportModalOpen.set(false)
+    return state.download('project')
+  }
+  state.exportPdf = () => {
+    state.$exportModalOpen.set(false)
+    window.print()
+  }
+  state.exportSlideImage = (slideId) => state.perform('正在导出单页图片…', async () => {
+    const current = state.$doc.get()
+    const targetId = slideId || state.$slide.get()
+    if (!current || !targetId) return
+    const currentSlide = current.deck.slides.find(s => s.id === targetId)
+    const idx = current.deck.slides.findIndex(s => s.id === targetId)
+
+    const data = await state.request(`/projects/${current.deck.id}/preview/${targetId}?revision=${current.revision}&numbers=false`)
+    let svg = data.svg
+    for (const assetId of (data.assets || [])) {
+      const asset = await state.request(`/assets/${assetId}`)
+      svg = svg.replaceAll(`forx-asset:${assetId}`, `data:${asset.content_type};base64,${asset.data}`)
+    }
+
+    const width = 1920
+    const height = Math.round(width * (current.deck.height / current.deck.width))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx2d = canvas.getContext('2d')
+
+    const img = new Image()
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        ctx2d.drawImage(img, 0, 0, width, height)
+        URL.revokeObjectURL(url)
+        resolve()
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('单页图片绘制失败'))
+      }
+      img.src = url
+    })
+
+    canvas.toBlob(outBlob => {
+      if (!outBlob) return
+      const downloadUrl = URL.createObjectURL(outBlob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = `${current.deck.name}_第${idx + 1}页_${currentSlide?.name || targetId}.png`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 30000)
+    }, 'image/png')
+    state.$exportModalOpen.set(false)
+  })
+  state.exportLongImage = () => state.perform('正在合成全篇长图海报…', async () => {
+    const current = state.$doc.get()
+    if (!current) return
+    const slides = current.deck.slides
+    if (!slides?.length) return
+
+    const slideW = 1920
+    const slideH = Math.round(slideW * (current.deck.height / current.deck.width))
+    const marginX = 80
+    const gapY = 48
+    const headerH = 220
+    const footerH = 120
+    const totalW = slideW + marginX * 2
+    const totalH = headerH + slides.length * (slideH + gapY) + footerH
+
+    const canvas = document.createElement('canvas')
+    canvas.width = totalW
+    canvas.height = totalH
+    const ctx2d = canvas.getContext('2d')
+
+    ctx2d.fillStyle = '#0f141c'
+    ctx2d.fillRect(0, 0, totalW, totalH)
+
+    ctx2d.fillStyle = '#ffffff'
+    ctx2d.font = 'bold 56px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+    ctx2d.textAlign = 'center'
+    ctx2d.fillText(current.deck.name, totalW / 2, 90)
+
+    ctx2d.fillStyle = '#8e8e93'
+    ctx2d.font = '24px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+    ctx2d.fillText(`ForX-PPT · 全篇精粹共 ${slides.length} 页 · 生成于 ${new Date().toLocaleDateString('zh-CN')}`, totalW / 2, 140)
+
+    ctx2d.strokeStyle = '#2c2c2e'
+    ctx2d.lineWidth = 2
+    ctx2d.beginPath()
+    ctx2d.moveTo(totalW / 2 - 200, 175)
+    ctx2d.lineTo(totalW / 2 + 200, 175)
+    ctx2d.stroke()
+
+    let currentY = headerH
+    for (let i = 0; i < slides.length; i++) {
+      const s = slides[i]
+      const data = await state.request(`/projects/${current.deck.id}/preview/${s.id}?revision=${current.revision}&numbers=false`)
+      let svg = data.svg
+      for (const assetId of (data.assets || [])) {
+        const asset = await state.request(`/assets/${assetId}`)
+        svg = svg.replaceAll(`forx-asset:${assetId}`, `data:${asset.content_type};base64,${asset.data}`)
+      }
+
+      const img = new Image()
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+
+      await new Promise(resolve => {
+        img.onload = () => {
+          ctx2d.save()
+          ctx2d.shadowColor = 'rgba(0, 0, 0, 0.45)'
+          ctx2d.shadowBlur = 32
+          ctx2d.shadowOffsetY = 16
+          ctx2d.fillStyle = '#1c1c1e'
+          ctx2d.beginPath()
+          ctx2d.roundRect(marginX, currentY, slideW, slideH, 16)
+          ctx2d.fill()
+          ctx2d.restore()
+
+          ctx2d.save()
+          ctx2d.beginPath()
+          ctx2d.roundRect(marginX, currentY, slideW, slideH, 16)
+          ctx2d.clip()
+          ctx2d.drawImage(img, marginX, currentY, slideW, slideH)
+          ctx2d.restore()
+
+          ctx2d.fillStyle = 'rgba(0, 113, 227, 0.9)'
+          ctx2d.beginPath()
+          ctx2d.roundRect(marginX + 24, currentY + 24, 90, 32, 16)
+          ctx2d.fill()
+
+          ctx2d.fillStyle = '#ffffff'
+          ctx2d.font = 'bold 15px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+          ctx2d.textAlign = 'center'
+          ctx2d.fillText(`${i + 1} / ${slides.length}`, marginX + 69, currentY + 45)
+
+          URL.revokeObjectURL(url)
+          resolve()
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve()
+        }
+        img.src = url
+      })
+
+      currentY += slideH + gapY
+    }
+
+    ctx2d.fillStyle = '#636366'
+    ctx2d.font = '20px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+    ctx2d.textAlign = 'center'
+    ctx2d.fillText('Generated by ForX Agent · AI Native Native-Editable Presentation', totalW / 2, totalH - 50)
+
+    canvas.toBlob(outBlob => {
+      if (!outBlob) return
+      const downloadUrl = URL.createObjectURL(outBlob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = `${current.deck.name}_全篇长图.png`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 30000)
+    }, 'image/png')
+    state.$exportModalOpen.set(false)
+  })
   return state
 }
 
@@ -298,9 +511,11 @@ function Toolbar({ c }) {
       button('重做', () => c.travel('redo'), !!busy || !doc?.redo_available),
     ),
     doc && h('div', { className: 'ppt-btn-group' },
-      button('删除文稿', () => c.$deleteModalOpen.set(true), !!busy, { className: 'ppt-btn-danger' }),
+      button('▶ 放映', () => c.$presenting.set(true), !doc, { title: '全屏演示放映 (快捷键 F5)', className: 'ppt-btn-present' }),
+      button('📤 导出', () => c.$exportModalOpen.set(true), !doc, { className: 'ppt-btn-primary', title: '导出 PPTX、PDF、长图与工程包' }),
       button('保存项目', () => c.download('project'), !!busy || !doc),
-      button('导出 PPTX', () => c.download('pptx'), !!busy || !doc, { className: 'ppt-btn-primary' }),
+      button('导出 PPTX', () => c.download('pptx'), !!busy || !doc),
+      button('删除文稿', () => c.$deleteModalOpen.set(true), !!busy, { className: 'ppt-btn-danger' }),
     ),
   )
 }
@@ -613,6 +828,76 @@ function LayoutPickerModal({ c }) {
           className: 'ppt-apple-btn-primary',
           onClick: () => handleSelect(LAYOUTS[2])
         }, '插入标准空白正文页 (L003)')
+      )
+    )
+  )
+}
+
+function SlideReLayoutModal({ c }) {
+  const open = useValue(c.$reLayoutModalOpen), busy = useValue(c.$busy)
+  const doc = useValue(c.$doc), slideId = useValue(c.$slide)
+  if (!open || !doc) return null
+  const currentSlide = doc.deck.slides.find(s => s.id === slideId)
+  if (!currentSlide) return null
+
+  const handleSelect = (l) => {
+    c.relayoutSlide(l.id)
+  }
+
+  return h('div', { className: 'ppt-modal-backdrop ppt-cupertino-backdrop', onClick: () => !busy && c.$reLayoutModalOpen.set(false) },
+    h('div', { className: 'ppt-modal ppt-layout-modal ppt-cupertino-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-header ppt-cupertino-sheet-header' },
+        h('div', { className: 'ppt-header-text-group' },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            h('span', { className: 'ppt-apple-badge' }, 'Smart Re-Layout'),
+            h('h3', { className: 'ppt-modal-title' }, `✨ 智能重构本页排版 (${currentSlide.id} · ${currentSlide.name})`)
+          ),
+          h('p', { className: 'ppt-muted', style: { margin: '4px 0 0' } }, '选择目标专业版式，AI 将自动继承本页核心论点并自适应拆解为高密度卡片、时间轴或关键指标')
+        ),
+        h('button', {
+          className: 'ppt-cupertino-close-btn',
+          'aria-label': '关闭',
+          disabled: !!busy,
+          onClick: () => !busy && c.$reLayoutModalOpen.set(false)
+        }, '✕')
+      ),
+      h('div', { className: 'ppt-layout-grid ppt-cupertino-layout-grid' },
+        LAYOUTS.map(l => {
+          const isCurrent = l.id === currentSlide.layout_id
+          return h('div', {
+            key: l.id,
+            className: `ppt-layout-card ppt-cupertino-card ${isCurrent ? 'ppt-layout-card-current' : ''}`,
+            onClick: () => !isCurrent && !busy && handleSelect(l)
+          },
+            h(LayoutWireframe, { id: l.id }),
+            h('div', { className: 'ppt-layout-card-content' },
+              h('div', { className: 'ppt-layout-card-header' },
+                h('span', { className: 'ppt-layout-card-icon' }, l.icon),
+                h('div', { className: 'ppt-layout-card-meta' },
+                  h('span', { className: 'ppt-layout-card-id' }, l.id),
+                  h('strong', { className: 'ppt-layout-card-name' }, l.name),
+                ),
+                isCurrent && h('span', { className: 'ppt-current-badge' }, '当前版式')
+              ),
+              h('p', { className: 'ppt-layout-card-desc' }, l.desc),
+              h('button', {
+                type: 'button',
+                className: isCurrent ? 'ppt-apple-btn-secondary ppt-btn-sm' : 'ppt-apple-btn-primary ppt-btn-sm',
+                disabled: isCurrent || !!busy,
+                onClick: (e) => { e.stopPropagation(); if (!isCurrent && !busy) handleSelect(l) }
+              }, isCurrent ? '当前版式' : '一键重构')
+            )
+          )
+        })
+      ),
+      h('div', { className: 'ppt-modal-footer ppt-cupertino-sheet-footer' },
+        h('span', { className: 'ppt-muted', style: { marginRight: 'auto', fontSize: 11 } }, '智能重构保留完整无损撤销/重做历史，随时可按撤销还原'),
+        h('button', {
+          type: 'button',
+          className: 'ppt-apple-btn-secondary',
+          disabled: !!busy,
+          onClick: () => c.$reLayoutModalOpen.set(false)
+        }, '取消')
       )
     )
   )
@@ -1032,6 +1317,244 @@ function ImageGenModal({ c }) {
 }
 
 
+function PresentationView({ c }) {
+  const doc = useValue(c.$doc)
+  const presenting = useValue(c.$presenting)
+  const currentSlideId = useValue(c.$slide)
+  const laserActive = useValue(c.$laserActive)
+  const showNotes = useValue(c.$presenterNotesOpen)
+  const blackout = useValue(c.$blackout)
+  const [laserPos, setLaserPos] = useState({ x: -100, y: -100 })
+  const [controlsVisible, setControlsVisible] = useState(true)
+  const hideTimerRef = useRef(null)
+
+  const slides = doc?.deck?.slides || []
+  const currentIndex = Math.max(0, slides.findIndex(s => s.id === currentSlideId))
+  const currentSlide = slides[currentIndex] || slides[0]
+
+  const view = useView(c, doc, currentSlide?.id, false, presenting && !!doc)
+
+  const goToSlide = index => {
+    if (index >= 0 && index < slides.length) {
+      c.$slide.set(slides[index].id)
+      c.$selection.set([])
+    }
+  }
+
+  const nextSlide = () => goToSlide(currentIndex + 1)
+  const prevSlide = () => goToSlide(currentIndex - 1)
+  const exitPresentation = () => {
+    c.$presenting.set(false)
+    c.$blackout.set(false)
+    c.$laserActive.set(false)
+    c.$presenterNotesOpen.set(false)
+  }
+
+  const handlePointerMove = e => {
+    if (laserActive) {
+      setLaserPos({ x: e.clientX, y: e.clientY })
+    }
+    setControlsVisible(true)
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => {
+      setControlsVisible(false)
+    }, 3000)
+  }
+
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if (!c.$presenting.get()) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        exitPresentation()
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') {
+        e.preventDefault()
+        nextSlide()
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
+        e.preventDefault()
+        prevSlide()
+      } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
+        e.preventDefault()
+        c.$blackout.set(!c.$blackout.get())
+      } else if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault()
+        c.$laserActive.set(!c.$laserActive.get())
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault()
+        c.$presenterNotesOpen.set(!c.$presenterNotesOpen.get())
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentIndex, slides.length])
+
+  if (!presenting || !doc) return null
+
+  return h('div', {
+    className: `ppt-presentation-overlay ${laserActive ? 'ppt-laser-cursor' : ''}`,
+    onPointerMove: handlePointerMove,
+    onClick: () => {
+      if (blackout) c.$blackout.set(false)
+    }
+  },
+    blackout ? h('div', { className: 'ppt-presentation-blackout' },
+      h('span', { className: 'ppt-blackout-hint' }, '已开启黑屏 (按 B 键或点击屏幕任意处恢复)')
+    ) : h('div', { className: 'ppt-presentation-stage' },
+      view.data?.svg ? h('div', {
+        className: 'ppt-presentation-svg-wrapper',
+        dangerouslySetInnerHTML: { __html: view.data.svg }
+      }) : h('div', { className: 'ppt-presentation-loading' },
+        h(GlyphSpinner),
+        h('span', null, '正在准备全屏页面…')
+      )
+    ),
+
+    laserActive && !blackout && h('div', {
+      className: 'ppt-laser-pointer-dot',
+      style: { left: laserPos.x, top: laserPos.y }
+    }),
+
+    showNotes && !blackout && h('aside', { className: 'ppt-presentation-notes-hud' },
+      h('div', { className: 'ppt-notes-hud-header' },
+        h('span', { className: 'ppt-notes-hud-title' }, `🎙️ 演讲备忘 · ${currentSlide.id} ${currentSlide.name}`),
+        h('button', { className: 'ppt-notes-hud-close', onClick: () => c.$presenterNotesOpen.set(false) }, '✕')
+      ),
+      h('div', { className: 'ppt-notes-hud-body' },
+        currentSlide.notes ? h('p', null, currentSlide.notes) : h('p', { className: 'ppt-notes-empty' }, '本页暂无演讲备忘（在编辑界面点击【✨ AI 生成讲稿】即可自动编写）')
+      )
+    ),
+
+    h('nav', {
+      className: `ppt-presentation-hud ${controlsVisible ? 'ppt-hud-visible' : 'ppt-hud-hidden'}`
+    },
+      h('button', {
+        className: 'ppt-hud-btn',
+        disabled: currentIndex === 0,
+        onClick: prevSlide,
+        'aria-label': '上一页'
+      }, '◀'),
+      h('div', { className: 'ppt-hud-counter' },
+        h('span', { className: 'ppt-hud-index' }, `${currentSlide.id} · ${currentIndex + 1}`),
+        h('span', { className: 'ppt-hud-total' }, ` / ${slides.length}`)
+      ),
+      h('button', {
+        className: 'ppt-hud-btn',
+        disabled: currentIndex === slides.length - 1,
+        onClick: nextSlide,
+        'aria-label': '下一页'
+      }, '▶'),
+      h('span', { className: 'ppt-hud-divider' }),
+      h('button', {
+        className: `ppt-hud-btn ppt-hud-toggle ${laserActive ? 'ppt-hud-active' : ''}`,
+        onClick: () => c.$laserActive.set(!laserActive),
+        title: '激光笔 (快捷键 L)'
+      }, '🔴 激光笔'),
+      h('button', {
+        className: `ppt-hud-btn ppt-hud-toggle ${showNotes ? 'ppt-hud-active' : ''}`,
+        onClick: () => c.$presenterNotesOpen.set(!showNotes),
+        title: '演讲备忘 (快捷键 N)'
+      }, '🎙️ 备忘'),
+      h('button', {
+        className: `ppt-hud-btn ppt-hud-toggle ${blackout ? 'ppt-hud-active' : ''}`,
+        onClick: () => c.$blackout.set(!blackout),
+        title: '黑屏暂停 (快捷键 B)'
+      }, '⬛ 黑屏'),
+      h('span', { className: 'ppt-hud-divider' }),
+      h('button', {
+        className: 'ppt-hud-btn ppt-hud-exit',
+        onClick: exitPresentation,
+        title: '退出放映 (快捷键 Esc)'
+      }, '✕ 退出')
+    )
+  )
+}
+
+
+function ExportModal({ c }) {
+  const doc = useValue(c.$doc)
+  const open = useValue(c.$exportModalOpen)
+  const busy = useValue(c.$busy)
+  const slideId = useValue(c.$slide)
+
+  if (!open || !doc) return null
+
+  const currentSlide = doc.deck.slides.find(s => s.id === slideId) || doc.deck.slides[0]
+
+  return h('div', { className: 'ppt-modal-backdrop', onClick: () => c.$exportModalOpen.set(false) },
+    h('div', { className: 'ppt-modal-sheet ppt-export-modal-sheet', onClick: e => e.stopPropagation() },
+      h('div', { className: 'ppt-modal-sheet-header' },
+        h('div', null,
+          h('h2', { className: 'ppt-sheet-title' }, '导出与分享演示文稿'),
+          h('p', { className: 'ppt-sheet-subtitle' }, '支持 Office 原生排版、高清打印矢量 PDF、以及适合微信/飞书分享的长图')
+        ),
+        h('button', { className: 'ppt-sheet-close', onClick: () => c.$exportModalOpen.set(false) }, '✕')
+      ),
+      h('div', { className: 'ppt-export-grid' },
+        h('div', {
+          className: 'ppt-export-card',
+          onClick: () => !busy && c.exportPptx()
+        },
+          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(216, 59, 1, 0.12)', color: '#d83b01' } }, '💼'),
+          h('div', { className: 'ppt-export-card-info' },
+            h('div', { className: 'ppt-export-card-title' }, 'PowerPoint 演示文稿 (.pptx)'),
+            h('p', { className: 'ppt-export-card-desc' }, '原生可编辑对象、矢量形状、原生嵌入图表与幻灯片母版，支持在 Office / WPS 中深度二次排版。'),
+            h('span', { className: 'ppt-export-badge' }, '标准格式 · 原生可编辑')
+          )
+        ),
+
+        h('div', {
+          className: 'ppt-export-card',
+          onClick: () => !busy && c.exportPdf()
+        },
+          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(255, 59, 48, 0.12)', color: '#ff3b30' } }, '📑'),
+          h('div', { className: 'ppt-export-card-info' },
+            h('div', { className: 'ppt-export-card-title' }, '矢量 PDF 文档 (.pdf)'),
+            h('p', { className: 'ppt-export-card-desc' }, '高保真矢量打印排版，字体排版无损缩放，适合商务汇报归档、邮件附件发送及跨平台查阅。'),
+            h('span', { className: 'ppt-export-badge' }, '高保真 · 矢量打印')
+          )
+        ),
+
+        h('div', {
+          className: 'ppt-export-card',
+          onClick: () => !busy && c.exportLongImage()
+        },
+          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(0, 113, 227, 0.12)', color: '#0071e3' } }, '📱'),
+          h('div', { className: 'ppt-export-card-info' },
+            h('div', { className: 'ppt-export-card-title' }, '全篇高清长图海报 (.png)'),
+            h('p', { className: 'ppt-export-card-desc' }, '将全篇幻灯片串联渲染为单张高清长图，带有页面标题与页码标牌，非常适合在微信、飞书、企业微信群直接分享与手机滑动浏览。'),
+            h('span', { className: 'ppt-export-badge' }, '微信/飞书分享神器')
+          )
+        ),
+
+        h('div', {
+          className: 'ppt-export-card',
+          onClick: () => !busy && c.exportSlideImage(currentSlide.id)
+        },
+          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(52, 199, 89, 0.12)', color: '#34c759' } }, '🖼️'),
+          h('div', { className: 'ppt-export-card-info' },
+            h('div', { className: 'ppt-export-card-title' }, `当前页高清图 (${currentSlide.id} · .png)`),
+            h('p', { className: 'ppt-export-card-desc' }, `导出第 ${doc.deck.slides.findIndex(s => s.id === currentSlide.id) + 1} 页《${currentSlide.name}》的超清图片，用于单独插图或封面海报。`),
+            h('span', { className: 'ppt-export-badge' }, '1080P/4K 单页图')
+          )
+        ),
+
+        h('div', {
+          className: 'ppt-export-card',
+          onClick: () => !busy && c.exportProject()
+        },
+          h('div', { className: 'ppt-export-card-icon', style: { background: 'rgba(175, 82, 222, 0.12)', color: '#af52de' } }, '📦'),
+          h('div', { className: 'ppt-export-card-info' },
+            h('div', { className: 'ppt-export-card-title' }, '项目工程包 (.forxppt)'),
+            h('p', { className: 'ppt-export-card-desc' }, '包含所有版本历史分支、母版样式、对象编号及原始素材的工程备份，随时随地一键导入恢复。'),
+            h('span', { className: 'ppt-export-badge' }, '完整工程备份')
+          )
+        )
+      )
+    )
+  )
+}
+
+
 function Navigation({ c }) {
   const doc = useValue(c.$doc), refresh = useValue(c.$refresh)
   const projects = useQuery({ queryKey: ['forx-ppt', c.owner, 'projects', refresh], queryFn: () => c.request('/projects'), refetchInterval: 5000, retry: 1 })
@@ -1068,6 +1591,10 @@ function Canvas({ c }) {
   const selection = useValue(c.$selection), compare = useValue(c.$compare), before = useValue(c.$before)
   const view = useView(c, doc, slideId, numbers)
   const previous = useRef(null)
+  const canvasRef = useRef(null)
+  const [dragState, setDragState] = useState(null)
+  const [inlineEditing, setInlineEditing] = useState(null)
+
   useEffect(() => {
     if (!view.data || !doc) return
     const old = previous.current
@@ -1106,6 +1633,131 @@ function Canvas({ c }) {
   const svg = showingBefore ? before.svg : view.data?.svg
   const boxes = (view.data?.elements || []).filter(e => selection.includes(e.id))
 
+  const handlePointerDown = (event, type, targetEl) => {
+    event.stopPropagation()
+    event.preventDefault()
+    const wrapper = canvasRef.current
+    if (!wrapper) return
+    const rect = wrapper.getBoundingClientRect()
+    const startClientX = event.clientX
+    const startClientY = event.clientY
+    const startBox = { ...targetEl.box }
+    const scale = (doc.deck.width * 72) / rect.width
+
+    let latestBox = { ...startBox }
+    let guideX = null, guideY = null
+
+    const onPointerMove = (e) => {
+      const dxPts = (e.clientX - startClientX) * scale
+      const dyPts = (e.clientY - startClientY) * scale
+      const dxInches = dxPts / 72
+      const dyInches = dyPts / 72
+
+      let newX = startBox.x
+      let newY = startBox.y
+      let newW = startBox.width
+      let newH = startBox.height
+
+      if (type === 'move') {
+        newX = startBox.x + dxInches
+        newY = startBox.y + dyInches
+      } else {
+        if (type.includes('w')) {
+          const maxDeltaW = startBox.width - 0.4
+          const actualDx = Math.min(maxDeltaW, dxInches)
+          newX = startBox.x + actualDx
+          newW = startBox.width - actualDx
+        }
+        if (type.includes('e')) {
+          newW = Math.max(0.4, startBox.width + dxInches)
+        }
+        if (type.includes('n')) {
+          const maxDeltaH = startBox.height - 0.25
+          const actualDy = Math.min(maxDeltaH, dyInches)
+          newY = startBox.y + actualDy
+          newH = startBox.height - actualDy
+        }
+        if (type.includes('s')) {
+          newH = Math.max(0.25, startBox.height + dyInches)
+        }
+      }
+
+      guideX = null
+      guideY = null
+      const snapThreshold = 0.15
+      if (type === 'move') {
+        if (Math.abs((newX + newW / 2) - (doc.deck.width / 2)) < snapThreshold) {
+          newX = doc.deck.width / 2 - newW / 2
+          guideX = (doc.deck.width / 2) * 72
+        } else if (Math.abs(newX - 0.6) < snapThreshold) {
+          newX = 0.6
+          guideX = 0.6 * 72
+        } else if (Math.abs((newX + newW) - (doc.deck.width - 0.6)) < snapThreshold) {
+          newX = doc.deck.width - 0.6 - newW
+          guideX = (doc.deck.width - 0.6) * 72
+        }
+
+        if (Math.abs((newY + newH / 2) - (doc.deck.height / 2)) < snapThreshold) {
+          newY = doc.deck.height / 2 - newH / 2
+          guideY = (doc.deck.height / 2) * 72
+        }
+      }
+
+      newX = Math.max(0, Math.min(doc.deck.width - 0.4, newX))
+      newY = Math.max(0, Math.min(doc.deck.height - 0.25, newY))
+      newW = Math.max(0.4, Math.min(doc.deck.width - newX, newW))
+      newH = Math.max(0.25, Math.min(doc.deck.height - newY, newH))
+
+      latestBox = {
+        x: Math.round(newX * 1000) / 1000,
+        y: Math.round(newY * 1000) / 1000,
+        width: Math.round(newW * 1000) / 1000,
+        height: Math.round(newH * 1000) / 1000
+      }
+
+      setDragState({
+        id: targetEl.id,
+        box: latestBox,
+        guideX,
+        guideY
+      })
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      setDragState(null)
+      if (latestBox.x !== startBox.x || latestBox.y !== startBox.y || latestBox.width !== startBox.width || latestBox.height !== startBox.height) {
+        c.edit([{
+          action: 'update_element',
+          target: targetEl.id,
+          slide_id: targetEl.origin === 'M001' ? undefined : slideId,
+          changes: { box: latestBox }
+        }], '调整元素位置与大小')
+      }
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
+  const commitInlineEdit = () => {
+    if (!inlineEditing) return
+    const currentSlide = doc.deck.slides.find(s => s.id === slideId)
+    const slideElems = currentSlide ? flatten(currentSlide.elements || []) : []
+    const masterElems = flatten(doc.deck.master.elements || [])
+    const match = [...slideElems, ...masterElems].find(elem => elem.id === inlineEditing.id)
+    if (match && inlineEditing.text !== match.text) {
+      c.edit([{
+        action: 'update_element',
+        target: inlineEditing.id,
+        slide_id: match.source === 'M001' ? undefined : slideId,
+        changes: { text: inlineEditing.text }
+      }], '编辑文字')
+    }
+    setInlineEditing(null)
+  }
+
   return h('main', { className: 'ppt-canvas-area' },
     h('div', { className: 'ppt-stage-header' },
       h('div', { className: 'ppt-stage-title' },
@@ -1115,10 +1767,11 @@ function Canvas({ c }) {
           className: 'ppt-layout-select',
           'aria-label': '页面版式',
           value: doc.deck.slides.find(s => s.id === slideId)?.layout_id || 'L003',
-          onChange: event => void c.edit([{ action: 'update_slide', target: slideId, changes: { layout_id: event.target.value } }], '切换页面版式')
+          onChange: event => void c.relayoutSlide(event.target.value)
         },
           LAYOUTS.map(l => h('option', { key: l.id, value: l.id }, `${l.id} · ${l.name}`))
-        )
+        ),
+        button('✨ 智能重构', () => c.$reLayoutModalOpen.set(true), !!c.$busy.get(), { className: 'ppt-relayout-btn' })
       ),
       h('div', { className: 'ppt-btn-group' },
         before?.project === doc.deck.id && before?.slide === slideId && button(showingBefore ? '返回当前版本' : '查看修改前', () => c.$compare.set(!c.$compare.get())),
@@ -1130,9 +1783,12 @@ function Canvas({ c }) {
       )
     ),
     h('div', { className: 'ppt-canvas-viewport' },
-      h('div', { className: 'ppt-canvas ppt-canvas-wrapper', style: { aspectRatio: `${doc.deck.width}/${doc.deck.height}` },
+      h('div', {
+        ref: canvasRef,
+        className: 'ppt-canvas ppt-canvas-wrapper',
+        style: { aspectRatio: `${doc.deck.width}/${doc.deck.height}` },
         onClick: event => {
-          if (showingBefore) return
+          if (showingBefore || dragState) return
           const id = event.target.closest?.('[data-element-id]')?.dataset.elementId
           const current = c.$selection.get()
           const next = id ? (event.ctrlKey || event.metaKey ? (current.includes(id) ? current.filter(v => v !== id) : [...current, id]) : [id]) : []
@@ -1140,15 +1796,138 @@ function Canvas({ c }) {
           if (next.length > 0) {
             c.$rightOpen.set(true)
           }
-        } },
+        }
+      },
         svg ? h('div', { className: 'ppt-svg', dangerouslySetInnerHTML: { __html: svg } }) : h('p', { role: view.error ? 'alert' : 'status', style: { padding: 32 } }, view.error?.message || '正在更新预览…'),
-        !showingBefore && !!boxes.length && h('svg', { className: 'ppt-selection', viewBox: `0 0 ${doc.deck.width * 72} ${doc.deck.height * 72}` },
-          ...boxes.map(e => h('rect', { key: e.id, x: e.box.x * 72, y: e.box.y * 72, width: e.box.width * 72, height: e.box.height * 72, fill: 'none', stroke: 'var(--ui-accent)', strokeWidth: 2, strokeDasharray: '6 3' }))
+        inlineEditing && h('div', {
+          className: 'ppt-inline-edit-overlay',
+          style: {
+            position: 'absolute',
+            left: `${(inlineEditing.box.x / doc.deck.width) * 100}%`,
+            top: `${(inlineEditing.box.y / doc.deck.height) * 100}%`,
+            width: `${(inlineEditing.box.width / doc.deck.width) * 100}%`,
+            height: `${(inlineEditing.box.height / doc.deck.height) * 100}%`,
+            zIndex: 25,
+          }
+        },
+          h('textarea', {
+            className: 'ppt-inline-textarea',
+            autoFocus: true,
+            value: inlineEditing.text,
+            placeholder: '输入文字，Ctrl+Enter 保存，Esc 取消',
+            onChange: ev => setInlineEditing({ ...inlineEditing, text: ev.target.value }),
+            onKeyDown: ev => {
+              if (ev.key === 'Escape') {
+                ev.stopPropagation()
+                setInlineEditing(null)
+              } else if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+                ev.preventDefault()
+                commitInlineEdit()
+              }
+            },
+            onBlur: () => commitInlineEdit()
+          })
+        ),
+        !showingBefore && !!boxes.length && h('svg', {
+          className: 'ppt-selection',
+          viewBox: `0 0 ${doc.deck.width * 72} ${doc.deck.height * 72}`
+        },
+          dragState?.guideX !== null && dragState?.guideX !== undefined && h('line', {
+            key: 'guide-x',
+            x1: dragState.guideX, y1: 0, x2: dragState.guideX, y2: doc.deck.height * 72,
+            stroke: '#0071e3', strokeWidth: 1.5, strokeDasharray: '4 3'
+          }),
+          dragState?.guideY !== null && dragState?.guideY !== undefined && h('line', {
+            key: 'guide-y',
+            x1: 0, y1: dragState.guideY, x2: doc.deck.width * 72, y2: dragState.guideY,
+            stroke: '#0071e3', strokeWidth: 1.5, strokeDasharray: '4 3'
+          }),
+          ...boxes.map(e => {
+            const isSingle = boxes.length === 1
+            const b = (dragState && dragState.id === e.id) ? dragState.box : e.box
+            const bx = b.x * 72, by = b.y * 72, bw = b.width * 72, bh = b.height * 72
+
+            if (!isSingle) {
+              return h('rect', {
+                key: e.id,
+                x: bx, y: by, width: bw, height: bh,
+                fill: 'none',
+                stroke: 'var(--ui-accent)',
+                strokeWidth: 2,
+                strokeDasharray: '6 3'
+              })
+            }
+
+            const handles = [
+              { type: 'nw', x: bx, y: by, cursor: 'nwse-resize' },
+              { type: 'n', x: bx + bw / 2, y: by, cursor: 'ns-resize' },
+              { type: 'ne', x: bx + bw, y: by, cursor: 'nesw-resize' },
+              { type: 'e', x: bx + bw, y: by + bh / 2, cursor: 'ew-resize' },
+              { type: 'se', x: bx + bw, y: by + bh, cursor: 'nwse-resize' },
+              { type: 's', x: bx + bw / 2, y: by + bh, cursor: 'ns-resize' },
+              { type: 'sw', x: bx, y: by + bh, cursor: 'nesw-resize' },
+              { type: 'w', x: bx, y: by + bh / 2, cursor: 'ew-resize' },
+            ]
+
+            return h('g', { key: e.id, className: 'ppt-selection-group' },
+              h('rect', {
+                x: bx, y: by, width: bw, height: bh,
+                fill: 'rgba(0, 113, 227, 0.05)',
+                stroke: '#0071e3',
+                strokeWidth: 2,
+                cursor: 'move',
+                pointerEvents: 'all',
+                onPointerDown: ev => handlePointerDown(ev, 'move', e),
+                onDoubleClick: ev => {
+                  ev.stopPropagation()
+                  const currentSlide = doc.deck.slides.find(s => s.id === slideId)
+                  const slideElems = currentSlide ? flatten(currentSlide.elements || []) : []
+                  const masterElems = flatten(doc.deck.master.elements || [])
+                  const match = [...slideElems, ...masterElems].find(elem => elem.id === e.id)
+                  if (e.kind === 'text' || match?.kind === 'text') {
+                    setInlineEditing({ id: e.id, text: match?.text || e.text || '', box: b })
+                  }
+                }
+              }),
+              handles.map(hd => h('rect', {
+                key: hd.type,
+                x: hd.x - 4,
+                y: hd.y - 4,
+                width: 8,
+                height: 8,
+                rx: 2,
+                fill: '#ffffff',
+                stroke: '#0071e3',
+                strokeWidth: 1.5,
+                cursor: hd.cursor,
+                pointerEvents: 'all',
+                onPointerDown: ev => handlePointerDown(ev, hd.type, e)
+              })),
+              dragState && dragState.id === e.id && h('g', { key: 'drag-badge', className: 'ppt-drag-dimension-badge' },
+                h('rect', {
+                  x: bx + bw / 2 - 40,
+                  y: Math.max(2, by - 24),
+                  width: 80,
+                  height: 18,
+                  rx: 4,
+                  fill: 'rgba(0, 0, 0, 0.85)'
+                }),
+                h('text', {
+                  x: bx + bw / 2,
+                  y: Math.max(2, by - 24) + 12,
+                  textAnchor: 'middle',
+                  fill: '#ffffff',
+                  fontSize: 10,
+                  fontWeight: 600
+                }, `${b.width.toFixed(2)}" × ${b.height.toFixed(2)}"`)
+              )
+            )
+          })
         )
       )
     ),
     h('div', { className: 'ppt-canvas-footer' },
-      h('span', { className: 'ppt-muted' }, '结构预览 · 导出保留原生对象 · 外部软件字体与排版可能有差异'),
+      h('span', { className: 'ppt-muted' }, '结构预览 · 拖拽边框移动/拉伸句柄缩放 · 双击文字就地编辑'),
       doc.change && h('span', { className: 'ppt-muted' }, `影响 ${doc.change.slides.length} 页、${doc.change.elements.length} 个对象`),
     ),
     ...(doc.issues || []).filter(i => i.slide_id === slideId).map((issue, i) => h('button', { key: i, className: 'ppt-issue', onClick: () => c.$selection.set([issue.element_id]) }, `${issue.element_id}：${issue.message}`)),
@@ -1158,11 +1937,13 @@ function Canvas({ c }) {
 function Properties({ c, expanded = false }) {
   const doc = useValue(c.$doc), selection = useValue(c.$selection), slideId = useValue(c.$slide), busy = useValue(c.$busy)
   const [search, setSearch] = useState(''), [text, setText] = useState(''), [name, setName] = useState(''), [fontSize, setFontSize] = useState(''), [masterSize, setMasterSize] = useState('32')
+  const [notesText, setNotesText] = useState('')
   const upload = useRef(null)
   const slide = doc?.deck.slides.find(s => s.id === slideId)
   const elements = doc ? [...flatten(doc.deck.master.elements).map(e => ({ ...e, source: 'M001' })), ...flatten(slide?.elements || []).map(e => ({ ...e, source: slideId }))] : []
   const chosen = selection.length === 1 ? elements.find(e => e.id === selection[0]) : null
   useEffect(() => { setText(chosen?.text || ''); setName(chosen?.name || ''); setFontSize(String(chosen?.style?.font_size || '')) }, [chosen?.id, chosen?.text, chosen?.name, chosen?.style?.font_size])
+  useEffect(() => { setNotesText(slide?.notes || '') }, [slide?.id, slide?.notes])
   if (!doc) return null
   return h('section', { className: `ppt-properties ppt-panel-section ${expanded ? 'ppt-panel-expanded' : ''}` },
     h('div', { className: 'ppt-panel-header' },
@@ -1232,6 +2013,27 @@ function Properties({ c, expanded = false }) {
             c.accept(await c.request(`/projects/${d.deck.id}/edit`, { method: 'POST', body: { revision: d.revision, operations: [operation], request_id: uid(), label: '插入或替换图片' } }))
           })
         } }),
+    ),
+    slide && h('div', { className: 'ppt-fields ppt-inspector-card ppt-notes-card' },
+      h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 } },
+        h('strong', null, '🎙️ 本页演讲备忘 (Speaker Notes)'),
+        button('✨ AI 生成讲稿', () => void c.generateNotes(slide.id), !!busy, { className: 'ppt-btn-primary' })
+      ),
+      h(Textarea, {
+        value: notesText,
+        placeholder: '记录本页核心提词、演讲逻辑或点击上方【✨ AI 生成讲稿】…',
+        rows: 4,
+        onChange: e => setNotesText(e.target.value),
+        onBlur: () => {
+          if (notesText !== (slide.notes || '')) {
+            void c.updateNotes(slide.id, notesText)
+          }
+        }
+      }),
+      h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 } },
+        h('small', { className: 'ppt-muted' }, '放映模式按 N 可随时调出本讲稿备忘'),
+        notesText !== (slide.notes || '') && button('保存备注', () => void c.updateNotes(slide.id, notesText), !!busy)
+      )
     ),
   )
 }
@@ -1590,6 +2392,84 @@ const css = `
 .ppt-msg-attachments{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .ppt-msg-att-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:6px;background:rgba(120,120,128,0.12);border:1px solid var(--ui-stroke-secondary);font-size:10.5px;color:var(--ui-text-secondary)}
 
+/* Re-Layout and Direct Manipulation Styles */
+.ppt-relayout-btn{background:rgba(0,113,227,0.12)!important;color:#0071e3!important;border:1px solid rgba(0,113,227,0.25)!important;border-radius:980px!important;padding:3px 10px!important;font-size:11.5px!important;font-weight:600!important;cursor:pointer;transition:all 0.15s ease}
+.ppt-relayout-btn:hover:not(:disabled){background:rgba(0,113,227,0.22)!important;transform:translateY(-0.5px)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-relayout-btn{color:#2997ff!important;border-color:rgba(41,151,255,0.4)!important}
+
+.ppt-layout-card-current{border-color:#0071e3!important;box-shadow:0 0 0 2px rgba(0,113,227,0.3)!important;background:color-mix(in srgb, var(--ui-bg-elevated) 90%, #0071e3)!important}
+.ppt-current-badge{margin-left:auto;font-size:10px;font-weight:700;color:#0071e3;background:rgba(0,113,227,0.12);padding:2px 6px;border-radius:4px}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-current-badge{color:#2997ff}
+
+/* Inline Text Editing Overlay */
+.ppt-inline-edit-overlay{box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,0.25),0 0 0 2px #0071e3;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px)}
+:is(.dark,[data-hermes-mode="dark"],[data-color-mode="dark"]) .ppt-inline-edit-overlay{background:rgba(30,30,32,0.96)}
+.ppt-inline-textarea{width:100%;height:100%;box-sizing:border-box;border:none;outline:none;background:transparent;padding:6px 8px;font-family:inherit;font-size:13px;line-height:1.45;color:inherit;resize:none}
+
+.ppt-drag-dimension-badge{pointer-events:none;user-select:none}
+
+/* Presentation Mode (Cupertino Glassmorphism) */
+.ppt-presentation-overlay{position:fixed;inset:0;z-index:9999;background:#000000;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none}
+.ppt-laser-cursor{cursor:none!important}
+.ppt-presentation-stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+.ppt-presentation-svg-wrapper{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.ppt-presentation-svg-wrapper svg{max-width:96vw;max-height:92vh;width:auto;height:auto;aspect-ratio:16/9;filter:drop-shadow(0 12px 48px rgba(0,0,0,0.8));border-radius:4px}
+.ppt-presentation-loading{display:flex;flex-direction:column;align-items:center;gap:12px;color:rgba(255,255,255,0.7);font-size:14px}
+.ppt-presentation-blackout{position:fixed;inset:0;background:#000000;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10001}
+.ppt-blackout-hint{color:rgba(255,255,255,0.4);font-size:14px;letter-spacing:1px}
+
+/* Laser Pointer */
+.ppt-laser-pointer-dot{position:fixed;width:12px;height:12px;border-radius:50%;background:#ff3b30;box-shadow:0 0 10px #ff3b30, 0 0 20px #ff3b30, 0 0 3px #ffffff;pointer-events:none;transform:translate(-50%, -50%);z-index:10002;transition:transform 0.04s ease}
+
+/* Presentation Floating HUD */
+.ppt-presentation-hud{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(30,30,32,0.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:980px;box-shadow:0 12px 36px rgba(0,0,0,0.5);z-index:10000;transition:opacity 0.25s ease, transform 0.25s ease}
+.ppt-hud-visible{opacity:1;pointer-events:all}
+.ppt-hud-hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px)}
+.ppt-hud-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#ffffff;border-radius:980px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s ease}
+.ppt-hud-btn:hover:not(:disabled){background:rgba(255,255,255,0.18);transform:translateY(-1px)}
+.ppt-hud-btn:disabled{opacity:0.3;cursor:not-allowed}
+.ppt-hud-active{background:#0071e3!important;border-color:#0071e3!important;box-shadow:0 0 12px rgba(0,113,227,0.5)}
+.ppt-hud-exit{background:rgba(255,59,48,0.15)!important;border-color:rgba(255,59,48,0.3)!important;color:#ff453a!important}
+.ppt-hud-exit:hover{background:rgba(255,59,48,0.3)!important}
+.ppt-hud-counter{display:flex;align-items:center;font-size:12px;padding:0 6px;color:#ffffff;font-variant-numeric:tabular-nums}
+.ppt-hud-index{font-weight:600}
+.ppt-hud-total{color:rgba(255,255,255,0.5)}
+.ppt-hud-divider{width:1px;height:16px;background:rgba(255,255,255,0.15);margin:0 2px}
+
+/* Presentation Notes HUD */
+.ppt-presentation-notes-hud{position:fixed;bottom:90px;right:32px;width:340px;max-height:280px;background:rgba(24,24,26,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.16);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.6);z-index:10000;display:flex;flex-direction:column;overflow:hidden;animation:pptFadeUp 0.2s ease}
+.ppt-notes-hud-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.1)}
+.ppt-notes-hud-title{font-size:12px;font-weight:600;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppt-notes-hud-close{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px}
+.ppt-notes-hud-close:hover{color:#ffffff;background:rgba(255,255,255,0.1)}
+.ppt-notes-hud-body{padding:12px 14px;overflow-y:auto;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.92)}
+.ppt-notes-empty{color:rgba(255,255,255,0.4);font-style:italic;margin:0}
+
+/* Notes Card in Properties Panel */
+.ppt-notes-card{background:color-mix(in srgb, var(--ui-bg-elevated) 90%, var(--ui-accent))!important;border:1px solid color-mix(in srgb, var(--ui-stroke-secondary) 70%, var(--ui-accent))!important}
+.ppt-btn-present{background:linear-gradient(135deg, #0071e3, #47a3ff)!important;color:#ffffff!important;font-weight:600!important}
+
+/* Export Modal Sheet */
+.ppt-export-modal-sheet{max-width:680px!important;padding:24px 28px!important}
+.ppt-export-grid{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.ppt-export-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:12px;background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-secondary);cursor:pointer;transition:all 0.16s ease}
+.ppt-export-card:hover{border-color:var(--ui-accent);background:color-mix(in srgb, var(--ui-accent) 6%, var(--ui-bg-elevated));transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.ppt-export-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ppt-export-card-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ppt-export-card-title{font-size:13.5px;font-weight:600;color:var(--ui-text-primary)}
+.ppt-export-card-desc{font-size:11.5px;color:var(--ui-text-secondary);margin:0;line-height:1.45}
+.ppt-export-badge{align-self:flex-start;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,113,227,0.1);color:#0071e3;margin-top:3px}
+
+/* Print Styles for Vector PDF */
+@media print{
+  body{background:#ffffff!important;color:#000000!important;margin:0!important;padding:0!important}
+  .ppt-toolbar,.ppt-pages,.ppt-side,.ppt-stage-header,.ppt-canvas-footer,.ppt-modal-backdrop,.ppt-selection,.ppt-inline-edit-overlay,.ppt-presentation-overlay{display:none!important}
+  .forx-ppt,.ppt-layout,.ppt-canvas-area,.ppt-canvas-viewport{display:block!important;margin:0!important;padding:0!important;width:100%!important;height:auto!important}
+  .ppt-canvas-wrapper{box-shadow:none!important;border:none!important;width:100vw!important;height:100vh!important;page-break-after:always!important;page-break-inside:avoid!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important}
+  .ppt-svg{position:relative!important;width:100%!important;height:100%!important}
+  @page{size:landscape;margin:0}
+}
+
 @media(max-width:1000px){
   .ppt-pages{width:170px;min-width:150px}
   .ppt-side{width:290px;min-width:260px}
@@ -1611,6 +2491,16 @@ function Workbench({ c }) {
     const id = c.ctx.storage.get(`project:${c.owner}`, null)
     if (id && !c.$doc.get()) void c.load(id)
   }, [status.data, c])
+  useEffect(() => {
+    const handleGlobalKey = e => {
+      if (e.key === 'F5') {
+        e.preventDefault()
+        if (c.$doc.get()) c.$presenting.set(!c.$presenting.get())
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKey)
+    return () => window.removeEventListener('keydown', handleGlobalKey)
+  }, [c])
   if (!status.data?.ready) return h('div', { className: 'ppt-connecting' },
     h('div', { className: 'ppt-brand-icon', style: { width: 44, height: 44 } }, Icon.ppt()),
     h('h2', null, 'PPT 创作台'),
@@ -1641,7 +2531,10 @@ function Workbench({ c }) {
     h(LayoutPickerModal, { c }),
     h(DocToDeckModal, { c }),
     h(DeleteProjectModal, { c }),
-    h(ImageGenModal, { c })
+    h(ImageGenModal, { c }),
+    h(SlideReLayoutModal, { c }),
+    h(ExportModal, { c }),
+    h(PresentationView, { c })
   )
 }
 

@@ -132,7 +132,7 @@ def render(deck, slide, numbers=False):
             return ""
         style, box = effective(deck, slide, e)
         elements.append({"id": e.id, "name": e.name, "kind": e.kind, "origin": origin,
-                         "role": e.role, "box": box.model_dump(), "style": style,
+                         "role": e.role, "text": getattr(e, "text", None), "box": box.model_dump(), "style": style,
                          "overrides": e.style.model_dump(exclude_none=True)})
         if e.asset_id:
             assets.add(e.asset_id)

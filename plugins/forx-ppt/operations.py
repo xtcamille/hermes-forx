@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from .models import (ELEMENT_STYLE_KEYS, Box, Deck, Element, Model, Style, add_slide, allocate, effective,
-                     layout_for, locate, walk)
+                     layout_for, locate, walk, default_bullets_for_layout, expand_layout_elements)
 from .themes import STYLE_KEYS, theme
 
 
@@ -15,7 +15,7 @@ class Operation(Model):
     action: Literal["update_element", "add_element", "delete_element", "move_element",
                     "add_slide", "delete_slide", "duplicate_slide", "move_slide",
                     "update_slide", "master_style", "layout_style", "theme",
-                    "reset_style", "group", "ungroup", "rename"]
+                    "reset_style", "group", "ungroup", "rename", "relayout_slide"]
     target: str = ""
     slide_id: str | None = None
     changes: dict = Field(default_factory=dict)
@@ -245,12 +245,48 @@ def _rename(deck, op):
     deck.name = op.changes.get("name", "")
 
 
+def _relayout_slide(deck, op):
+    slide = _slide(deck, op.target)
+    new_layout_id = op.changes.get("layout_id")
+    if new_layout_id not in ("L001", "L002", "L003", "L004", "L005", "L006", "L007", "L008", "L009", "L010"):
+        raise ValueError(f"未知版式编号: {new_layout_id}")
+
+    title = slide.name
+    for e in slide.elements:
+        if e.role == "title" and e.text:
+            title = e.text.split("\n")[0].strip()
+            break
+
+    bullets = op.changes.get("bullets")
+    if bullets is None:
+        bullets = []
+        for e in slide.elements:
+            if e.role == "body" and e.text:
+                for line in e.text.split("\n"):
+                    trimmed = line.strip()
+                    if trimmed and trimmed not in bullets:
+                        bullets.append(trimmed)
+            elif e.kind == "text" and e.role != "title" and e.text:
+                for line in e.text.split("\n"):
+                    trimmed = line.strip()
+                    if trimmed and trimmed not in bullets and len(trimmed) > 1 and not (len(trimmed) <= 3 and trimmed.isdigit()):
+                        bullets.append(trimmed)
+
+        if not bullets:
+            bullets = default_bullets_for_layout(new_layout_id, title)
+
+    slide.layout_id = new_layout_id
+    slide.name = title
+    slide.elements = expand_layout_elements(deck, new_layout_id, title, bullets)
+
+
 HANDLERS = {
     "update_element": _update_element, "add_element": _add_element, "delete_element": _delete_element,
     "move_element": _move_element, "add_slide": _add_slide, "delete_slide": _delete_slide,
     "duplicate_slide": _duplicate_slide, "move_slide": _move_slide, "update_slide": _update_slide,
     "master_style": _master_style, "layout_style": _layout_style, "theme": _theme,
     "reset_style": _reset_style, "group": _group, "ungroup": _ungroup, "rename": _rename,
+    "relayout_slide": _relayout_slide,
 }
 
 

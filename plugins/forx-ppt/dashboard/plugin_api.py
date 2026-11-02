@@ -106,6 +106,10 @@ class Cancel(Body):
     request_id: str = Field(min_length=1, max_length=128)
 
 
+class GenerateNotes(Body):
+    request_id: str | None = None
+
+
 class GenerateImage(Body):
     prompt: str = Field(min_length=1, max_length=2000)
     aspect_ratio: str = "landscape"
@@ -316,6 +320,27 @@ async def view(project_id: str, slide_id: str, revision: int | None = None, numb
     if not slide:
         raise KeyError("未找到页面")
     return {**preview.render(deck, slide, numbers), "revision": current["revision"]}
+
+
+@router.post("/projects/{project_id}/slides/{slide_id}/generate-notes")
+async def generate_notes(project_id: str, slide_id: str, body: GenerateNotes | None = None):
+    store = storage.Store()
+    current = store.get(project_id)
+    deck = models.Deck.model_validate(current["deck"])
+    slide = next((s for s in deck.slides if s.id == slide_id), None)
+    if not slide:
+        raise HTTPException(404, "未找到目标页面")
+
+    notes = await planner.generate_slide_notes(deck, slide)
+    req_id = (body and body.request_id) or uuid.uuid4().hex
+    result = store.edit(
+        project_id,
+        current["revision"],
+        [{"action": "update_slide", "target": slide_id, "changes": {"notes": notes}}],
+        req_id,
+        f"AI 生成《{slide.name}》演讲讲稿"
+    )
+    return {"notes": notes, "result": result}
 
 
 @router.get("/assets/{asset_id}")

@@ -38,7 +38,19 @@ function mount(chat) {
         return { deleted: true, project_id: id }
       }
       if (path.endsWith('/history')) return { history: [] }
-      if (path.includes('/preview/')) return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><g data-element-id="E0002"><text>标题画布</text></g></svg>', assets: [], elements: [], revision: current?.revision || 1 }
+      if (path.includes('/preview/')) return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><g data-element-id="E0002"><text>标题画布</text></g></svg>', assets: [], elements: [{ id: 'E0002', name: '主标题', kind: 'text', role: 'title', box: { x: 0.6, y: 0.7, width: 8.0, height: 1.0 } }], revision: current?.revision || 1 }
+      if (path.includes('/generate-notes')) {
+        const generatedNotes = '各位观众好，本页为业务架构演示，核心关注高可用与微服务演进。'
+        if (current) {
+          const s = current.deck.slides[0]
+          if (s) s.notes = generatedNotes
+          current = { ...current, revision: current.revision + 1 }
+        }
+        return { notes: generatedNotes, result: current }
+      }
+      if (path.includes('/download')) {
+        return { filename: 'test.pptx', content_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', data: 'UEsDBA==', revision: current?.revision || 1 }
+      }
       if (path.endsWith('/edit')) { current = { ...current, revision: current.revision + 1 }; return current }
       return current
     }),
@@ -223,4 +235,140 @@ it('supports attaching reference files to chat dialog and sending enriched promp
   expect(receivedChat.prompt).toContain('参考附件中的系统架构设计，为本页补充技术要点')
 
   await screen.findByText('已根据附件内容扩充幻灯片要点')
+})
+
+it('opens smart relayout modal and transforms current slide layout with relayout_slide', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Click ✨ 智能重构 button in stage header
+  const relayoutBtn = screen.getByRole('button', { name: '✨ 智能重构' })
+  expect(relayoutBtn).toBeTruthy()
+  fireEvent.click(relayoutBtn)
+
+  // Verify modal opens
+  await screen.findByText(/智能重构本页排版/)
+  expect(screen.getByText('关键指标')).toBeTruthy()
+  expect(screen.getByText('多列卡片')).toBeTruthy()
+
+  // Click 多列卡片 card
+  fireEvent.click(screen.getByText('多列卡片'))
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'relayout_slide' && opts.body.operations[0].changes.layout_id === 'L007'
+  )).toBe(true))
+})
+
+it('supports double click on canvas element for in-place inline text editing', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Select element E0002
+  fireEvent.click(screen.getByRole('button', { name: /E0002 · 主标题/ }))
+  await screen.findByText(/已选定元素：E0002/)
+
+  // Double click on move handle in SVG selection
+  const moveRect = document.querySelector('.ppt-selection-group rect[cursor="move"]')
+  expect(moveRect).toBeTruthy()
+  fireEvent.doubleClick(moveRect)
+
+  // Verify inline textarea overlay appears
+  const inlineTextarea = screen.getByPlaceholderText('输入文字，Ctrl+Enter 保存，Esc 取消')
+  expect(inlineTextarea).toBeTruthy()
+  expect(inlineTextarea.value).toBe('原始标题')
+
+  // Modify text and submit via Ctrl+Enter
+  fireEvent.change(inlineTextarea, { target: { value: '画布就地直接修改的标题' } })
+  fireEvent.keyDown(inlineTextarea, { key: 'Enter', ctrlKey: true })
+
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'update_element' && opts.body.operations[0].changes.text === '画布就地直接修改的标题'
+  )).toBe(true))
+})
+
+it('toggles full-screen presentation mode, laser pointer, notes hud, and exits via escape', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Click ▶ 放映 button
+  const presentBtn = screen.getByRole('button', { name: '▶ 放映' })
+  expect(presentBtn).toBeTruthy()
+  fireEvent.click(presentBtn)
+
+  // Verify presentation overlay and hud appear
+  await screen.findByText('S001 · 1')
+  expect(screen.getByRole('button', { name: '🔴 激光笔' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: '🎙️ 备忘' })).toBeTruthy()
+
+  // Toggle laser pointer
+  fireEvent.click(screen.getByRole('button', { name: '🔴 激光笔' }))
+  expect(document.querySelector('.ppt-laser-pointer-dot')).toBeTruthy()
+
+  // Toggle speaker notes in presentation
+  fireEvent.click(screen.getByRole('button', { name: '🎙️ 备忘' }))
+  await screen.findByText(/🎙️ 演讲备忘/)
+
+  // Toggle blackout mode
+  fireEvent.click(screen.getByRole('button', { name: '⬛ 黑屏' }))
+  await screen.findByText(/已开启黑屏/)
+
+  // Exit presentation via Esc key
+  fireEvent.keyDown(window, { key: 'Escape' })
+  await waitFor(() => expect(document.querySelector('.ppt-presentation-overlay')).toBeNull())
+})
+
+it('edits speaker notes in properties panel and triggers AI speech notes generation', async () => {
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Find speaker notes section in properties panel
+  await screen.findByText(/本页演讲备忘/)
+  const notesTextarea = screen.getByPlaceholderText(/记录本页核心提词、演讲逻辑或点击上方/)
+  expect(notesTextarea).toBeTruthy()
+
+  // Manually edit notes
+  fireEvent.change(notesTextarea, { target: { value: '手动记录的演讲备忘要点' } })
+  fireEvent.blur(notesTextarea)
+
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path, opts]) =>
+    path.endsWith('/edit') && opts.body.operations[0].action === 'update_slide' && opts.body.operations[0].changes.notes === '手动记录的演讲备忘要点'
+  )).toBe(true))
+
+  // Click AI generate speech notes button
+  const aiNotesBtn = screen.getByRole('button', { name: '✨ AI 生成讲稿' })
+  fireEvent.click(aiNotesBtn)
+
+  await waitFor(() => expect(ctx.rest.mock.calls.some(([path]) =>
+    path.includes('/slides/S001/generate-notes')
+  )).toBe(true))
+  await screen.findByText(/各位观众好，本页为业务架构演示/)
+})
+
+it('opens export modal and supports exporting pptx and triggering vector pdf printing', async () => {
+  const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {})
+  const ctx = mount()
+  fireEvent.click(await screen.findByRole('button', { name: '空白新建' }))
+  await screen.findByText('测试文稿 · v1 · 已保存')
+
+  // Click 📤 导出 button in toolbar
+  const exportBtn = screen.getByRole('button', { name: '📤 导出' })
+  expect(exportBtn).toBeTruthy()
+  fireEvent.click(exportBtn)
+
+  // Verify export modal sheet is displayed with 5 formats
+  await screen.findByText('导出与分享演示文稿')
+  expect(screen.getByText('PowerPoint 演示文稿 (.pptx)')).toBeTruthy()
+  expect(screen.getByText('矢量 PDF 文档 (.pdf)')).toBeTruthy()
+  expect(screen.getByText('全篇高清长图海报 (.png)')).toBeTruthy()
+  expect(screen.getByText(/当前页高清图/)).toBeTruthy()
+  expect(screen.getByText('项目工程包 (.forxppt)')).toBeTruthy()
+
+  // Click PDF export option
+  fireEvent.click(screen.getByText('矢量 PDF 文档 (.pdf)'))
+  expect(printSpy).toHaveBeenCalled()
+
+  printSpy.mockRestore()
 })
