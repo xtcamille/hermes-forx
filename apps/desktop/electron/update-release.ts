@@ -10,6 +10,7 @@
  */
 
 import fs from 'node:fs'
+import http from 'node:http'
 import https from 'node:https'
 import path from 'node:path'
 
@@ -39,6 +40,12 @@ export interface ReleaseUpdateCheckResult {
 }
 
 export function latestReleaseApiUrl(slug: string = DEFAULT_RELEASE_REPO_SLUG): string {
+  const custom = process.env.FORX_UPDATE_API_URL?.trim()
+
+  if (custom) {
+    return custom
+  }
+
   return `https://api.github.com/repos/${slug}/releases/latest`
 }
 
@@ -144,7 +151,7 @@ export function selectReleaseAsset(assets: unknown, platform: string, arch: stri
     const rawSize = (entry as { size?: unknown }).size
     const size = typeof rawSize === 'number' && Number.isFinite(rawSize) && rawSize > 0 ? rawSize : null
 
-    if (!name || !url.startsWith('https://') || !isCandidateBinaryAsset(name)) {
+    if (!name || (!url.startsWith('https://') && !url.startsWith('http://')) || !isCandidateBinaryAsset(name)) {
       continue
     }
 
@@ -293,7 +300,10 @@ export function parseReleaseUpdateCheck(
     : []
 
   const rawHtmlUrl = (payload as { html_url?: unknown }).html_url
-  const releaseUrl = typeof rawHtmlUrl === 'string' && rawHtmlUrl.startsWith('https://') ? rawHtmlUrl : null
+  const releaseUrl =
+    typeof rawHtmlUrl === 'string' && (rawHtmlUrl.startsWith('https://') || rawHtmlUrl.startsWith('http://'))
+      ? rawHtmlUrl
+      : null
   const normalizedCurrent = options.currentVersion.trim().replace(/^v/i, '')
 
   return {
@@ -468,10 +478,11 @@ export async function downloadReleaseAsset({
 
   const downloadWithRedirects = (currentUrl: string, redirectsLeft: number): Promise<void> =>
     new Promise((resolve, reject) => {
-      const req = https.get(
+      const client = currentUrl.startsWith('http://') ? http : https
+      const req = client.get(
         currentUrl,
         {
-          agent: updateCheckAgent(currentUrl),
+          agent: currentUrl.startsWith('https://') ? updateCheckAgent(currentUrl) : undefined,
           headers: {
             Accept: 'application/octet-stream, */*',
             'User-Agent': 'forx-desktop-updater'

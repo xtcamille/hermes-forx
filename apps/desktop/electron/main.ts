@@ -3627,10 +3627,11 @@ async function fetchGitHubApi(url, accept = 'application/vnd.github+json') {
 
 function fetchGitHubApiOnce(url, accept, token) {
   return new Promise((resolve, reject) => {
-    const req = https.get(
+    const client = String(url).startsWith('http://') ? http : https
+    const req = client.get(
       url,
       {
-        agent: updateCheckAgent(url),
+        agent: String(url).startsWith('https://') ? updateCheckAgent(url) : undefined,
         headers: githubApiHeaders(
           {
             Accept: accept,
