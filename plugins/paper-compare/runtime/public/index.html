@@ -8,6 +8,7 @@
   <title>论文对照台 · Paper Compare</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./forx.css">
   <link rel="stylesheet" href="./vendor/katex/katex.min.css">
   <script src="./vendor/katex/katex.min.js" defer></script>
   <script src="./vendor/katex/mhchem.min.js" defer></script>
@@ -18,6 +19,7 @@
   <script src="./desktop.js" defer></script>
   <script src="./evidence.js" defer></script>
   <script src="./app.js" defer></script>
+  <script src="./integration.js" defer></script>
 </head>
 <body>
   <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -117,7 +119,7 @@
 
   <dialog id="visionDialog" class="dialog vision-dialog"><div class="dialog-header"><div><h2>接口视觉能力检测</h2><p>用两张独立测试图片核验标记与柱状图，接受请求不等于读到了图片。</p></div><button class="icon-button" data-close="visionDialog" aria-label="关闭视觉检测"><svg><use href="#i-close"/></svg></button></div><div class="vision-probe-controls"><button id="visionProbeBtn" class="button button-primary" type="button">重新检测全部模型</button><button id="stopVisionProbeBtn" class="button button-stop" type="button" hidden>停止检测</button><span id="visionProbeStatus"></span></div><p class="muted">检测只发送工具自带的测试图片，不发送论文；每个模型最多调用两次，会消耗接口配额。结果只代表当前网关路由，7 天后需重新核验。</p><div id="visionResults" class="vision-results"></div></dialog>
 
-  <dialog id="historyDialog" class="dialog history-dialog"><div class="dialog-header"><div><h2>问答历史</h2><p>最近 30 轮保存在当前浏览器，可导出完整报告。</p></div><button class="icon-button" data-close="historyDialog" aria-label="关闭历史记录"><svg><use href="#i-close"/></svg></button></div><div id="historyList" class="history-list"></div><div class="history-footer"><span>文件原文保留在本地服务内存中，8 小时后过期。</span><button id="clearHistoryBtn" class="button button-quiet button-small">清空历史</button></div></dialog>
+  <dialog id="historyDialog" class="dialog history-dialog"><div class="dialog-header"><div><h2>问答历史</h2><p>历史问答保存在当前 ForX 配置档案，可导出完整报告。</p></div><button class="icon-button" data-close="historyDialog" aria-label="关闭历史记录"><svg><use href="#i-close"/></svg></button></div><div id="historyList" class="history-list"></div><div class="history-footer"><span>原论文、问答和引用保存在本机论文库，重启后可恢复。</span><button id="clearHistoryBtn" class="button button-quiet button-small">清空历史</button></div></dialog>
 
   <dialog id="exportDialog" class="dialog export-dialog"><div class="dialog-header"><div><h2>导出本轮报告</h2><p>包含问题、全部回答、生成指标、视觉转录和对比分析。</p></div><button class="icon-button" data-close="exportDialog" aria-label="关闭导出"><svg><use href="#i-close"/></svg></button></div><div class="export-choices"><button id="exportHtmlBtn"><strong>HTML · 公式已渲染</strong><span>内置公式字体，可离线阅读与打印</span><svg><use href="#i-download"/></svg></button><button id="exportMarkdownBtn"><strong>Markdown</strong><span>便于编辑，保留 LaTeX 公式源码</span><svg><use href="#i-download"/></svg></button><button id="exportJsonBtn"><strong>JSON</strong><span>保留结构化回答和用量数据</span><svg><use href="#i-download"/></svg></button></div></dialog>
 

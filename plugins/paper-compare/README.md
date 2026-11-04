@@ -2,6 +2,8 @@
 
 一个独立的 Hermes-forX 统一插件包，同时提供 Desktop 侧栏页面和本机 Dashboard 页面。采用官方插件接口，不修改 Agent、聊天系统或桌面端核心文件。
 
+当前适配 ForX 0.1.17，使用 Manifest v2 / API generation 1、官方 Desktop SDK 和统一插件目录。插件标识保持 `paper-compare`，已有配置、论文库、问答与引用编号继续使用。
+
 包含现有论文工具的完整功能：MinerU 解析、本地论文库、多模型流式对照、长输出续写、按模型隔离的连续追问、原文段落与 PDF 高亮、图表和公式局部精读、统一证据记录、按证据缺口补查、笔记与离线报告导出。默认回答模型仍为 `k3` 和 `glm-5.3`。
 
 账号登录、模型提供商、API 地址、凭据池和自定义接口的附加请求头均复用 ForX 的原有配置与凭据解析器。插件中的设置按钮直接打开 ForX 的“账号与模型”，无需再填一份模型密钥。
@@ -10,7 +12,17 @@
 
 需要 ForX 的 Python 环境、Node.js 22.13+、Poppler，以及可用的模型网关和 MinerU 服务。插件运行依赖已在 `runtime/package-lock.json` 锁定。
 
-在仓库根目录运行：
+推荐使用 ForX 的 **Capabilities → Plugins → Install from Git**，填写：
+
+```text
+xtcamille/hermes-forx/plugins/paper-compare
+```
+
+选择 Agent 与 Desktop 两部分，确认安装并启用。重启 ForX 后端后，从侧栏打开“论文工作台”。统一包通过 ForX 自己的发现、启用、禁用和热重载流程管理；首次打开会校验 Node 版本，并按锁文件准备生产依赖，后续直接复用。Git 安装固定提交时可使用 ForX 原有的 `--ref <完整提交 SHA>`。
+
+插件目录条目合入并发布后，也可使用 `forx plugins install paper-compare --enable` 安装审阅过的固定版本。目录的 SHA 固定规则不因插件升级改变。
+
+发行 ZIP 的顶层是 `paper-compare/`，包含生产依赖，适合离线分发；ForX 当前的图形安装入口使用 Git，不把 ZIP 当成图形导入格式。解压后可用 ForX 的 Python 环境运行 `install.py --skip-deps` 完成带备份的安装。需要源码安装或保留本档案独立 Node 副本时，也可在仓库根目录运行：
 
 ```bash
 python plugins/paper-compare/install.py
@@ -19,6 +31,8 @@ python plugins/paper-compare/install.py
 安装脚本默认复制完整插件到当前 ForX home 的 `plugins/paper-compare`，在该档案内保留 Node 可执行文件和 npm 运行依赖，备份并更新 `config.yaml`，启用 Agent 端。安装完成后，下载目录、开发仓库和旧独立版目录均不再是运行依赖。默认 home 由 ForX 的 `get_hermes_home()` 解析，也可显式传入 `--home /path/to/forx-home`。已有依赖的离线开发包可使用 `--skip-deps` 复制依赖；只有显式 `--link` 才会建立开发符号链接。
 
 随后重新启动 ForX 后端，在 **Capabilities → Plugins** 中打开“论文工作台”的 Desktop 开关，点击侧栏的“论文工作台”。Desktop 半包使用官方统一插件发现和热重载机制。也可在命令面板搜索“打开论文工作台”。本机 Dashboard 对应 `/papers` 页面。
+
+界面按“连接 ID + 配置档案”绑定论文服务。断线或切换归属时立即移除旧页面；较早启动请求的迟到响应不会重新显示旧库。远程、SSH 和云端连接会显示本机连接提示，不会把另一台机器的回环地址当成本机论文库。工作台同步 ForX 的浅色、深色和配色主题，切换主题不重新载入论文或发起模型调用。
 
 迁移已有独立版数据时，先等待任务完成并停止占用旧库的论文服务，再运行：
 
@@ -69,6 +83,8 @@ plugins:
 
 当前论文运行时使用 Chat Completions 协议。ForX 的 New API 登录和兼容此协议的 API 提供商可直接使用；当选中的提供商需要原生 Messages、Responses 或外部进程协议时，界面会提示在 ForX 中选择兼容接口，不会把其凭据发往另一个默认网关。
 
+ForX 的 `ctx.llm` 当前提供有界的非流式调用。本插件的多模型流式问答继续通过既有宿主提供商解析器和私有服务端管道运行，保留流式输出、续写、凭据轮换和每个模型独立的历史；没有新增浏览器密钥配置入口或跨档案凭据读取。
+
 MinerU 仍是独立的解析服务，在插件 settings 中配置 `pdf_parser`、`mineru_base_url`、`mineru_tier`，如需认证则在所属配置档案的私有 `.env` 配置 `MINERU_API_KEY`。迁移独立版时，`--env-file` 仅复用 `MINERU_*`、`PDF_PARSER` 与 Poppler 路径，不读取其中的模型密钥。所有模型凭据和附加认证头只留在服务端，不进入浏览器、论文数据库、导出文件或子进程命令行。视觉检测和转录缓存按接口、凭据与模型作用域区分，保留原有记录。
 
 每个 ForX 配置档案拥有独立服务和默认论文库 `plugin-data/paper-compare/library`。只有显式指定的 `data_dir` 才会复用外部库。服务以请求所属 home 读取配置与密钥，不借用其他档案的环境变量。ForX 聊天记录不自动加入论文问答；论文内部各模型仍只收到自己的历史回答。
@@ -92,7 +108,12 @@ npm ci --prefix plugins/paper-compare/runtime --ignore-scripts
 npm run check --prefix plugins/paper-compare/runtime
 npm test --prefix plugins/paper-compare/runtime
 scripts/run_tests.sh tests/plugins/test_paper_compare_plugin.py tests/plugins/test_paper_compare_storage.py -j 1
+scripts/run_tests.sh tests/plugins/test_paper_compare_package.py -j 1
+node_modules/.bin/vitest run --config plugins/paper-compare/vitest.config.mjs
+python plugins/paper-compare/build_release.py
 ```
+
+`build_release.py` 从允许的源码目录构造统一包，并在临时目录按锁文件安装生产依赖。论文、数据库、真实配置、缓存、开发依赖和外部符号链接不进入发行包。`--source-only` 可生成不带依赖的源码包；正常 Git 安装同样在首次打开时准备依赖。
 
 `sync-runtime.mjs` 仅是可选的开发导入工具，必须显式传入源目录，不在安装或运行时调用。分发完整插件包后，在目标机器运行 `install.py` 即可获得独立副本。Poppler 是本机 PDF 页面渲染工具；MinerU 与模型网关是配置的解析/推理服务，插件按需调用它们，无需单独启动旧论文工具的服务。
 

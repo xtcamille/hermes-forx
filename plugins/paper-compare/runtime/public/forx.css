@@ -1,0 +1,9 @@
+/* The standalone reader retains its own palette; an embedded reader follows ForX. */
+html[data-forx-theme] body { background:var(--bg);color:var(--ink) }
+html[data-forx-theme] :is(.app-header,.sidebar,.question-card,.answer-card,.dialog,.workbenchbar,.conversation-toolbar,.action-menu-panel) { background:var(--paper);border-color:var(--line) }
+html[data-forx-theme] :is(input,select,textarea,.icon-button,.button-quiet,.source-controls,.library-toolbar) { background:var(--paper);color:var(--ink);border-color:var(--line) }
+html[data-forx-theme] :is(.button-primary,.button-primary:hover) { background:var(--accent);color:var(--forx-primary-ink);border-color:var(--accent) }
+html[data-forx-theme] :is(.citation,.citation-link,.model-tag,.turn-item.active,.evidence-card.selected) { background:color-mix(in srgb,var(--accent) 12%,var(--paper));color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--line)) }
+html[data-forx-theme] .markdown :is(pre,code,th) { background:color-mix(in srgb,var(--ink) 6%,var(--paper));color:var(--ink) }
+html[data-forx-theme] .markdown :is(td,th) { border-color:var(--line) }
+html[data-forx-theme] dialog::backdrop { background:color-mix(in srgb,var(--ink) 35%,transparent) }

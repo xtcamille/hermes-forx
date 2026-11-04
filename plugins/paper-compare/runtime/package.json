@@ -12,7 +12,7 @@
     "dev": "node --env-file-if-exists=.env --watch server.mjs",
     "test": "node --test test/*.test.mjs",
     "check:mineru": "node --env-file-if-exists=.env scripts/check-mineru.mjs",
-    "check": "node --check server.mjs && node --check lib/documents.mjs && node --check lib/mineru.mjs && node --check lib/gateway.mjs && node --check lib/vision.mjs && node --check lib/visual-cache.mjs && node --check public/markdown.js && node --check public/app.js && node --check lib/library.mjs && node --check lib/library-lock.mjs && node --check lib/generation.mjs && node --check lib/workspace.mjs && node --check lib/pdf-layout.mjs && node --check public/workspace.js && node --check public/desktop.js && node --check lib/evidence.mjs && node --check lib/regions.mjs && node --check lib/readings.mjs && node --check lib/investigation.mjs && node --check public/evidence.js"
+    "check": "node --check server.mjs && node --check lib/documents.mjs && node --check lib/mineru.mjs && node --check lib/gateway.mjs && node --check lib/vision.mjs && node --check lib/visual-cache.mjs && node --check public/markdown.js && node --check public/app.js && node --check lib/library.mjs && node --check lib/library-lock.mjs && node --check lib/generation.mjs && node --check lib/workspace.mjs && node --check lib/pdf-layout.mjs && node --check public/workspace.js && node --check public/desktop.js && node --check lib/evidence.mjs && node --check lib/regions.mjs && node --check lib/readings.mjs && node --check lib/investigation.mjs && node --check public/evidence.js && node --check public/integration.js"
   },
   "dependencies": {
     "dompurify": "3.4.16",
