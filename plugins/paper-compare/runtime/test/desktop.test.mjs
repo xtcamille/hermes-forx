@@ -4,6 +4,23 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
 
+test('embedded themes require the configured parent origin and never accept executable CSS', async t => {
+  const dom = new JSDOM('<meta name="paper-parent-origin" content="file:">', {url:'http://127.0.0.1:3210/workbench/current/',runScripts:'outside-only'});
+  t.after(() => dom.window.close());
+  const w = dom.window, parent = {postMessage() {}};
+  Object.defineProperty(w, 'parent', {value: parent});
+  w.CSS = {supports: (property,value) => property === 'color' && /^#[a-f0-9]{6}$/i.test(value)};
+  vm.runInContext(await readFile(new URL('../public/integration.js',import.meta.url),'utf8'),dom.getInternalVMContext());
+  const data = {type:'paper-compare:appearance',mode:'dark',colors:{background:'#111111',foreground:'#eeeeee',primary:'#4477ee',card:'url(https://untrusted.example)'}};
+  const send = (source,origin) => w.dispatchEvent(new w.MessageEvent('message',{source,origin,data}));
+  send(parent,'https://untrusted.example');send(w,'null');
+  assert.equal(w.document.documentElement.dataset.forxTheme,undefined);
+  send(parent,'null');
+  const root = w.document.documentElement;
+  assert.equal(root.dataset.forxTheme,'dark');assert.equal(root.style.getPropertyValue('--bg'),'#111111');
+  assert.equal(root.style.getPropertyValue('--teal'),'#4477ee');assert.equal(root.style.getPropertyValue('--paper'),'');
+});
+
 async function setup(t) {
   const dom = new JSDOM(await readFile(new URL('../public/index.html',import.meta.url),'utf8'), {url:'http://localhost:3210',runScripts:'outside-only'}), w = dom.window;
   t.after(() => dom.window.close());
