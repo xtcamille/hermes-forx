@@ -18,6 +18,12 @@ export function openCatalogPluginInstall(entry: PluginCatalogEntry, profile: nul
   if (existing && !existing.update_available) {
     notify({ kind: 'success', message: translateNow('skills.plugins.alreadyInstalled', entry.name) })
 
+    if (typeof document !== 'undefined') {
+      const targetId = `plugin-${existing.key ?? existing.name ?? entry.name}`
+      const el = document.getElementById(targetId) || document.getElementById(`plugin-${entry.name}`)
+      el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    }
+
     return
   }
 

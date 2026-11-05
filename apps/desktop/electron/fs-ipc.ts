@@ -9,6 +9,7 @@ import { ipcMain, shell } from 'electron'
 
 import { installDesktopPluginFromGit, probePluginRepo } from './desktop-plugin-install'
 import {
+  candidateBundledPluginRoots,
   DESKTOP_PLUGINS_DIR,
   ensureDir,
   migrateProfileScopedDesktopPlugins,
@@ -113,7 +114,7 @@ export function registerFsIpc({
   async function desktopPluginsRoot(): Promise<string> {
     const root = await ensureDir(path.join(hermesHome, DESKTOP_PLUGINS_DIR))
     await migrateProfileScopedDesktopPlugins(hermesHome, root)
-    await reconcileUnifiedDesktopHalves(hermesHome, root)
+    await reconcileUnifiedDesktopHalves(hermesHome, root, candidateBundledPluginRoots(hermesHome))
 
     return root
   }
@@ -126,7 +127,7 @@ export function registerFsIpc({
   ipcMain.handle('hermes:fs:reconcileDesktopPlugins', async () => {
     const root = await ensureDir(path.join(hermesHome, DESKTOP_PLUGINS_DIR))
 
-    return reconcileUnifiedDesktopHalves(hermesHome, root)
+    return reconcileUnifiedDesktopHalves(hermesHome, root, candidateBundledPluginRoots(hermesHome))
   })
 
   // The LOCAL logs root (`<HERMES_HOME>/logs`, profile-aware) — the error

@@ -66,7 +66,7 @@ export const $agentPluginBusy = atom<string | null>(null)
 const HIDDEN_KEY_PREFIXES = ['dashboard_auth/', 'model-providers/', 'platforms/']
 
 export const isDesktopRelevantPlugin = (row: AgentPluginRow): boolean => {
-  if (row.source === 'bundled') {
+  if (row.source === 'bundled' && !row.has_desktop_half) {
     return false
   }
 

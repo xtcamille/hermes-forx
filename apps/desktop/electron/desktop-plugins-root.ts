@@ -263,17 +263,96 @@ async function sourceGone(name: string, entry: string): Promise<boolean> {
   }
 }
 
-/** Walk every local home's `plugins/` root and materialize each package's
- *  desktop half. First home wins for a name that appears in several profiles
- *  (the default home is first). Also drops root copies whose source package
+export function candidateBundledPluginRoots(hermesHome: string): string[] {
+  const dirs: string[] = []
+  if (process.env.HERMES_BUNDLED_PLUGINS) {
+    dirs.push(process.env.HERMES_BUNDLED_PLUGINS)
+  }
+
+  try {
+    const cwdPlugins = path.resolve(process.cwd(), 'plugins')
+    if (fs.existsSync(cwdPlugins)) {
+      dirs.push(cwdPlugins)
+    }
+  } catch {
+    // Ignore error
+  }
+
+  try {
+    const relativePlugins = path.resolve(__dirname, '../../../plugins')
+    if (fs.existsSync(relativePlugins)) {
+      dirs.push(relativePlugins)
+    }
+  } catch {
+    // Ignore error
+  }
+
+  try {
+    const relativeDistPlugins = path.resolve(__dirname, '../../../../plugins')
+    if (fs.existsSync(relativeDistPlugins)) {
+      dirs.push(relativeDistPlugins)
+    }
+  } catch {
+    // Ignore error
+  }
+
+  if (process.resourcesPath) {
+    try {
+      const resPlugins = path.join(process.resourcesPath, 'backend', 'plugins')
+      if (fs.existsSync(resPlugins)) {
+        dirs.push(resPlugins)
+      }
+    } catch {
+      // Ignore error
+    }
+  }
+
+  try {
+    const forxAgentPlugins = path.join(hermesHome, 'forx-agent', 'plugins')
+    if (fs.existsSync(forxAgentPlugins)) {
+      dirs.push(forxAgentPlugins)
+    }
+  } catch {
+    // Ignore error
+  }
+
+  try {
+    const hermesAgentPlugins = path.join(hermesHome, 'hermes-agent', 'plugins')
+    if (fs.existsSync(hermesAgentPlugins)) {
+      dirs.push(hermesAgentPlugins)
+    }
+  } catch {
+    // Ignore error
+  }
+
+  return dirs.filter((v, i, arr) => arr.indexOf(v) === i)
+}
+
+/** Walk every local home's `plugins/` root (and any extra roots like bundled plugins)
+ *  and materialize each package's desktop half. First home wins for a name that appears
+ *  in several profiles (the default home is first). Also drops root copies whose source package
  *  is gone — an uninstalled agent package must not leave a ghost pane. */
-export async function reconcileUnifiedDesktopHalves(hermesHome: string, appRoot: string): Promise<string[]> {
+export async function reconcileUnifiedDesktopHalves(
+  hermesHome: string,
+  appRoot: string,
+  extraRoots?: string[]
+): Promise<string[]> {
   const touched: string[] = []
   const seen = new Set<string>()
 
+  const roots: string[] = []
   for (const home of await localHomes(hermesHome)) {
-    const pluginsRoot = path.join(home, 'plugins')
+    roots.push(path.join(home, 'plugins'))
+  }
+  if (extraRoots) {
+    for (const extra of extraRoots) {
+      if (!roots.includes(extra)) {
+        roots.push(extra)
+      }
+    }
+  }
 
+  for (const pluginsRoot of roots) {
     for (const name of await listDirs(pluginsRoot)) {
       if (seen.has(name)) {
         continue
