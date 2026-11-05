@@ -42,6 +42,51 @@ def _safe_int(val: Any, default: int = 0) -> int:
         return default
 
 
+def _estimate_model_cost_fallback(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_tokens: int = 0,
+) -> float:
+    """Benchmark pricing for popular models when not in official pricing table (e.g. Qwen, GLM, DeepSeek)."""
+    m = (model or "").lower()
+    # Rates per 1,000,000 tokens (USD)
+    if "flash" in m or "mini" in m or "free" in m:
+        inp_rate, out_rate, cache_rate = 0.05, 0.15, 0.01
+    elif "qwen" in m:
+        if "72b" in m:
+            inp_rate, out_rate, cache_rate = 0.35, 0.70, 0.05
+        elif "27b" in m or "32b" in m or "5090" in m:
+            inp_rate, out_rate, cache_rate = 0.18, 0.36, 0.03
+        else:
+            inp_rate, out_rate, cache_rate = 0.10, 0.20, 0.02
+    elif "glm" in m:
+        if "flash" in m:
+            inp_rate, out_rate, cache_rate = 0.01, 0.01, 0.005
+        else:
+            inp_rate, out_rate, cache_rate = 0.15, 0.15, 0.03
+    elif "deepseek" in m:
+        inp_rate, out_rate, cache_rate = 0.14, 0.28, 0.014
+    elif "llama" in m:
+        if "70b" in m:
+            inp_rate, out_rate, cache_rate = 0.35, 0.70, 0.05
+        else:
+            inp_rate, out_rate, cache_rate = 0.10, 0.20, 0.02
+    elif "gpt-4o" in m:
+        inp_rate, out_rate, cache_rate = 2.50, 10.00, 1.25
+    elif "claude" in m:
+        inp_rate, out_rate, cache_rate = 3.00, 15.00, 0.30
+    else:
+        inp_rate, out_rate, cache_rate = 0.15, 0.30, 0.02
+
+    cost = (
+        (input_tokens * inp_rate / 1_000_000.0)
+        + (output_tokens * out_rate / 1_000_000.0)
+        + (cache_read_tokens * cache_rate / 1_000_000.0)
+    )
+    return max(0.0, cost)
+
+
 def _calculate_cost(
     model: str,
     input_tokens: int,
@@ -51,7 +96,7 @@ def _calculate_cost(
     provider: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> float:
-    """Estimate USD cost using Hermes pricing table when DB has no cost."""
+    """Estimate USD cost using Hermes pricing table with intelligent benchmark fallback."""
     try:
         usage = CanonicalUsage(
             input_tokens=input_tokens,
@@ -60,9 +105,11 @@ def _calculate_cost(
             cache_write_tokens=cache_write_tokens,
         )
         res = estimate_usage_cost(model or "", usage, provider=provider, base_url=base_url)
-        return float(res.amount_usd or 0.0)
+        if res.amount_usd is not None and float(res.amount_usd) > 0.0:
+            return float(res.amount_usd)
     except Exception:
-        return 0.0
+        pass
+    return _estimate_model_cost_fallback(model, input_tokens, output_tokens, cache_read_tokens)
 
 
 def _parse_system_prompt_sections(system_prompt: str) -> Dict[str, Any]:
@@ -444,6 +491,32 @@ def get_fleet_context_overview(
 
             session_cards = []
 
+            # Model and Provider breakdown aggregates
+            model_aggregates: Dict[str, Dict[str, Any]] = defaultdict(
+                lambda: {
+                    "model": "",
+                    "provider": "",
+                    "sessions": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cache_read_tokens": 0,
+                    "total_tokens": 0,
+                    "cost_usd": 0.0,
+                    "is_free_tier": False,
+                }
+            )
+            provider_aggregates: Dict[str, Dict[str, Any]] = defaultdict(
+                lambda: {
+                    "provider": "",
+                    "display_name": "",
+                    "sessions": 0,
+                    "total_tokens": 0,
+                    "cost_usd": 0.0,
+                    "models": set(),
+                    "is_free_tier": False,
+                }
+            )
+
             for s in sessions:
                 sid = s.get("id")
                 model = s.get("model") or "hermes"
@@ -451,11 +524,47 @@ def get_fleet_context_overview(
                 out = _safe_int(s.get("output_tokens"))
                 cread = _safe_int(s.get("cache_read_tokens"))
                 cost = _safe_float(s.get("actual_cost_usd") or s.get("estimated_cost_usd"))
+                provider = s.get("billing_provider") or "latticecode"
+
+                # Calculate estimated cost fallback when DB has no cost recorded
+                if cost <= 0.0 and (inp > 0 or out > 0):
+                    cost = _calculate_cost(
+                        model,
+                        inp,
+                        out,
+                        cread,
+                        provider=provider,
+                        base_url=s.get("billing_base_url"),
+                    )
 
                 total_input += inp
                 total_output += out
                 total_cache_read += cread
                 total_cost_usd += cost
+
+                # Aggregate by model
+                m_agg = model_aggregates[model]
+                m_agg["model"] = model
+                m_agg["provider"] = provider
+                m_agg["sessions"] += 1
+                m_agg["input_tokens"] += inp
+                m_agg["output_tokens"] += out
+                m_agg["cache_read_tokens"] += cread
+                m_agg["total_tokens"] += (inp + out + cread)
+                m_agg["cost_usd"] += cost
+                if provider in ("latticecode", "free_tier") or "free" in model.lower():
+                    m_agg["is_free_tier"] = True
+
+                # Aggregate by provider
+                p_agg = provider_aggregates[provider]
+                p_agg["provider"] = provider
+                p_agg["display_name"] = "ForX New API (LatticeCode)" if provider in ("latticecode", "free_tier") else provider
+                p_agg["sessions"] += 1
+                p_agg["total_tokens"] += (inp + out + cread)
+                p_agg["cost_usd"] += cost
+                p_agg["models"].add(model)
+                if provider in ("latticecode", "free_tier"):
+                    p_agg["is_free_tier"] = True
 
                 started = _safe_float(s.get("started_at"), now)
                 dt_key = datetime.fromtimestamp(started).strftime("%Y-%m-%d")
@@ -485,6 +594,7 @@ def get_fleet_context_overview(
                         "id": sid,
                         "title": s.get("title") or "未命名会话",
                         "model": model,
+                        "provider": provider,
                         "started_at": started,
                         "message_count": s.get("message_count") or 0,
                         "active_tokens": active_toks,
@@ -516,6 +626,62 @@ def get_fleet_context_overview(
                 round((total_cache_read / max(1, total_input + total_cache_read)) * 100, 1)
             )
 
+            # Format models breakdown
+            models_list = []
+            for m_name, m_data in sorted(model_aggregates.items(), key=lambda x: x[1]["total_tokens"], reverse=True):
+                pct = round((m_data["total_tokens"] / max(1, total_all_tokens)) * 100, 1)
+                models_list.append({
+                    "model": m_name,
+                    "provider": m_data["provider"],
+                    "sessions": m_data["sessions"],
+                    "input_tokens": m_data["input_tokens"],
+                    "output_tokens": m_data["output_tokens"],
+                    "cache_read_tokens": m_data["cache_read_tokens"],
+                    "total_tokens": m_data["total_tokens"],
+                    "percentage": pct,
+                    "cost_usd": round(m_data["cost_usd"], 4),
+                    "cost_cny": round(m_data["cost_usd"] * USD_TO_CNY_RATE, 2),
+                    "is_free_tier": m_data["is_free_tier"],
+                })
+
+            # Format providers breakdown
+            providers_list = []
+            for p_name, p_data in sorted(provider_aggregates.items(), key=lambda x: x[1]["total_tokens"], reverse=True):
+                providers_list.append({
+                    "provider": p_name,
+                    "display_name": p_data["display_name"],
+                    "sessions": p_data["sessions"],
+                    "total_tokens": p_data["total_tokens"],
+                    "cost_usd": round(p_data["cost_usd"], 4),
+                    "cost_cny": round(p_data["cost_usd"] * USD_TO_CNY_RATE, 2),
+                    "models": sorted(list(p_data["models"])),
+                    "is_free_tier": p_data["is_free_tier"],
+                })
+
+            # Detect New API / LatticeCode setup details
+            new_api_info = {
+                "configured": False,
+                "provider": "latticecode",
+                "label": "ForX New API",
+                "portal_url": "",
+                "inference_url": "",
+                "username": "",
+                "logged_in": False,
+            }
+            try:
+                from hermes_cli import auth_lattice
+                state = auth_lattice.current_lattice_state()
+                p_url = auth_lattice._portal_url()
+                i_url = auth_lattice._inference_url()
+                new_api_info["configured"] = bool(p_url or i_url)
+                new_api_info["portal_url"] = p_url
+                new_api_info["inference_url"] = i_url
+                if state:
+                    new_api_info["username"] = state.get("username") or ""
+                    new_api_info["logged_in"] = state.get("logged_in") or bool(state.get("api_key"))
+            except Exception:
+                pass
+
             return {
                 "ok": True,
                 "summary": {
@@ -529,6 +695,9 @@ def get_fleet_context_overview(
                     "total_cost_cny": round(total_cost_usd * USD_TO_CNY_RATE, 2),
                     "status_counts": status_counts,
                 },
+                "new_api": new_api_info,
+                "models": models_list,
+                "providers": providers_list,
                 "trend": list(daily_buckets.values()),
                 "heatmap": list(heatmap_buckets.values()),
                 "sessions": session_cards,
