@@ -20,6 +20,7 @@ import { updateCheckAgent } from './update-api-proxy'
 import { OFFICIAL_REPO_HTTPS_URL } from './update-remote'
 
 export const DEFAULT_RELEASE_REPO_SLUG = githubRepoSlug(OFFICIAL_REPO_HTTPS_URL) ?? 'xtcamille/hermes-forx'
+export const FORX_LOCAL_UPDATE_URL = 'http://172.22.0.87:18080/updates/latest-release.json'
 
 export interface ReleaseAssetInfo {
   name: string
@@ -46,7 +47,7 @@ export function latestReleaseApiUrl(slug: string = DEFAULT_RELEASE_REPO_SLUG): s
     return custom
   }
 
-  return `https://api.github.com/repos/${slug}/releases/latest`
+  return FORX_LOCAL_UPDATE_URL
 }
 
 export function normalizeSemver(raw: string | null | undefined): [number, number, number] | null {

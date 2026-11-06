@@ -443,6 +443,7 @@ import { readLiveUpdateMarker, updateHandoffConflict, writeUpdateMarker } from '
 import {
   buildMacInstallerHandoff,
   buildWindowsInstallerHandoff,
+  DEFAULT_RELEASE_REPO_SLUG,
   downloadReleaseAsset,
   latestReleaseApiUrl,
   parseReleaseUpdateCheck
@@ -3351,8 +3352,38 @@ async function checkReleaseUpdates({ force = false, updateRoot }: { force?: bool
   try {
     payload = await fetchGitHubApi(latestReleaseApiUrl())
   } catch (error: any) {
-    if (error?.statusCode === 404) {
-      const noReleaseResult = {
+    const githubFallbackUrl = `https://api.github.com/repos/${DEFAULT_RELEASE_REPO_SLUG}/releases/latest`
+    if (latestReleaseApiUrl() !== githubFallbackUrl && !process.env.FORX_UPDATE_API_URL) {
+      try {
+        payload = await fetchGitHubApi(githubFallbackUrl)
+      } catch {
+        // Fallback failed, keep original error
+      }
+    }
+
+    if (!payload) {
+      if (error?.statusCode === 404) {
+        const noReleaseResult = {
+          supported: true,
+          branch,
+          currentBranch: branch,
+          currentSha,
+          currentVersion,
+          dirty: false,
+          hermesRoot: updateRoot,
+          fetchedAt: now,
+          behind: 0,
+          updateAvailable: false,
+          targetSha: currentSha,
+          commits: []
+        }
+
+        writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: noReleaseResult })
+
+        return noReleaseResult
+      }
+
+      const failedResult = {
         supported: true,
         branch,
         currentBranch: branch,
@@ -3361,33 +3392,14 @@ async function checkReleaseUpdates({ force = false, updateRoot }: { force?: bool
         dirty: false,
         hermesRoot: updateRoot,
         fetchedAt: now,
-        behind: 0,
-        updateAvailable: false,
-        targetSha: currentSha,
-        commits: []
+        error: 'fetch-failed',
+        message: describeUpdateCheckFailure(error)
       }
 
-      writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: noReleaseResult })
+      writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: failedResult })
 
-      return noReleaseResult
+      return failedResult
     }
-
-    const failedResult = {
-      supported: true,
-      branch,
-      currentBranch: branch,
-      currentSha,
-      currentVersion,
-      dirty: false,
-      hermesRoot: updateRoot,
-      fetchedAt: now,
-      error: 'fetch-failed',
-      message: describeUpdateCheckFailure(error)
-    }
-
-    writeUpdateCheckCache({ fetchedAt: now, currentSha, branch, status: failedResult })
-
-    return failedResult
   }
 
   const parsed = parseReleaseUpdateCheck(payload, {

@@ -11,6 +11,7 @@ import {
   buildMacInstallerHandoff,
   buildWindowsInstallerHandoff,
   DEFAULT_RELEASE_REPO_SLUG,
+  FORX_LOCAL_UPDATE_URL,
   isNewerReleaseVersion,
   latestReleaseApiUrl,
   normalizeSemver,
@@ -115,7 +116,7 @@ test('parseReleaseNotesToCommits falls back to release title when body is empty'
 
   assert.equal(commits.length, 1)
   assert.equal(commits[0].summary, 'feat: ForX Desktop v0.3.0')
-  assert.equal(latestReleaseApiUrl(), `https://api.github.com/repos/${DEFAULT_RELEASE_REPO_SLUG}/releases/latest`)
+  assert.equal(latestReleaseApiUrl(), FORX_LOCAL_UPDATE_URL)
 })
 
 test('buildWindowsInstallerHandoff and buildMacInstallerHandoff pass paths via env without shell-interpolating them', () => {
