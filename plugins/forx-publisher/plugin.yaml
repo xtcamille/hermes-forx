@@ -5,7 +5,7 @@ kind: standalone
 description: 客户端内置插件与技能发布中心，协助用户一站式合规检查、安全扫描并自动向公共库提交PR，供全平台用户使用。
 author: ForX
 license: MIT
-tags: [publisher, marketplace, community, plugins, skills, catalog]
+tags: [publisher, marketplace, community, plugins, skills, catalog, desktop]
 provides_tools:
   - forx_publish_check
   - forx_publish_plugin

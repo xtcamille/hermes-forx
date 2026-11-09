@@ -12,6 +12,7 @@
 2. **多端交互体验**：
    - **CLI 命令行**：`hermes publish check` / `hermes publish plugin` / `hermes publish skill`
    - **会话 Slash 指令**：`/publish check <path>` / `/publish plugin <path>` / `/publish skill <path>`
+   - **桌面图形界面 (Desktop UI)**：内置原生桌面端工作台，在左侧导航栏点击「发布与共享」、输入路由 `/publish` 或通过 `⌘K` 唤起，支持三步可视化向导式操作（目标配置 ➔ 合规体检 ➔ 一键提 PR）。
    - **大模型自主调用 (Tools)**：`forx_publish_check`, `forx_publish_plugin`, `forx_publish_skill`
    - **引导技能 (Skill)**：内置 `forx-publish` 技能，通过对话式交互由 AI 助手一步步协助用户检查和发布。
    - **图形端 API (Dashboard / Desktop)**：提供完整的 FastAPI 路由接口，供图形界面直观操作。
