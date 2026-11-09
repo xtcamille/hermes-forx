@@ -84,3 +84,22 @@ def test_live_catalog_falls_back_to_in_tree_and_unions_removals(tmp_path, monkey
                                  "removed": [{"name": "pulled-live", "reason": "cve"}]}))
     assert [e.name for e in pc.load_catalog_live()] == ["live-only"]
     assert pc.find_removed("pulled-live").reason == "cve"
+
+
+def test_get_live_catalog_entry_falls_back_to_in_tree(tmp_path, monkeypatch):
+    """When an entry is not in the cached live doc, fall back to the in-tree catalog."""
+    cache = tmp_path / "cache" / "plugin-catalog.json"
+    cache.parent.mkdir(parents=True)
+    cache.write_text(json.dumps({"entries": [_entry("live-cached-only")], "removed": []}))
+    monkeypatch.setattr(pc, "_live_cache_path", lambda: cache)
+    monkeypatch.setattr(pc, "fetch_live_catalog", lambda *, force=False: {"entries": [_entry("live-cached-only")], "removed": []} if not force else None)
+
+    # Found in live
+    assert pc.get_live_catalog_entry("live-cached-only") is not None
+
+    # Missing from live cache, but exists in in-tree catalog
+    fake_entry = pc.entry_from_mapping(_entry("in-tree-entry"), "test")
+    monkeypatch.setattr(pc, "load_catalog", lambda *a: [fake_entry])
+    resolved = pc.get_live_catalog_entry("in-tree-entry")
+    assert resolved is not None
+    assert resolved.name == "in-tree-entry"

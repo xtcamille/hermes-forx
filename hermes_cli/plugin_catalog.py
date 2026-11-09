@@ -338,7 +338,22 @@ def live_removed_list() -> List[RemovedEntry]:
 
 
 def get_live_catalog_entry(name: str) -> Optional[PluginCatalogEntry]:
-    return next((e for e in load_catalog_live() if e.name == name), None)
+    entry = next((e for e in load_catalog_live() if e.name == name), None)
+    if entry is not None:
+        return entry
+    # Fall back to in-tree catalog (newly merged or in-tree entries not yet in the live cache)
+    entry = next((e for e in load_catalog() if e.name == name), None)
+    if entry is not None:
+        return entry
+    # Try a forced fresh fetch if the live cache was stale
+    data = fetch_live_catalog(force=True)
+    if data is not None:
+        return next(
+            (e for i, raw in enumerate(data.get("entries", []))
+             if (e := entry_from_mapping(raw, f"{LIVE_CATALOG_URL}#{i}")) is not None and e.name == name),
+            None,
+        )
+    return None
 
 
 # ── Human summaries ──────────────────────────────────────────────────────────
