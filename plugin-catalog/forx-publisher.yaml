@@ -1,0 +1,20 @@
+name: forx-publisher
+repo: https://github.com/xtcamille/hermes-forx
+sha: 94f4918af119ffc5ef851ce9d4a865938b66a9ea
+subdir: plugins/forx-publisher
+description: 客户端内置插件与技能发布中心，协助用户一站式合规检查、安全扫描并自动向公共库提交PR，供全平台用户使用。
+maintainer: ForX
+tier: official
+category: desktop
+requires_hermes: ">=0.1"
+docs_url: https://github.com/xtcamille/hermes-forx/tree/main/plugins/forx-publisher
+version: "0.1.0"
+platforms: []
+capabilities:
+  provides_tools:
+    - forx_publish_check
+    - forx_publish_plugin
+    - forx_publish_skill
+  provides_hooks: []
+  provides_middleware: []
+  requires_env: []
