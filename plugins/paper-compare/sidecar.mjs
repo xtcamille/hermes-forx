@@ -39,7 +39,7 @@ export async function startWorkbench(config) {
       request.url = '/' + request.url.slice(basePath.length);
       if (request.url.split('?')[0] === '/') {
         const end = response.end.bind(response);
-        response.end = (body, ...args) => end(Buffer.from(body).toString('utf8').replace('<head>', `<head><meta name="paper-storage-scope" content="${storageScope}">`), ...args);
+        response.end = (body, ...args) => end(Buffer.from(body).toString('utf8').replace('<head>', `<head><meta name="paper-storage-scope" content="${storageScope}"><meta name="paper-parent-origin" content="${ancestor}">`), ...args);
       }
       const setHeader = response.setHeader.bind(response);
       response.setHeader = (name, value) => setHeader(name, name.toLowerCase() === 'content-security-policy'
