@@ -1,0 +1,9 @@
+{
+  "name": "forx-publisher",
+  "label": "社区发布中心",
+  "description": "客户端本地插件与技能规范体检、安全审计与一键发布到全平台公共库。",
+  "icon": "UploadCloud",
+  "version": "0.1.0",
+  "tab": { "hidden": false },
+  "api": "plugin_api.py"
+}
