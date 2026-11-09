@@ -1,6 +1,6 @@
 name: forx-publisher
 repo: https://github.com/xtcamille/hermes-forx
-sha: 94f4918af119ffc5ef851ce9d4a865938b66a9ea
+sha: edbb2eb811190f15b4926491771fbdbfb6518afc
 subdir: plugins/forx-publisher
 description: 客户端内置插件与技能发布中心，协助用户一站式合规检查、安全扫描并自动向公共库提交PR，供全平台用户使用。
 maintainer: ForX
