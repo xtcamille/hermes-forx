@@ -41,71 +41,113 @@ const CATEGORIES = [
 // Disk plugins are not scanned by Desktop's Tailwind build, so all layout and
 // status styling lives here against the host theme's CSS tokens.
 const CSS = `
+/* -------------------------------------------------------------
+ * ForX Community Publisher - Modern Glassmorphic Design System
+ * ------------------------------------------------------------- */
 .forx-pub-root {
-  max-width: 54rem;
+  max-width: 58rem;
   width: 100%;
   margin: 0 auto;
-  padding: 28px 24px 40px;
+  padding: 32px 28px 48px;
   height: 100%;
   overflow-y: auto;
   color: var(--ui-text-primary);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   box-sizing: border-box;
 }
+
+.forx-pub-root::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.forx-pub-root::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ui-stroke-secondary) 80%, transparent);
+  border-radius: 999px;
+}
+.forx-pub-root::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-text-tertiary);
+}
+.forx-pub-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Header */
 .forx-pub-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding-bottom: 2px;
 }
 .forx-pub-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ui-accent, #3b82f6) 14%, transparent);
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ui-accent, #3b82f6) 24%, transparent) 0%, color-mix(in srgb, #8b5cf6 20%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--ui-accent, #3b82f6) 35%, transparent);
+  box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--ui-accent, #3b82f6) 20%, transparent), inset 0 1px 1px rgba(255, 255, 255, 0.2);
   color: var(--ui-accent, #3b82f6);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.forx-pub-logo:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 18px -2px color-mix(in srgb, var(--ui-accent, #3b82f6) 28%, transparent);
+}
+.forx-pub-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .forx-pub-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1.3;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--ui-text-primary);
 }
 .forx-pub-subtitle {
-  margin: 3px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
   color: var(--ui-text-secondary);
 }
+
+/* GitHub Auth Status Card */
 .forx-pub-auth {
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--ui-stroke-secondary);
-  background: var(--ui-bg-editor);
-  padding: 14px 16px;
+  background: color-mix(in srgb, var(--ui-bg-editor) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
 }
 .forx-pub-auth[data-state="ok"] {
-  border-color: color-mix(in srgb, #10b981 30%, var(--ui-stroke-secondary));
-  background: color-mix(in srgb, #10b981 6%, var(--ui-bg-editor));
+  border-color: color-mix(in srgb, #10b981 32%, var(--ui-stroke-secondary));
+  background: linear-gradient(135deg, color-mix(in srgb, #10b981 7%, var(--ui-bg-editor)) 0%, color-mix(in srgb, #10b981 2%, var(--ui-bg-editor)) 100%);
+  box-shadow: 0 4px 16px -4px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .forx-pub-auth[data-state="warn"] {
   border-color: color-mix(in srgb, #f59e0b 32%, var(--ui-stroke-secondary));
-  background: color-mix(in srgb, #f59e0b 6%, var(--ui-bg-editor));
+  background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 8%, var(--ui-bg-editor)) 0%, color-mix(in srgb, #f59e0b 2%, var(--ui-bg-editor)) 100%);
+  box-shadow: 0 4px 16px -4px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .forx-pub-auth-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 .forx-pub-auth-lead {
@@ -116,8 +158,8 @@ const CSS = `
   flex: 1;
 }
 .forx-pub-auth-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -125,14 +167,17 @@ const CSS = `
   flex-shrink: 0;
   font-weight: 700;
   font-size: 14px;
+  transition: all 0.2s ease;
 }
 .forx-pub-auth[data-state="ok"] .forx-pub-auth-icon {
   background: color-mix(in srgb, #10b981 18%, transparent);
   color: #10b981;
+  box-shadow: 0 0 12px -2px rgba(16, 185, 129, 0.35);
 }
 .forx-pub-auth[data-state="warn"] .forx-pub-auth-icon {
   background: color-mix(in srgb, #f59e0b 18%, transparent);
   color: #d97706;
+  box-shadow: 0 0 12px -2px rgba(245, 158, 11, 0.3);
 }
 .forx-pub-auth[data-state="loading"] .forx-pub-auth-icon {
   background: var(--ui-bg-tertiary);
@@ -143,7 +188,7 @@ const CSS = `
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ui-text-primary);
 }
@@ -162,10 +207,10 @@ const CSS = `
 }
 .forx-pub-auth-setup {
   border-top: 1px solid var(--ui-stroke-secondary);
-  padding-top: 12px;
+  padding-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .forx-pub-auth-step {
   display: flex;
@@ -187,12 +232,13 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--ui-bg-tertiary);
+  border: 1px solid var(--ui-stroke-secondary);
   color: var(--ui-text-primary);
   flex-shrink: 0;
 }
@@ -215,9 +261,10 @@ const CSS = `
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--ui-bg-tertiary) 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-stroke-secondary) 60%, transparent);
   font-size: 11.5px;
   color: var(--ui-text-secondary);
 }
@@ -227,37 +274,51 @@ const CSS = `
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* Modern Step Bar Navigation */
 .forx-pub-steps {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 0 14px;
-  border-bottom: 1px solid var(--ui-stroke-secondary);
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ui-bg-editor) 65%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ui-stroke-secondary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 .forx-pub-step-btn {
+  flex: 1;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
   background: transparent;
-  border: none;
-  padding: 4px 6px;
-  border-radius: 8px;
-  font-size: 12.5px;
+  border: 1px solid transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--ui-text-tertiary);
   cursor: default;
   white-space: nowrap;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 .forx-pub-step-btn[data-clickable="true"] {
   cursor: pointer;
 }
 .forx-pub-step-btn[data-clickable="true"]:hover {
-  background: var(--chrome-action-hover, var(--ui-bg-tertiary));
+  background: color-mix(in srgb, var(--ui-bg-tertiary) 70%, transparent);
+  color: var(--ui-text-primary);
 }
 .forx-pub-step-btn[data-state="active"] {
   color: var(--ui-text-primary);
   font-weight: 600;
+  background: color-mix(in srgb, var(--ui-bg-editor) 95%, var(--ui-stroke-secondary));
+  border-color: color-mix(in srgb, var(--ui-stroke-secondary) 80%, transparent);
+  box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .forx-pub-step-btn[data-state="done"] {
   color: #10b981;
@@ -273,69 +334,99 @@ const CSS = `
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-  background: var(--ui-bg-tertiary);
+  background: color-mix(in srgb, var(--ui-bg-tertiary) 80%, transparent);
   color: var(--ui-text-tertiary);
   border: 1px solid var(--ui-stroke-secondary);
+  transition: all 0.2s ease;
 }
 .forx-pub-step-btn[data-state="active"] .forx-pub-step-circle {
-  background: var(--dt-primary-solid, #2563eb);
-  color: var(--dt-primary-solid-foreground, #ffffff);
+  background: var(--ui-accent, #2563eb);
+  color: #ffffff;
   border-color: transparent;
+  box-shadow: 0 0 10px -1px color-mix(in srgb, var(--ui-accent, #2563eb) 60%, transparent);
 }
 .forx-pub-step-btn[data-state="done"] .forx-pub-step-circle {
   background: #10b981;
   color: #ffffff;
   border-color: transparent;
+  box-shadow: 0 0 8px -1px rgba(16, 185, 129, 0.5);
 }
-.forx-pub-step-line {
-  flex: 1;
-  height: 1px;
-  min-width: 16px;
-  background: var(--ui-stroke-secondary);
+.forx-pub-step-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
 }
-.forx-pub-step-line[data-done="true"] {
-  background: color-mix(in srgb, #10b981 45%, transparent);
+.forx-pub-step-title {
+  font-size: 12.5px;
+  line-height: 1.2;
 }
+.forx-pub-step-hint {
+  font-size: 10.5px;
+  color: var(--ui-text-tertiary);
+  margin-top: 2px;
+}
+.forx-pub-step-chevron {
+  color: var(--ui-stroke-secondary);
+  flex-shrink: 0;
+}
+
+/* Sections & Cards */
 .forx-pub-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 .forx-pub-card {
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--ui-stroke-secondary);
-  background: var(--ui-bg-editor);
-  padding: 18px 20px;
+  background: color-mix(in srgb, var(--ui-bg-editor) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.forx-pub-card:hover {
+  border-color: color-mix(in srgb, var(--ui-stroke-secondary) 85%, var(--ui-text-tertiary));
 }
 .forx-pub-card[data-tone="ok"] {
-  border-color: color-mix(in srgb, #10b981 32%, var(--ui-stroke-secondary));
-  background: color-mix(in srgb, #10b981 6%, var(--ui-bg-editor));
+  border-color: color-mix(in srgb, #10b981 35%, var(--ui-stroke-secondary));
+  background: linear-gradient(135deg, color-mix(in srgb, #10b981 7%, var(--ui-bg-editor)) 0%, color-mix(in srgb, #10b981 2%, var(--ui-bg-editor)) 100%);
+  box-shadow: 0 4px 16px -4px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .forx-pub-card[data-tone="warn"] {
-  border-color: color-mix(in srgb, #f59e0b 32%, var(--ui-stroke-secondary));
-  background: color-mix(in srgb, #f59e0b 6%, var(--ui-bg-editor));
+  border-color: color-mix(in srgb, #f59e0b 35%, var(--ui-stroke-secondary));
+  background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 8%, var(--ui-bg-editor)) 0%, color-mix(in srgb, #f59e0b 2%, var(--ui-bg-editor)) 100%);
+  box-shadow: 0 4px 16px -4px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .forx-pub-card[data-tone="error"] {
-  border-color: color-mix(in srgb, #ef4444 35%, var(--ui-stroke-secondary));
-  background: color-mix(in srgb, #ef4444 6%, var(--ui-bg-editor));
+  border-color: color-mix(in srgb, #ef4444 38%, var(--ui-stroke-secondary));
+  background: linear-gradient(135deg, color-mix(in srgb, #ef4444 8%, var(--ui-bg-editor)) 0%, color-mix(in srgb, #ef4444 2%, var(--ui-bg-editor)) 100%);
+  box-shadow: 0 4px 16px -4px rgba(239, 68, 68, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
+
+/* Fields & Form */
 .forx-pub-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 .forx-pub-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ui-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .forx-pub-hint {
   margin: 0;
   font-size: 11.5px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ui-text-tertiary);
 }
 .forx-pub-path-row {
@@ -346,21 +437,25 @@ const CSS = `
 .forx-pub-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 @media (max-width: 640px) {
   .forx-pub-grid-2 {
     grid-template-columns: 1fr;
   }
 }
+
+/* Alerts */
 .forx-pub-alert {
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .forx-pub-alert[data-tone="error"] {
   background: color-mix(in srgb, #ef4444 10%, transparent);
@@ -377,87 +472,184 @@ const CSS = `
   border: 1px solid color-mix(in srgb, #10b981 28%, transparent);
   color: #10b981;
 }
+
+/* Checklist */
 .forx-pub-checklist {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .forx-pub-check-item {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ui-text-secondary);
 }
 .forx-pub-check-dot {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 1px;
 }
 .forx-pub-check-dot[data-ok="true"] {
-  background: color-mix(in srgb, #10b981 16%, transparent);
+  background: color-mix(in srgb, #10b981 18%, transparent);
   color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
 }
 .forx-pub-check-dot[data-ok="false"] {
-  background: color-mix(in srgb, #ef4444 16%, transparent);
+  background: color-mix(in srgb, #ef4444 18%, transparent);
   color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
 }
+
+/* Footer & Actions */
 .forx-pub-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--ui-stroke-secondary) 60%, transparent);
 }
 .forx-pub-footer-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Code & Pre Box */
 .forx-pub-code {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: var(--ui-inline-code-background, color-mix(in srgb, var(--ui-text-primary) 7%, transparent));
-  color: var(--ui-inline-code-foreground, var(--ui-text-primary));
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 11.5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ui-text-primary) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-text-primary) 10%, transparent);
+  color: var(--ui-text-primary);
+}
+.forx-pub-code-card {
+  border-radius: 12px;
+  border: 1px solid var(--ui-stroke-secondary);
+  background: color-mix(in srgb, var(--ui-bg-chrome) 90%, transparent);
+  overflow: hidden;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.05);
+}
+.forx-pub-code-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, var(--ui-bg-tertiary) 40%, transparent);
+  border-bottom: 1px solid var(--ui-stroke-secondary);
+}
+.forx-pub-code-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
 }
 .forx-pub-pre {
   margin: 0;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: var(--ui-bg-chrome);
-  border: 1px solid var(--ui-stroke-secondary);
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
   color: var(--ui-text-primary);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 11.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   overflow-x: auto;
   white-space: pre;
 }
+.forx-pub-pre::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.forx-pub-pre::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ui-stroke-secondary) 80%, transparent);
+  border-radius: 999px;
+}
+
+/* Success Hero Card */
 .forx-pub-center-hero {
   text-align: center;
   align-items: center;
-  padding: 26px 20px;
+  padding: 36px 24px;
+  gap: 16px;
 }
+.forx-pub-hero-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(52, 211, 153, 0.08) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 24px -4px rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.forx-pub-hero-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ui-text-primary);
+}
+.forx-pub-hero-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ui-text-secondary);
+  line-height: 1.6;
+  max-width: 32rem;
+}
+
+/* Workflow Step Item in Step 3 */
+.forx-pub-flow-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ui-bg-tertiary) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-stroke-secondary) 50%, transparent);
+}
+.forx-pub-flow-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-accent, #3b82f6) 18%, transparent);
+  color: var(--ui-accent, #3b82f6);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Companion Pane */
 .forx-pub-pane {
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   font-size: 12px;
   height: 100%;
   overflow-y: auto;
@@ -468,10 +660,22 @@ const CSS = `
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--ui-stroke-secondary);
+}
+.forx-pub-cmd-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ui-bg-chrome);
+  border: 1px solid var(--ui-stroke-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
 }
 `
 
@@ -831,13 +1035,13 @@ function AuthBanner({ ctx, auth, loadingAuth, onRefresh, onAuthUpdated, inputRef
 }
 
 // ─────────────────────────────────────────────────────────────
-// COMPONENT: Step Indicator (no duplicate numbering)
+// COMPONENT: Step Indicator (Modern Segmented Pill Stepper)
 // ─────────────────────────────────────────────────────────────
 function StepBar({ step, setStep, canOpenStep2 }) {
   const steps = [
-    { num: 1, label: '目标配置' },
-    { num: 2, label: '合规与体检' },
-    { num: 3, label: '提交与发布' },
+    { num: 1, label: '目标配置', hint: '代码目录与分类' },
+    { num: 2, label: '合规体检', hint: '安全审计与规则' },
+    { num: 3, label: '提交发布', hint: '一键发起 GitHub PR' },
   ]
 
   return jsx('div', {
@@ -857,12 +1061,19 @@ function StepBar({ step, setStep, canOpenStep2 }) {
           'data-clickable': clickable ? 'true' : 'false',
           onClick: () => (clickable ? setStep(s.num) : null),
           className: 'forx-pub-step-btn',
+          title: `${s.label}：${s.hint}`,
           children: [
             jsx('span', {
               className: 'forx-pub-step-circle',
               children: done ? jsx(icons.Check, { className: 'size-3' }) : s.num,
             }),
-            jsx('span', { children: s.label }),
+            jsxs('div', {
+              className: 'forx-pub-step-info',
+              children: [
+                jsx('span', { className: 'forx-pub-step-title', children: s.label }),
+                jsx('span', { className: 'forx-pub-step-hint', children: s.hint }),
+              ],
+            }),
           ],
         },
         `step-${s.num}`
@@ -872,12 +1083,11 @@ function StepBar({ step, setStep, canOpenStep2 }) {
       return [
         btn,
         jsx(
-          'div',
+          icons.ChevronRight,
           {
-            className: 'forx-pub-step-line',
-            'data-done': done ? 'true' : 'false',
+            className: 'size-3.5 forx-pub-step-chevron',
           },
-          `line-${s.num}`
+          `chev-${s.num}`
         ),
       ]
     }),
@@ -1060,8 +1270,15 @@ function PublisherView({ ctx }) {
             children: jsx(icons.Upload, { className: 'size-5' }),
           }),
           jsxs('div', {
+            style: { minWidth: 0, flex: 1 },
             children: [
-              jsx('h1', { className: 'forx-pub-title', children: '社区发布中心 (Community Publisher)' }),
+              jsxs('div', {
+                className: 'forx-pub-title-row',
+                children: [
+                  jsx('h1', { className: 'forx-pub-title', children: '社区发布中心 (Community Publisher)' }),
+                  jsx(Badge, { variant: 'outline', children: '公共仓库直连' }),
+                ],
+              }),
               jsx('p', {
                 className: 'forx-pub-subtitle',
                 children: '在客户端对本地自研插件或技能进行全自动合规扫描，一键向官方目录发起 PR 提交发布，供全平台用户使用。',
@@ -1451,14 +1668,18 @@ function PublisherView({ ctx }) {
             // Live YAML Preview
             liveYamlPreview &&
               jsxs('div', {
-                className: 'forx-pub-card',
+                className: 'forx-pub-code-card',
                 children: [
                   jsxs('div', {
-                    style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
+                    className: 'forx-pub-code-card-header',
                     children: [
-                      jsx('div', {
-                        className: 'forx-pub-label',
-                        children: `生成的 plugin-catalog/${checkResult.name}.yaml 清单预览`,
+                      jsxs('div', {
+                        className: 'forx-pub-code-card-title',
+                        children: [
+                          jsx(icons.Terminal, { className: 'size-3.5' }),
+                          jsx('span', { children: `plugin-catalog/${checkResult.name}.yaml` }),
+                          jsx(Badge, { variant: 'outline', children: 'YAML' }),
+                        ],
                       }),
                       jsx(CopyButton, {
                         text: liveYamlPreview,
@@ -1582,13 +1803,16 @@ function PublisherView({ ctx }) {
               className: 'forx-pub-card forx-pub-center-hero',
               'data-tone': 'ok',
               children: [
-                jsx(icons.CheckCircle2, { className: 'size-10', style: { color: '#10b981' } }),
+                jsx('div', {
+                  className: 'forx-pub-hero-icon-wrap',
+                  children: jsx(icons.CheckCircle2, { className: 'size-9', style: { color: '#10b981' } }),
+                }),
                 jsx('h2', {
-                  style: { margin: 0, fontSize: '18px', fontWeight: 700 },
+                  className: 'forx-pub-hero-title',
                   children: 'Pull Request 已成功创建！',
                 }),
                 jsx('p', {
-                  style: { margin: 0, fontSize: '12.5px', color: 'var(--ui-text-secondary)', maxWidth: '32rem' },
+                  className: 'forx-pub-hero-desc',
                   children: `已自动 Fork 并向官方仓库发起 Pull Request${pubResult.pr_number ? ` (#${pubResult.pr_number})` : ''}。`,
                 }),
                 pubResult.pr_url &&
@@ -1607,22 +1831,51 @@ function PublisherView({ ctx }) {
             jsxs('div', {
               className: 'forx-pub-card',
               children: [
-                jsx('div', { className: 'forx-pub-label', children: '全网分发与生效机制' }),
-                jsx('div', { className: 'forx-pub-hint', style: { color: 'var(--ui-text-secondary)' }, children: '1. 官方 CI 正在对该 PR 运行沙箱与规范测试（validate_plugin_catalog）；' }),
-                jsx('div', { className: 'forx-pub-hint', style: { color: 'var(--ui-text-secondary)' }, children: '2. 维护者审核并合并后，全网 /api/plugin-catalog.json 将自动更新；' }),
+                jsx('div', { className: 'forx-pub-label', children: '全网分发与社区生效机制' }),
                 jsxs('div', {
-                  style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--ui-text-secondary)' },
+                  style: { display: 'flex', flexDirection: 'column', gap: '8px' },
                   children: [
-                    jsx('span', { children: '3. 随后全平台用户即可直接运行安装：' }),
-                    jsx('code', {
-                      className: 'forx-pub-code',
-                      children: targetType === 'plugin' ? `forx plugins install ${pubResult.name}` : `forx skills install ${pubResult.name}`,
+                    jsxs('div', {
+                      className: 'forx-pub-flow-item',
+                      children: [
+                        jsx('span', { className: 'forx-pub-flow-num', children: '1' }),
+                        jsx('div', {
+                          style: { fontSize: '12px', lineHeight: 1.5, color: 'var(--ui-text-secondary)' },
+                          children: '官方 CI 正在对该 PR 运行沙箱与规范测试（validate_plugin_catalog）；',
+                        }),
+                      ],
                     }),
-                    jsx(CopyButton, {
-                      text: targetType === 'plugin' ? `forx plugins install ${pubResult.name}` : `forx skills install ${pubResult.name}`,
-                      appearance: 'icon',
-                      buttonSize: 'icon-xs',
-                      title: '复制安装命令',
+                    jsxs('div', {
+                      className: 'forx-pub-flow-item',
+                      children: [
+                        jsx('span', { className: 'forx-pub-flow-num', children: '2' }),
+                        jsx('div', {
+                          style: { fontSize: '12px', lineHeight: 1.5, color: 'var(--ui-text-secondary)' },
+                          children: '维护者审核并合并后，全网 /api/plugin-catalog.json 将自动更新生效；',
+                        }),
+                      ],
+                    }),
+                    jsxs('div', {
+                      className: 'forx-pub-flow-item',
+                      children: [
+                        jsx('span', { className: 'forx-pub-flow-num', children: '3' }),
+                        jsxs('div', {
+                          style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--ui-text-secondary)', flex: 1 },
+                          children: [
+                            jsx('span', { children: '随后全平台用户即可直接运行安装：' }),
+                            jsx('code', {
+                              className: 'forx-pub-code',
+                              children: targetType === 'plugin' ? `forx plugins install ${pubResult.name}` : `forx skills install ${pubResult.name}`,
+                            }),
+                            jsx(CopyButton, {
+                              text: targetType === 'plugin' ? `forx plugins install ${pubResult.name}` : `forx skills install ${pubResult.name}`,
+                              appearance: 'icon',
+                              buttonSize: 'icon-xs',
+                              title: '复制安装命令',
+                            }),
+                          ],
+                        }),
+                      ],
                     }),
                   ],
                 }),
@@ -1630,7 +1883,7 @@ function PublisherView({ ctx }) {
             }),
 
             jsx('div', {
-              style: { display: 'flex', justifyContent: 'center', paddingTop: '6px' },
+              style: { display: 'flex', justifyContent: 'center', paddingTop: '8px' },
               children: jsx(Button, {
                 variant: 'secondary',
                 size: 'sm',
@@ -1654,6 +1907,11 @@ function PublisherView({ ctx }) {
 // COMPONENT: Right Pane Companion
 // ─────────────────────────────────────────────────────────────
 function PublisherPane() {
+  const commands = [
+    { label: '合规体检', cmd: 'hermes publish check <path>' },
+    { label: '发布插件', cmd: 'hermes publish plugin <path>' },
+    { label: '发布技能', cmd: 'hermes publish skill <path>' },
+  ]
   return jsxs('div', {
     className: 'forx-pub-pane',
     children: [
@@ -1663,7 +1921,7 @@ function PublisherPane() {
       }),
       jsx('p', {
         className: 'forx-pub-hint',
-        style: { fontSize: '12px', color: 'var(--ui-text-secondary)' },
+        style: { fontSize: '12px', color: 'var(--ui-text-secondary)', lineHeight: 1.5 },
         children: '一键对本地自研插件或技能进行合规体检、配置 GitHub 授权并提交 PR 到全平台公共库。',
       }),
       jsxs(Button, {
@@ -1677,12 +1935,27 @@ function PublisherPane() {
         ],
       }),
       jsxs('div', {
-        style: { paddingTop: '12px', borderTop: '1px solid var(--ui-stroke-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' },
+        style: { paddingTop: '14px', borderTop: '1px solid var(--ui-stroke-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' },
         children: [
           jsx('div', { className: 'forx-pub-label', children: '常用终端命令' }),
-          jsx('pre', { className: 'forx-pub-pre', children: 'hermes publish check <path>' }),
-          jsx('pre', { className: 'forx-pub-pre', children: 'hermes publish plugin <path>' }),
-          jsx('pre', { className: 'forx-pub-pre', children: 'hermes publish skill <path>' }),
+          ...commands.map((c, i) =>
+            jsxs(
+              'div',
+              {
+                className: 'forx-pub-cmd-box',
+                children: [
+                  jsx('code', { style: { color: 'var(--ui-text-primary)' }, children: c.cmd }),
+                  jsx(CopyButton, {
+                    text: c.cmd,
+                    appearance: 'icon',
+                    buttonSize: 'icon-xs',
+                    title: `复制 ${c.label} 命令`,
+                  }),
+                ],
+              },
+              `cmd-${i}`
+            )
+          ),
         ],
       }),
     ],
