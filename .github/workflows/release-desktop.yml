@@ -11,6 +11,11 @@ on:
         required: false
         type: string
         default: ''
+      release_notes:
+        description: 'Custom release notes / 功能介绍 (optional; defaults to CHANGELOG.md or git commits)'
+        required: false
+        type: string
+        default: ''
       publish_release:
         description: 'Create/update GitHub Release with built installers'
         required: false
@@ -167,6 +172,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: Download all built installers
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -180,6 +187,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
         run: |
@@ -199,8 +207,13 @@ jobs:
           fi
 
           echo "Publishing to GitHub Release tag: $TAG"
-          VER_NUM="${TAG#v}"
-          sed "s/__VER__/${VER_NUM}/g" "${GITHUB_WORKSPACE}/.github/release_notes_template.md" > release_notes.md
+
+          python3 "${GITHUB_WORKSPACE}/scripts/generate_release_notes.py" \
+            --version "$TAG" \
+            --template "${GITHUB_WORKSPACE}/.github/release_notes_template.md" \
+            --changelog "${GITHUB_WORKSPACE}/CHANGELOG.md" \
+            --notes "${INPUT_RELEASE_NOTES:-}" \
+            --output release_notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" ForX-* SHA256SUMS.txt --clobber
