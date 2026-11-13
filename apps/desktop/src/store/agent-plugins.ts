@@ -280,3 +280,35 @@ export async function updateAgentPlugin(
     $agentPluginBusy.set(null)
   }
 }
+
+/** Remove an installed user plugin (backend `plugins.manage remove`). Refreshes
+ *  the list on success. Returns whether the removal succeeded. */
+export async function removeAgentPlugin(
+  request: GatewayRequest,
+  name: string,
+  failMessage: string,
+  profile?: string | null
+): Promise<boolean> {
+  $agentPluginBusy.set(name)
+
+  try {
+    const result = await request<{ ok?: boolean; error?: string }>(
+      'plugins.manage',
+      withProfile({ action: 'remove', name }, profile)
+    )
+
+    if (!result?.ok) {
+      throw new Error(result?.error || failMessage)
+    }
+
+    await loadAgentPlugins(request, profile)
+
+    return true
+  } catch (e) {
+    notifyError(e, failMessage)
+
+    return false
+  } finally {
+    $agentPluginBusy.set(null)
+  }
+}

@@ -27,7 +27,15 @@ if _name not in sys.modules:
 
 publisher = __import__(
     _name + ".publisher",
-    fromlist=["check_target", "publish_plugin", "publish_skill", "get_auth_status", "DEFAULT_TARGET_REPO"],
+    fromlist=[
+        "check_target",
+        "publish_plugin",
+        "publish_skill",
+        "get_auth_status",
+        "save_github_token",
+        "clear_github_token",
+        "DEFAULT_TARGET_REPO",
+    ],
 )
 
 
@@ -40,6 +48,8 @@ class ScopedRoute(APIRoute):
             try:
                 with _config_profile_scope(request.query_params.get("profile")):
                     return await handler(request)
+            except HTTPException:
+                raise
             except KeyError as exc:
                 raise HTTPException(404, str(exc)) from exc
             except Exception as exc:
@@ -49,6 +59,10 @@ class ScopedRoute(APIRoute):
 
 
 router = APIRouter(route_class=ScopedRoute)
+
+
+class SaveTokenRequest(BaseModel):
+    token: str
 
 
 class CheckRequest(BaseModel):
@@ -78,6 +92,21 @@ class PublishSkillRequest(BaseModel):
 async def get_github_auth():
     """Return current GitHub authentication and token status."""
     return publisher.get_auth_status()
+
+
+@router.post("/auth/token")
+async def save_github_token_endpoint(body: SaveTokenRequest):
+    """Validate and save a GitHub Personal Access Token to the active profile .env."""
+    res = publisher.save_github_token(body.token)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error", "保存 GitHub Token 失败"))
+    return res
+
+
+@router.delete("/auth/token")
+async def clear_github_token_endpoint():
+    """Remove saved GITHUB_TOKEN from the active profile .env."""
+    return publisher.clear_github_token()
 
 
 @router.post("/check")

@@ -1427,12 +1427,12 @@ def _(rid, params: dict) -> dict:
 
 
 # ─── Plugins ─────────────────────────────────────────────────────────────────
-def _plugin_rows() -> list[dict]:
+def _plugin_rows(*, force: bool = False) -> list[dict]:
     pc = _tools_mod("hermes_cli.plugins_cmd")
     cat = _tools_mod("hermes_cli.plugins_cmd_catalog")
     enabled, disabled = pc._get_enabled_set(), pc._get_disabled_set()
-    pins = cat.catalog_pins()  # powers the desktop's "Update to <pin>" affordance
-    versions = cat.catalog_versions()
+    pins = cat.catalog_pins(force=force)  # powers the desktop's "Update to <pin>" affordance
+    versions = cat.catalog_versions(force=force)
     ref_pins = pc._read_install_metadata()  # ``--ref`` installs: pinned_sha so the desktop can show the pin
     out = []
     for name, version, desc, source, _dir, key in sorted(pc._discover_all_plugins()):
@@ -1456,7 +1456,8 @@ def _plugin_rows() -> list[dict]:
 
 
 def _plugins_list(rid, params):
-    rows = _plugin_rows()
+    force = bool(params.get("force") or params.get("refresh"))
+    rows = _plugin_rows(force=force)
     user_count = sum(1 for r in rows if r["source"] != "bundled")
     return _ok(rid, {"plugins": rows, "user_count": user_count, "bundled_count": len(rows) - user_count})
 
@@ -1504,8 +1505,19 @@ def _plugins_update(rid, params):
     return _ok(rid, {"ok": True, "unchanged": not changed, "sha": sha})
 
 
+def _plugins_remove(rid, params):
+    name = (params.get("name") or params.get("key") or "").strip()
+    if not name:
+        return _err(rid, 4019, "plugins.remove requires a 'name'")
+    pc = _tools_mod("hermes_cli.plugins_cmd")
+    result = pc.dashboard_remove_user_plugin(name)
+    if not result.get("ok"):
+        return _err(rid, 5026, result.get("error") or "remove failed")
+    return _ok(rid, {"ok": True, "name": name})
+
+
 _PLUGINS_ACTIONS = {"list": _plugins_list, "toggle": _plugins_toggle, "install": _plugins_install,
-                    "update": _plugins_update}
+                    "update": _plugins_update, "remove": _plugins_remove}
 
 
 @_scoped_rpc("plugins.manage", 5026, catch_resolve=False)

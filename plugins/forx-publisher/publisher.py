@@ -9,6 +9,7 @@ import base64
 import json
 import logging
 import re
+import shutil
 import subprocess
 import time
 from dataclasses import asdict
@@ -20,7 +21,9 @@ from urllib.parse import urlparse
 import httpx
 import yaml
 
+from agent.secret_scope import get_secret
 from hermes_cli._subprocess_compat import windows_hide_flags
+from hermes_cli.config import remove_env_value, save_env_value
 from hermes_constants import display_hermes_home
 from hermes_cli.plugin_validate import validate_plugin_dir
 from tools.skills_guard import scan_skill, format_scan_report
@@ -116,23 +119,54 @@ def detect_git_metadata(directory: Path) -> Dict[str, Any]:
     return meta
 
 
+def _extract_oauth_scopes(headers: Any) -> Tuple[bool, List[str]]:
+    """Return (header_present, parsed_scopes) from GitHub's X-OAuth-Scopes header.
+
+    Classic PATs and OAuth tokens always include X-OAuth-Scopes (possibly empty);
+    fine-grained PATs omit it, so callers must distinguish omitted from empty.
+    """
+    for key, value in headers.items():
+        if key.lower() == "x-oauth-scopes":
+            scopes = [s.strip() for s in str(value).split(",") if s.strip()]
+            return True, scopes
+    return False, []
+
+
+def _scope_allows_pr(header_present: bool, scopes: List[str]) -> bool:
+    """True when classic OAuth scopes cover creating forks/PRs, or header is omitted (fine-grained PAT)."""
+    if not header_present:
+        return True
+    return "repo" in scopes or "public_repo" in scopes
+
+
+def _has_saved_github_token() -> bool:
+    return bool(get_secret("GITHUB_TOKEN") or get_secret("GH_TOKEN"))
+
+
 def get_auth_status(auth: Optional[GitHubAuth] = None) -> Dict[str, Any]:
     """Check GitHub authentication status, resolved user, and credentials info."""
     authenticator = auth or GitHubAuth()
     is_authed = authenticator.is_authenticated()
     method = authenticator.auth_method()
+    gh_installed = bool(shutil.which("gh"))
+    has_saved_token = _has_saved_github_token()
 
     status: Dict[str, Any] = {
         "authenticated": is_authed,
         "method": method,
         "username": None,
+        "avatar_url": None,
+        "gh_installed": gh_installed,
+        "has_saved_token": has_saved_token,
+        "scopes": [],
+        "scope_warning": None,
         "error": None,
     }
 
     if not is_authed:
         status["error"] = (
-            f"未检测到 GitHub 认证凭据。请在 {display_hermes_home()}/.env 中设置 GITHUB_TOKEN "
-            "或在终端运行 'gh auth login' 完成授权。"
+            f"未检测到 GitHub 认证凭据。请在页面中配置 GitHub Token，"
+            f"或使用 gh auth login 完成授权。"
         )
         return status
 
@@ -143,6 +177,14 @@ def get_auth_status(auth: Optional[GitHubAuth] = None) -> Dict[str, Any]:
         if resp.status_code == 200:
             user_data = resp.json()
             status["username"] = user_data.get("login")
+            status["avatar_url"] = user_data.get("avatar_url")
+            header_present, scopes = _extract_oauth_scopes(resp.headers)
+            status["scopes"] = scopes
+            if not _scope_allows_pr(header_present, scopes):
+                status["scope_warning"] = (
+                    "当前 Token 缺少 public_repo 或 repo 权限，发起 Pull Request 时可能会被拒绝。"
+                    "建议重新生成勾选了 public_repo 权限的 Token。"
+                )
         elif resp.status_code == 401:
             status["authenticated"] = False
             status["error"] = "GitHub Token 无效或已过期，请重新配置。"
@@ -153,6 +195,64 @@ def get_auth_status(auth: Optional[GitHubAuth] = None) -> Dict[str, Any]:
         status["error"] = f"网络请求失败: {exc}"
 
     return status
+
+
+def save_github_token(token: str) -> Dict[str, Any]:
+    """Validate a GitHub Personal Access Token against the API and persist it to the active profile .env."""
+    cleaned = (token or "").strip()
+    if not cleaned:
+        return {"ok": False, "error": "请输入有效的 GitHub Personal Access Token。"}
+    if any(ch.isspace() for ch in cleaned):
+        return {"ok": False, "error": "Token 格式不正确（包含空白或换行），请检查后重新粘贴。"}
+
+    try:
+        resp = httpx.get(
+            "https://api.github.com/user",
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "Authorization": f"token {cleaned}",
+            },
+            timeout=10,
+        )
+    except Exception as exc:
+        return {"ok": False, "error": f"连接 GitHub 验证 Token 失败: {exc}"}
+
+    if resp.status_code == 401:
+        return {"ok": False, "error": "Token 无效或已过期，请确认完整复制了 GitHub 生成的 Token。"}
+    if resp.status_code != 200:
+        return {"ok": False, "error": f"验证 Token 时 GitHub 返回状态码 {resp.status_code}"}
+
+    header_present, scopes = _extract_oauth_scopes(resp.headers)
+    if not _scope_allows_pr(header_present, scopes):
+        return {
+            "ok": False,
+            "error": "该 Token 缺少创建 PR 所需的权限，请至少勾选 public_repo（或 repo）权限后重新生成。",
+        }
+
+    save_env_value("GITHUB_TOKEN", cleaned)
+    user_data = resp.json()
+    return {
+        "ok": True,
+        "authenticated": True,
+        "method": "pat",
+        "username": user_data.get("login"),
+        "avatar_url": user_data.get("avatar_url"),
+        "gh_installed": bool(shutil.which("gh")),
+        "has_saved_token": True,
+        "scopes": scopes,
+        "scope_warning": None,
+        "error": None,
+    }
+
+
+def clear_github_token() -> Dict[str, Any]:
+    """Remove GITHUB_TOKEN from the active profile .env and return refreshed auth status."""
+    removed = remove_env_value("GITHUB_TOKEN")
+    return {
+        "ok": True,
+        "removed": removed,
+        "auth": get_auth_status(),
+    }
 
 
 def _read_skill_frontmatter(content: str) -> Dict[str, Any]:
@@ -445,6 +545,11 @@ class GitHubPRClient:
         else:
             raise RuntimeError(f"Fork {target_repo} 失败: HTTP {resp.status_code} {resp.text[:200]}")
 
+    def file_exists(self, repo: str, path_in_repo: str) -> bool:
+        """Check whether a file exists in the repository."""
+        resp = self._call("get", f"repos/{repo}/contents/{path_in_repo.lstrip('/')}")
+        return resp.status_code == 200
+
     def get_default_branch_sha(self, target_repo: str) -> Tuple[str, str]:
         """Fetch default branch name and its latest commit SHA."""
         resp = self._call("get", f"repos/{target_repo}")
@@ -643,7 +748,7 @@ def publish_plugin(
         }
 
     git_meta = check_res.get("git", {})
-    resolved_repo = (repo_url or git_meta.get("remote_url") or "").strip()
+    resolved_repo = normalize_github_url(repo_url or git_meta.get("remote_url") or "")
     resolved_sha = (commit_sha or git_meta.get("commit_sha") or "").strip()
 
     if not resolved_repo or not resolved_repo.startswith("https://"):
@@ -728,7 +833,9 @@ def publish_plugin(
 
         default_branch, base_sha = client.get_default_branch_sha(target_repo)
         ts = int(time.time())
-        branch_name = f"add-plugin-{name}-{ts}"
+        is_update = client.file_exists(target_repo, catalog_entry_path)
+        action_verb = "Update" if is_update else "Add"
+        branch_name = f"{'update' if is_update else 'add'}-plugin-{name}-{ts}"
         client.create_branch(fork_full_name, branch_name, base_sha)
 
         # Upload the single catalog YAML entry
@@ -737,12 +844,13 @@ def publish_plugin(
             path_in_repo=catalog_entry_path,
             content_bytes=catalog_yaml_content.encode("utf-8"),
             branch=branch_name,
-            message=f"Add plugin catalog entry: {name}",
+            message=f"{action_verb} plugin catalog entry: {name}",
         )
 
-        pr_title = f"Add plugin: {name}"
+        pr_title = f"{action_verb} plugin: {name}" + (f" ({version})" if version and is_update else "")
+        pr_header = f"### 🔄 Update Plugin Catalog Entry: `{name}`" if is_update else f"### 🔌 New Plugin Catalog Entry: `{name}`"
         pr_body = (
-            f"### 🔌 New Plugin Catalog Entry: `{name}`\n\n"
+            f"{pr_header}\n\n"
             f"**Repository:** {resolved_repo}\n"
             f"**Commit SHA:** `{resolved_sha}`\n"
             f"**Version:** `{version}`\n"

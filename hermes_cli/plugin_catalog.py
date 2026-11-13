@@ -321,9 +321,9 @@ def fetch_live_catalog(*, force: bool = False) -> Optional[Dict[str, Any]]:
         return _stale_live_cache(cache)
 
 
-def load_catalog_live() -> List[PluginCatalogEntry]:
+def load_catalog_live(*, force: bool = False) -> List[PluginCatalogEntry]:
     """Entries from the live (or cached) catalog, else the in-tree catalog."""
-    data = fetch_live_catalog()
+    data = fetch_live_catalog(force=force)
     if data is not None:
         entries = [e for i, raw in enumerate(data["entries"])
                    if (e := entry_from_mapping(raw, f"{LIVE_CATALOG_URL}#{i}")) is not None]
@@ -332,12 +332,24 @@ def load_catalog_live() -> List[PluginCatalogEntry]:
     return load_catalog()
 
 
-def live_removed_list() -> List[RemovedEntry]:
-    data = fetch_live_catalog()
+def live_removed_list(*, force: bool = False) -> List[RemovedEntry]:
+    data = fetch_live_catalog(force=force)
     return _removed_from_list(data.get("removed")) if data else []
 
 
-def get_live_catalog_entry(name: str) -> Optional[PluginCatalogEntry]:
+def get_live_catalog_entry(name: str, *, force: bool = False) -> Optional[PluginCatalogEntry]:
+    if force:
+        data = fetch_live_catalog(force=True)
+        if data is not None:
+            entry = next(
+                (e for i, raw in enumerate(data.get("entries", []))
+                 if (e := entry_from_mapping(raw, f"{LIVE_CATALOG_URL}#{i}")) is not None and e.name == name),
+                None,
+            )
+            if entry is not None:
+                return entry
+        return next((e for e in load_catalog() if e.name == name), None)
+
     entry = next((e for e in load_catalog_live() if e.name == name), None)
     if entry is not None:
         return entry

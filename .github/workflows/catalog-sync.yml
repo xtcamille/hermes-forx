@@ -1,0 +1,95 @@
+name: Sync Plugin Catalog
+
+on:
+  schedule:
+    # Run daily at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      plugin_name:
+        description: "Specific plugin name to sync (leave empty to scan all)"
+        required: false
+        type: string
+      dry_run:
+        description: "Dry-run only (do not create PR)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: "catalog-sync"
+  cancel-in-progress: false
+
+jobs:
+  check-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml httpx
+
+      - name: Run catalog sync
+        id: sync
+        run: |
+          args=""
+          if [ -n "${{ inputs.plugin_name }}" ]; then
+            args="--name ${{ inputs.plugin_name }}"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args="$args --dry-run"
+          fi
+          python scripts/sync_plugin_catalog.py $args --output-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate modified catalog entries
+        run: |
+          python scripts/validate_plugin_catalog.py plugin-catalog/
+
+      - name: Check for catalog modifications
+        id: git_status
+        run: |
+          if [ -n "$(git status --porcelain plugin-catalog/)" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.git_status.outputs.has_changes == 'true' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch_name="catalog-sync/bump-$(date +%s)"
+          git checkout -b "$branch_name"
+          git add plugin-catalog/
+          git commit -m "chore(catalog): bump updated plugins to latest upstream commits"
+          git push origin "$branch_name"
+
+          pr_body="### 🔄 Auto-synced Plugin Catalog Updates
+
+The automated sync workflow detected newer commits in upstream repositories for plugins in \`plugin-catalog/\`.
+
+All modified catalog entries have passed \`scripts/validate_plugin_catalog.py\` validation.
+
+Merging this PR will trigger \`deploy-pages.yml\`, publishing the updated catalog to all ForX users worldwide."
+
+          gh pr create \
+            --title "chore(catalog): bump plugins to latest upstream commits" \
+            --body "$pr_body" \
+            --head "$branch_name" \
+            --base "main"

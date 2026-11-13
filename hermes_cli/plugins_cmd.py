@@ -905,11 +905,107 @@ def _pull_plugin_update(target: Path, pinned_msg, not_git_msg, before_pull=None)
     return output
 
 
-def cmd_update(name: str) -> None:
-    """Update an installed plugin by pulling latest from its git remote."""
+def cmd_update_all(console) -> None:
+    """Update all installed user plugins (both catalog and git checkouts)."""
+    from hermes_cli import plugins_cmd_catalog as catalog
+    console.print("[dim]Checking updates for all installed plugins...[/dim]")
+    entries = _discover_all_plugins()
+    user_entries = [e for e in entries if e[3] in ("user", "git")]
+    if not user_entries:
+        console.print("[yellow]No user-installed plugins found to update.[/yellow]")
+        return
+
+    catalog_pins_map = catalog.catalog_pins(force=True)
+    metadata = _read_install_metadata()
+
+    updated: list[tuple[str, str]] = []
+    up_to_date: list[str] = []
+    skipped: list[tuple[str, str]] = []
+    failed: list[tuple[str, str]] = []
+
+    for name, _ver, _desc, _source, dir_path, _key in sorted(user_entries, key=lambda x: x[0]):
+        target = Path(dir_path) if dir_path else None
+        if not target or not target.is_dir():
+            continue
+
+        sidecar = catalog.read_catalog_sidecar(target)
+        if sidecar:
+            catalog_name = str(sidecar.get("catalog_name") or name)
+            installed_sha = str(sidecar.get("sha") or "").strip().lower()
+            latest_sha = (catalog_pins_map.get(catalog_name) or "").strip().lower()
+
+            if latest_sha and latest_sha == installed_sha:
+                up_to_date.append(f"{name} (catalog @ {installed_sha[:8]})")
+                continue
+
+            console.print(f"[dim]Updating catalog plugin {name}...[/dim]")
+            try:
+                sha, changed = catalog.repin_catalog_plugin(target, sidecar, force_fetch=False)
+                if changed:
+                    updated.append((name, f"catalog {installed_sha[:8]} -> {sha[:8]}"))
+                    _install_python_dependencies(target, console)
+                else:
+                    up_to_date.append(f"{name} (catalog @ {installed_sha[:8]})")
+            except Exception as exc:
+                failed.append((name, str(exc)))
+            continue
+
+        rec = metadata.get(name, {})
+        if rec.get("pinned") is True:
+            skipped.append((name, f"pinned @ {str(rec.get('revision'))[:8]}"))
+            continue
+        if not (target / ".git").exists():
+            skipped.append((name, "no .git checkout"))
+            continue
+
+        console.print(f"[dim]Updating {name}...[/dim]")
+        try:
+            output = _pull_plugin_update(
+                target,
+                lambda r: f"Plugin '{name}' is pinned to {r.get('revision')}.",
+                lambda: f"Plugin '{name}' is not a git checkout.",
+            )
+            _rescan_after_update(target, name, console)
+            _post_pull_housekeeping(target, console)
+            if "Already up to date" in output:
+                up_to_date.append(f"{name} (git)")
+            else:
+                updated.append((name, "git updated"))
+        except Exception as exc:
+            failed.append((name, str(exc)))
+
+    console.print()
+    if updated:
+        console.print(f"[green]✓ Updated ({len(updated)}):[/green]")
+        for item, detail in updated:
+            console.print(f"  • [bold]{item}[/bold]: {detail}")
+    if up_to_date:
+        console.print(f"[dim]Already up to date ({len(up_to_date)}): {', '.join(up_to_date)}[/dim]")
+    if skipped:
+        console.print(f"[yellow]Skipped ({len(skipped)}):[/yellow]")
+        for item, reason in skipped:
+            console.print(f"  • [dim]{item}[/dim] ({reason})")
+    if failed:
+        console.print(f"[red]Failed ({len(failed)}):[/red]")
+        for item, err in failed:
+            console.print(f"  • [bold red]{item}[/bold red]: {err}")
+
+    if updated:
+        console.print()
+        console.print("[dim]Restart the gateway for changes to take effect:[/dim]")
+        console.print("[dim]  forx gateway restart[/dim]")
+
+
+def cmd_update(name: Optional[str] = None, *, all_plugins: bool = False) -> None:
+    """Update an installed plugin by pulling latest from its git remote or repinning catalog."""
     from rich.markup import escape
     from hermes_cli import plugins_cmd_catalog as catalog
     console = _console()
+    if all_plugins or (name in ("--all", "-a")):
+        cmd_update_all(console)
+        return
+    if not name:
+        _fail(console, "[red]Error:[/red] Specify a plugin name or use `forx plugins update --all` to update all plugins.")
     target = _require_installed_plugin(name, _plugins_dir(), console)
     sidecar = catalog.read_catalog_sidecar(target)
     if sidecar:  # catalog installs re-pin to the reviewed SHA — never `git pull`
@@ -1457,9 +1553,10 @@ def cmd_list(args: Any | None = None) -> None:
     # One kill-list resolution for the whole listing: resolving per row costs a live-catalog
     # fetch per installed plugin when the catalog host is slow or unreachable.
     removed_entries = catalog.resolved_removed_entries()
+    catalog_pins_map = catalog.catalog_pins()
     rows = [
         (name, _plugin_status(name, enabled, disabled, key=key), str(version), description,
-         catalog.catalog_annotation(_dir) or _pin_annotation(name, pins) or source,
+         catalog.catalog_annotation(_dir, catalog_pins_map) or _pin_annotation(name, pins) or source,
          catalog.removed_annotation(name, _dir, removed_entries))
         for name, version, description, source, _dir, key in entries
     ]
@@ -2126,17 +2223,33 @@ def _git_pull_plugin_dir(target: Path) -> tuple[bool, str]:
 
 
 def dashboard_remove_user_plugin(name: str) -> dict[str, Any]:
-    """Delete a plugin tree under ``~/.hermes/plugins/`` only."""
+    """Delete a plugin tree under ``~/.hermes/plugins/`` and ``desktop-plugins/``."""
     plugins_dir = _plugins_dir()
-    if any(n == name and src == "bundled" for n, _ver, _d, src, _path, _key in _discover_all_plugins()):
-        return {"ok": False, "error": "Bundled plugins cannot be removed from the dashboard."}
+    all_plugins = _discover_all_plugins()
+    if any((n == name or key == name) and src == "bundled" for n, _ver, _d, src, _path, key in all_plugins):
+        return {"ok": False, "error": "Bundled plugins cannot be removed."}
     target = _user_installed_plugin_dir(name)
     if target is None:
+        match = next(
+            (Path(p) for n, _ver, _d, src, p, key in all_plugins
+             if (n == name or key == name) and src != "bundled" and p),
+            None,
+        )
+        if match and match.is_dir():
+            target = match
+    desktop_plugins_dir = get_hermes_home() / "desktop-plugins" / name
+    if target is None and not desktop_plugins_dir.is_dir():
         return {"ok": False, "error": f"Plugin '{name}' was not found under {plugins_dir}."}
-    try:
-        _remove_plugin_core(target)
-    except (OSError, PluginOperationError) as exc:
-        return {"ok": False, "error": f"Could not remove plugin '{name}': {exc}"}
+    if target is not None and target.is_dir():
+        try:
+            _remove_plugin_core(target)
+        except (OSError, PluginOperationError) as exc:
+            return {"ok": False, "error": f"Could not remove plugin '{name}': {exc}"}
+    if desktop_plugins_dir.is_dir():
+        try:
+            shutil.rmtree(desktop_plugins_dir, ignore_errors=True)
+        except OSError:
+            pass
     return {"ok": True, "name": name}
 
 
@@ -2214,7 +2327,7 @@ _PLUGIN_ACTIONS = {
     "browse": lambda args: _catalog().cmd_search(""),
     "validate": lambda args: _catalog().cmd_validate(
         args.path, as_json=getattr(args, "json", False), install_deps=getattr(args, "install_deps", False)),
-    "update": lambda args: cmd_update(args.name),
+    "update": lambda args: cmd_update(getattr(args, "name", None), all_plugins=getattr(args, "all", False)),
     "remove": lambda args: cmd_remove(args.name),
     "rm": lambda args: cmd_remove(args.name),
     "uninstall": lambda args: cmd_remove(args.name),

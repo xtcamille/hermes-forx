@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $pluginRecords } from '@/contrib/plugins-store'
 import { $agentPlugins, $agentPluginsStatus } from '@/store/agent-plugins'
+import { $confirmRequest, settleConfirm } from '@/store/confirm'
 import { $paneHeightOverride, setPaneHeightOverride } from '@/store/panes'
 import { $pluginInstallRequest, closePluginInstallRequest } from '@/store/plugin-install-request'
 import { $connection } from '@/store/session'
@@ -305,6 +306,68 @@ describe('PluginsTab', () => {
     await waitFor(() => {
       expect($pluginInstallRequest.get()?.repo).toBe('https://github.com/example/plugins-monorepo#nested-plugin')
     })
+  })
+
+  it('confirms and calls plugins.manage remove on user plugin removal', async () => {
+    $agentPlugins.set([
+      {
+        description: 'A test plugin',
+        key: 'custom-tool',
+        name: 'custom-tool',
+        source: 'git',
+        status: 'enabled',
+        version: '1.0.0'
+      }
+    ])
+    requestGateway.mockResolvedValueOnce({ ok: true, name: 'custom-tool' } as never)
+
+    render(<PluginsTab profile="workbot" />)
+
+    const removeBtn = screen.getByRole('button', { name: 'Uninstall plugin: custom-tool' })
+    expect(removeBtn).toBeTruthy()
+
+    fireEvent.click(removeBtn)
+
+    await waitFor(() => {
+      expect($confirmRequest.get()).not.toBeNull()
+      expect($confirmRequest.get()?.title).toContain('custom-tool')
+    })
+
+    settleConfirm(true)
+
+    await waitFor(() =>
+      expect(requestGateway).toHaveBeenCalledWith(
+        'plugins.manage',
+        expect.objectContaining({ action: 'remove', name: 'custom-tool', profile: 'workbot' })
+      )
+    )
+  })
+
+  it('cancels removal without calling plugins.manage when confirm is rejected', async () => {
+    $agentPlugins.set([
+      {
+        description: 'A test plugin',
+        key: 'custom-tool',
+        name: 'custom-tool',
+        source: 'user',
+        status: 'enabled',
+        version: '1.0.0'
+      }
+    ])
+
+    render(<PluginsTab profile="workbot" />)
+
+    const removeBtn = screen.getByRole('button', { name: 'Uninstall plugin: custom-tool' })
+    fireEvent.click(removeBtn)
+
+    await waitFor(() => expect($confirmRequest.get()).not.toBeNull())
+
+    settleConfirm(false)
+
+    expect(requestGateway).not.toHaveBeenCalledWith(
+      'plugins.manage',
+      expect.objectContaining({ action: 'remove' })
+    )
   })
 })
 

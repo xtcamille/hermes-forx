@@ -468,6 +468,7 @@ export interface Translations {
       openFolder: string
       rescan: string
       reveal: string
+      removePlugin: string
       enable: string
       disable: string
       failed: string
@@ -1590,6 +1591,11 @@ export interface Translations {
       updateToPin: (sha: string) => string
       updateFailed: (name: string) => string
       updated: (name: string) => string
+      removePlugin: string
+      removeConfirmTitle: (name: string) => string
+      removeConfirmDesc: string
+      removeSuccess: (name: string) => string
+      removeFailed: (name: string) => string
       deepLinkErrorTitle: string
       deepLinkCatalogInvalidName: string
       deepLinkCatalogUnknown: (name: string) => string

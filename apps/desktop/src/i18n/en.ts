@@ -573,6 +573,7 @@ export const en: Translations = {
       openFolder: 'Open plugins folder',
       rescan: 'Rescan',
       reveal: 'Reveal in file manager',
+      removePlugin: 'Uninstall plugin',
       enable: 'Enable',
       disable: 'Disable',
       failed: 'failed',
@@ -1849,6 +1850,12 @@ export const en: Translations = {
       updateToPin: (sha: string) => `Update to ${sha}`,
       updateFailed: (name: string) => `Could not update ${name}`,
       updated: (name: string) => `${name} updated to the current catalog pin. Restart the gateway to apply.`,
+      removePlugin: 'Uninstall plugin',
+      removeConfirmTitle: (name: string) => `Uninstall plugin "${name}"?`,
+      removeConfirmDesc:
+        'This will permanently delete this plugin and its files from your environment. This cannot be undone.',
+      removeSuccess: (name: string) => `Plugin "${name}" uninstalled. Restart the gateway to apply.`,
+      removeFailed: (name: string) => `Could not uninstall ${name}`,
       deepLinkErrorTitle: 'Plugin install link rejected',
       deepLinkCatalogInvalidName: 'The link\u2019s catalog name is missing or invalid.',
       deepLinkCatalogUnknown: (name: string) =>

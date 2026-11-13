@@ -313,6 +313,68 @@ def test_api_routes(tmp_path, monkeypatch):
     assert resp.json()["name"] == "api-skill"
 
 
+def test_auth_token_save_and_clear_lifecycle(tmp_path, monkeypatch):
+    """Saving a valid PAT persists GITHUB_TOKEN to the active HERMES_HOME .env; clearing removes it."""
+    hermes_home = tmp_path / "hermes-home"
+    hermes_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+
+    name = "forx_publisher_api_test_" + uuid.uuid4().hex
+    spec = importlib.util.spec_from_file_location(name, PLUGIN_ROOT / "dashboard/plugin_api.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+
+    app = FastAPI()
+    app.include_router(mod.router, prefix=PREFIX)
+    client = TestClient(app)
+
+    def _mock_user_get(url, headers=None, timeout=10):
+        resp = MagicMock()
+        auth_header = (headers or {}).get("Authorization", "")
+        if auth_header == "token ghp_validtoken123":
+            resp.status_code = 200
+            resp.headers = {"X-OAuth-Scopes": "public_repo, read:user"}
+            resp.json.return_value = {"login": "octocat", "avatar_url": "https://avatars.githubusercontent.com/u/1"}
+        elif auth_header == "token ghp_noscope123":
+            resp.status_code = 200
+            resp.headers = {"X-OAuth-Scopes": "read:user"}
+            resp.json.return_value = {"login": "octocat"}
+        else:
+            resp.status_code = 401
+            resp.headers = {}
+        return resp
+
+    monkeypatch.setattr(mod.publisher.httpx, "get", _mock_user_get)
+    monkeypatch.setattr(mod.publisher.GitHubAuth, "_try_gh_cli", lambda self: None)
+
+    # Rejects token missing public_repo/repo scope
+    bad_scope = client.post(f"{PREFIX}/auth/token", json={"token": "ghp_noscope123"})
+    assert bad_scope.status_code == 400
+    assert "public_repo" in bad_scope.json()["detail"]
+
+    # Rejects invalid token
+    bad_tok = client.post(f"{PREFIX}/auth/token", json={"token": "ghp_bad"})
+    assert bad_tok.status_code == 400
+
+    # Saves valid token into temp HERMES_HOME/.env and updates status
+    ok_resp = client.post(f"{PREFIX}/auth/token", json={"token": "ghp_validtoken123"})
+    assert ok_resp.status_code == 200
+    assert ok_resp.json()["authenticated"] is True
+    assert ok_resp.json()["username"] == "octocat"
+    env_text = (hermes_home / ".env").read_text(encoding="utf-8")
+    assert "GITHUB_TOKEN=" in env_text
+    assert "ghp_validtoken123" in env_text
+
+    # Deleting clears GITHUB_TOKEN from .env
+    del_resp = client.delete(f"{PREFIX}/auth/token")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["removed"] is True
+    assert "ghp_validtoken123" not in (hermes_home / ".env").read_text(encoding="utf-8")
+
+
 def test_plugin_registration(publisher_module):
     """Verify plugin register(ctx) registers expected CLI, slash commands, tools, and skill."""
     class FakeContext:

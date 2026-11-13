@@ -19,7 +19,7 @@ import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import type { ProfileScope } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { FolderOpen, Loader2, Monitor, Package, RefreshCw } from '@/lib/icons'
+import { FolderOpen, Loader2, Monitor, Package, RefreshCw, Trash2 } from '@/lib/icons'
 import { CATALOG_ORIGIN, CATALOG_PICKER_URL } from '@/lib/plugin-catalog'
 import { cn } from '@/lib/utils'
 import {
@@ -31,9 +31,11 @@ import {
   type GatewayRequest,
   isDesktopRelevantPlugin,
   loadAgentPlugins,
+  removeAgentPlugin,
   toggleAgentPlugin,
   updateAgentPlugin
 } from '@/store/agent-plugins'
+import { confirm } from '@/store/confirm'
 import { notify, notifyError } from '@/store/notifications'
 import { $paneHeightOverride, setPaneHeightOverride } from '@/store/panes'
 import { openCatalogPluginInstall } from '@/store/plugin-catalog-install'
@@ -222,7 +224,8 @@ function PackageRow({
   scopeLabel,
   busy,
   onAgentToggle,
-  onAgentUpdate
+  onAgentUpdate,
+  onRemove
 }: {
   pkg: PluginPackage
   scope: null | string
@@ -230,6 +233,7 @@ function PackageRow({
   busy: boolean
   onAgentToggle: (row: AgentPluginRow, enable: boolean) => void
   onAgentUpdate: (row: AgentPluginRow) => void
+  onRemove: (pkg: PluginPackage) => void
 }) {
   const { t } = useI18n()
   const p = t.skills.plugins
@@ -239,6 +243,7 @@ function PackageRow({
   const desktopOn = desktop ? desktop.status !== 'disabled' : false
   const agentOn = agent?.status === 'enabled'
   const agentToggleable = Boolean(agent?.key)
+  const canRemove = Boolean((agent && agent.source !== 'bundled') || (desktop && desktop.kind !== 'bundled'))
   // Electron's desktop-half reconcile only walks THIS machine's homes, so a
   // package installed on a remote backend can never materialize here (#114079).
   const remoteBackend = useStore($connection)?.mode === 'remote'
@@ -273,11 +278,24 @@ function PackageRow({
         </div>
         {/* Fixed slot so the switch column stays straight whether or not
             this row has a folder to reveal (bundled plugins have none). */}
-        <span className="flex size-7 shrink-0 items-center justify-center">
+        <span className="flex h-7 min-w-7 shrink-0 items-center justify-center gap-0.5">
           {desktop?.file && (
             <Tip label={d.reveal}>
               <Button onClick={() => reveal(desktop.file!)} size="icon" variant="ghost">
                 <Codicon name="folder-opened" size="0.85rem" />
+              </Button>
+            </Tip>
+          )}
+          {canRemove && (
+            <Tip label={p.removePlugin}>
+              <Button
+                aria-label={`${p.removePlugin}: ${pkg.name}`}
+                disabled={busy}
+                onClick={() => onRemove(pkg)}
+                size="icon"
+                variant="ghost"
+              >
+                <Trash2 className="size-3.5 text-(--ui-text-tertiary) hover:text-(--ui-danger,#f87171)" />
               </Button>
             </Tip>
           )}
@@ -479,6 +497,27 @@ export const PluginsTab = memo(function PluginsTab({
 
   const agentBusy = (row: AgentPluginRow) => busyKey === (row.key ?? row.name) || busyKey === row.name
 
+  const handleRemove = async (pkg: PluginPackage) => {
+    const confirmed = await confirm({
+      confirmLabel: p.removePlugin,
+      description: p.removeConfirmDesc,
+      destructive: true,
+      title: p.removeConfirmTitle(pkg.name)
+    })
+
+    if (!confirmed) {
+      return
+    }
+
+    const name = pkg.agent?.name ?? pkg.desktop?.packageName ?? pkg.name
+    const ok = await removeAgentPlugin(requestGateway, name, p.removeFailed(pkg.name), scope)
+
+    if (ok) {
+      notify({ kind: 'success', message: p.removeSuccess(pkg.name) })
+      void rescanAll(requestGateway, scope)
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-32 flex-1 overflow-y-auto">
@@ -563,7 +602,7 @@ export const PluginsTab = memo(function PluginsTab({
             </div>
             {packages.map(pkg => (
               <PackageRow
-                busy={pkg.agent ? agentBusy(pkg.agent) : false}
+                busy={pkg.agent ? agentBusy(pkg.agent) : busyKey === (pkg.desktop?.packageName ?? pkg.name)}
                 key={pkg.key}
                 onAgentToggle={(row, enable) => {
                   if (!row.key) {
@@ -580,6 +619,7 @@ export const PluginsTab = memo(function PluginsTab({
                     }
                   })
                 }}
+                onRemove={handleRemove}
                 pkg={pkg}
                 scope={scope}
                 scopeLabel={label}

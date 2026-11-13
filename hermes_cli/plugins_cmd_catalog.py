@@ -86,12 +86,20 @@ def read_catalog_sidecar(plugin_dir) -> Optional[dict]:
     return data if isinstance(data, dict) and data.get("catalog_name") else None
 
 
-def catalog_annotation(dir_path) -> Optional[str]:
+def catalog_annotation(dir_path, catalog_pins_map: Optional[Dict[str, str]] = None) -> Optional[str]:
     """``catalog:<tier>@<sha8>`` for a catalog install (``list`` Source column), else ``None``."""
     sidecar = read_catalog_sidecar(dir_path)
     if not sidecar:
         return None
-    return f"catalog:{sidecar.get('tier') or 'community'}@{str(sidecar.get('sha') or '')[:8]}"
+    installed_sha = str(sidecar.get("sha") or "")
+    tier = sidecar.get("tier") or "community"
+    base = f"catalog:{tier}@{installed_sha[:8]}"
+    if catalog_pins_map:
+        cat_name = str(sidecar.get("catalog_name") or "")
+        latest = catalog_pins_map.get(cat_name)
+        if latest and latest.strip().lower() != installed_sha.strip().lower():
+            return f"{base} [yellow](update: {latest[:8]})[/yellow]"
+    return base
 
 
 def removed_annotation(name: str, dir_path, removed_entries: List[RemovedEntry]) -> Optional[str]:
@@ -125,17 +133,17 @@ def install_catalog_entry(entry: PluginCatalogEntry, *, force: bool, ref: Option
     return target, manifest, installed_name
 
 
-def repin_catalog_plugin(target: Path, sidecar: dict) -> tuple[str, bool]:
+def repin_catalog_plugin(target: Path, sidecar: dict, *, force_fetch: bool = True) -> tuple[str, bool]:
     """Re-pin a catalog install to the current catalog SHA (never ``git pull``). Returns
     ``(new_sha, changed)``; raises ``PluginOperationError`` when the entry left the catalog."""
     from hermes_cli.plugins_cmd import PluginOperationError, _get_enabled_set, _save_enabled_set
     catalog_name = str(sidecar["catalog_name"])
-    entry = get_live_catalog_entry(catalog_name)
+    entry = get_live_catalog_entry(catalog_name, force=force_fetch)
     if entry is None:
         raise PluginOperationError(
             f"Plugin '{catalog_name}' is no longer in the catalog — it may have been removed. "
             "See `hermes plugins info` and the removed blocklist.")
-    if str(sidecar.get("sha") or "").strip().lower() == entry.sha:
+    if str(sidecar.get("sha") or "").strip().lower() == entry.sha.strip().lower():
         return entry.sha, False
     was_enabled = _get_enabled_set()  # the force reinstall must not flip activation state
     install_catalog_entry(entry, force=True)
@@ -316,17 +324,17 @@ def catalog_row_fields(dir_path, pins: Dict[str, str], versions: Optional[Dict[s
     return row
 
 
-def catalog_pins() -> Dict[str, str]:
+def catalog_pins(*, force: bool = False) -> Dict[str, str]:
     """``{catalog_name: pinned_sha}`` from the live catalog; empty on failure (best effort)."""
     try:
-        return {e.name: e.sha for e in load_catalog_live()}
+        return {e.name: e.sha for e in load_catalog_live(force=force)}
     except Exception:
         return {}
 
 
-def catalog_versions() -> Dict[str, str]:
+def catalog_versions(*, force: bool = False) -> Dict[str, str]:
     """``{catalog_name: version_label}`` for entries that carry one; empty on failure (best effort)."""
     try:
-        return {e.name: e.version for e in load_catalog_live() if e.version}
+        return {e.name: e.version for e in load_catalog_live(force=force) if e.version}
     except Exception:
         return {}

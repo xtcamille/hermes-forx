@@ -111,3 +111,34 @@ def test_owner_repo_hash_subdir_shorthand_resolves_like_the_catalog_spelling():
     assert _resolve_git_url("plastic-labs/honcho#hermes-plugin-honcho") == (
         "https://github.com/plastic-labs/honcho.git", "hermes-plugin-honcho")
     assert _resolve_git_url("owner/repo") == ("https://github.com/owner/repo.git", None)
+
+
+def test_catalog_annotation_with_update_available(world):
+    entry = pc_cat.get_live_catalog_entry("cat-plugin")
+    target, _m, _name = cat.install_catalog_entry(entry, force=False)
+    # Without map: normal annotation
+    assert cat.catalog_annotation(target) == f"catalog:community@{world['sha1'][:8]}"
+    # With map matching current: no update note
+    assert cat.catalog_annotation(target, {"cat-plugin": world["sha1"]}) == f"catalog:community@{world['sha1'][:8]}"
+    # With map having newer sha: includes update note
+    annotated = cat.catalog_annotation(target, {"cat-plugin": world["sha2"]})
+    assert f"update: {world['sha2'][:8]}" in annotated
+
+
+def test_cmd_update_all_and_validation(world):
+    entry = pc_cat.get_live_catalog_entry("cat-plugin")
+    target, _m, _name = cat.install_catalog_entry(entry, force=False)
+    assert _head(target) == world["sha1"]
+
+    # Calling cmd_update without name and without all_plugins exits 1
+    with pytest.raises(SystemExit) as exc_info:
+        pc.cmd_update(None, all_plugins=False)
+    assert exc_info.value.code == 1
+
+    # Bump catalog pin to sha2
+    world["state"]["pin"] = world["sha2"]
+
+    # Run cmd_update(all_plugins=True)
+    pc.cmd_update(all_plugins=True)
+    assert _head(target) == world["sha2"]
+
