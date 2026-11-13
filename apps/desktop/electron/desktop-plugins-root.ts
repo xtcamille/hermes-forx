@@ -189,7 +189,19 @@ export async function materializeDesktopHalf(
       }
     }
 
-    if (existing && existing.source === sourceDir && existing.sourceMtimeMs >= stat.mtimeMs) {
+    let targetSize = -1
+    try {
+      targetSize = (await fs.promises.stat(path.join(target, 'plugin.js'))).size
+    } catch {
+      targetSize = -1
+    }
+
+    if (
+      existing &&
+      existing.source === sourceDir &&
+      existing.sourceMtimeMs >= stat.mtimeMs &&
+      targetSize === stat.size
+    ) {
       return null
     }
   }
