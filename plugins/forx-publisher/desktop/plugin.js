@@ -1924,15 +1924,45 @@ function PublisherPane() {
         style: { fontSize: '12px', color: 'var(--ui-text-secondary)', lineHeight: 1.5 },
         children: '一键对本地自研插件或技能进行合规体检、配置 GitHub 授权并提交 PR 到全平台公共库。',
       }),
-      jsxs(Button, {
-        variant: 'default',
-        size: 'sm',
-        style: { width: '100%' },
-        onClick: () => host.navigate('/publish'),
+      jsxs('div', {
+        style: { display: 'flex', flexDirection: 'column', gap: '8px' },
         children: [
-          '打开全屏发布工作台',
-          jsx(icons.ArrowUpRight, { className: 'size-3.5' }),
+          jsxs(Button, {
+            variant: 'default',
+            size: 'sm',
+            style: { width: '100%' },
+            onClick: () => host.navigate('/publish'),
+            children: [
+              '打开全屏发布工作台',
+              jsx(icons.ArrowUpRight, { className: 'size-3.5' }),
+            ],
+          }),
+          jsxs(Button, {
+            variant: 'secondary',
+            size: 'sm',
+            style: { width: '100%' },
+            onClick: () => {
+              host.navigate('/')
+              haptic('tap')
+            },
+            children: [
+              jsx(icons.MessageCircle, { className: 'size-3.5' }),
+              '在对话中启动发布向导',
+            ],
+          }),
         ],
+      }),
+      jsx('div', {
+        style: {
+          padding: '8px 10px',
+          borderRadius: '8px',
+          background: 'color-mix(in srgb, var(--ui-accent, #3b82f6) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--ui-accent, #3b82f6) 24%, transparent)',
+          color: 'var(--ui-text-primary)',
+          fontSize: '11.5px',
+          lineHeight: 1.5,
+        },
+        children: '💬 提示：也可以直接在聊天框发送 “帮我发布插件” 或输入 /publish，智能管家将对话引导完成发布！',
       }),
       jsxs('div', {
         style: { paddingTop: '14px', borderTop: '1px solid var(--ui-stroke-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' },

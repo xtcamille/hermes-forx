@@ -40,7 +40,7 @@ def setup(subparser: argparse.ArgumentParser) -> None:
 
     # 1. check
     p_check = subs.add_parser("check", help="检查本地插件或技能的合规性与安全状态")
-    p_check.add_argument("path", help="待检查的插件或技能本地目录路径")
+    p_check.add_argument("path", nargs="?", default=".", help="待检查的插件或技能本地目录路径（默认当前目录）")
     p_check.add_argument(
         "--type",
         choices=["auto", "plugin", "skill"],
@@ -50,7 +50,7 @@ def setup(subparser: argparse.ArgumentParser) -> None:
 
     # 2. plugin
     p_plugin = subs.add_parser("plugin", help="验证并将本地插件发布到 Plugin Catalog")
-    p_plugin.add_argument("path", help="插件目录路径（需包含 plugin.yaml）")
+    p_plugin.add_argument("path", nargs="?", default=".", help="插件目录路径（需包含 plugin.yaml，默认当前目录）")
     p_plugin.add_argument(
         "--target-repo",
         default=DEFAULT_TARGET_REPO,
@@ -64,7 +64,7 @@ def setup(subparser: argparse.ArgumentParser) -> None:
 
     # 3. skill
     p_skill = subs.add_parser("skill", help="安全扫描并将本地技能发布到公共 Skills 库")
-    p_skill.add_argument("path", help="技能目录路径（需包含 SKILL.md）")
+    p_skill.add_argument("path", nargs="?", default=".", help="技能目录路径（需包含 SKILL.md，默认当前目录）")
     p_skill.add_argument(
         "--target-repo",
         default=DEFAULT_TARGET_REPO,

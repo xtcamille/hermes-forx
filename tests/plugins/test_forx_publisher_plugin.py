@@ -405,3 +405,13 @@ def test_plugin_registration(publisher_module):
     assert "forx_publish_plugin" in ctx.tools
     assert "forx_publish_skill" in ctx.tools
     assert "forx-publish" in ctx.skills
+
+
+def test_slash_handler_conversational_discovery(publisher_module):
+    """Verify /publish with no args returns conversational guide and detects local candidate."""
+    slash_fn = publisher_module._slash_handler
+    help_out = slash_fn("")
+    assert "对话式发布指引" in help_out
+    assert "帮我把当前插件发布到社区商店" in help_out
+    assert "/publish check" in help_out
+

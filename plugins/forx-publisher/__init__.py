@@ -159,15 +159,38 @@ def _slash_handler(raw_args: str) -> str:
     parts = (raw_args or "").strip().split()
     if not parts:
         auth = get_auth_status()
-        auth_msg = f"已认证 ({auth.get('username')})" if auth["authenticated"] else "未认证 (需配置 GITHUB_TOKEN)"
+        auth_msg = f"已认证 ({auth.get('username')})" if auth["authenticated"] else "未认证 (需配置 GITHUB_TOKEN 或执行 gh auth login)"
+
+        # Auto-detect candidate plugins/skills in cwd, plugins/, or skills/
+        candidates = []
+        try:
+            cwd = Path.cwd()
+            scan_dirs = [cwd]
+            if (cwd / "plugins").is_dir():
+                scan_dirs.extend(list((cwd / "plugins").iterdir()))
+            if (cwd / "skills").is_dir():
+                scan_dirs.extend(list((cwd / "skills").iterdir()))
+            for cand in scan_dirs:
+                if cand.is_dir() and ((cand / "plugin.yaml").exists() or (cand / "SKILL.md").exists()):
+                    is_p = (cand / "plugin.yaml").exists()
+                    candidates.append(f"  • [{'插件' if is_p else '技能'}] `{cand.name}` (`{cand}`)")
+        except Exception:
+            pass
+
+        cand_text = ""
+        if candidates:
+            cand_text = "\n\n**🔍 检测到当前可发布项目：**\n" + "\n".join(candidates[:5])
+
         return (
-            f"**ForX 社区发布中心**\n\n"
-            f"- GitHub 状态: {auth_msg}\n\n"
-            f"**常用命令:**\n"
-            f"- `/publish check <路径>` — 检查插件或技能规范\n"
-            f"- `/publish plugin <路径>` — 发布插件到 Catalog\n"
-            f"- `/publish skill <路径>` — 发布技能到公共技能库\n"
-            f"- `/publish auth` — 查看 GitHub 认证与授权状态\n"
+            f"**ForX 社区发布中心 (Conversational Publisher)**\n\n"
+            f"- GitHub 状态: {auth_msg}{cand_text}\n\n"
+            f"💬 **对话式发布指引：**\n"
+            f"你可以直接在对话中对我说：\n"
+            f"- *“帮我把当前插件发布到社区商店”*\n"
+            f"- *“检查一下我写的 skill 是否合规”*\n"
+            f"- *“发布我的插件并创建 PR”*\n\n"
+            f"我将以对话管家形式，自动探测路径、检查合规并协助修复、生成目录条目并一键发起 GitHub PR！\n\n"
+            f"快捷命令: `/publish check [路径]`, `/publish plugin [路径]`, `/publish skill [路径]`, `/publish auth`"
         )
 
     sub = parts[0].lower()
@@ -177,10 +200,7 @@ def _slash_handler(raw_args: str) -> str:
             return f"✅ GitHub 已认证，用户: `{st.get('username')}` (认证方式: `{st.get('method')}`)"
         return f"❌ 未认证: {st.get('error')}"
 
-    if len(parts) < 2:
-        return f"用法: `/publish {sub} <路径>`"
-
-    target_path = parts[1]
+    target_path = parts[1] if len(parts) >= 2 else "."
     if sub == "check":
         res = check_target(target_path)
         if res.get("ok"):
