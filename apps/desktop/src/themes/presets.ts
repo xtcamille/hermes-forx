@@ -387,11 +387,11 @@ export const slateTheme: DesktopTheme = {
   }
 }
 
-/** Cupertino — Apple Humanist theme inspired by macOS Sequoia & Apple Intelligence. */
+/** The default ForX palette with Cupertino typography and translucency. */
 export const cupertinoTheme: DesktopTheme = {
   name: 'cupertino',
   label: 'Cupertino',
-  description: 'Apple Humanist — fluid translucency, warm neutrals & Apple Blue',
+  description: 'Translucent surfaces with violet accents and soft color gradients',
   ...THEME_PRESET_PALETTES.cupertino,
   typography: {
     fontSans:

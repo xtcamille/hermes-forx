@@ -1998,11 +1998,8 @@ button:not(:disabled):active,
   --composer-fill: color-mix(in srgb, var(--dt-card) 80%, transparent);
 }
 
-/* Tool/thinking blocks now live at message-text alignment (no leading
-   chevron column to escape into), so their headers and bodies share a
-   common left edge with the model's text. */
-[data-slot='aui_assistant-message-content'] > [data-slot='tool-block'],
-[data-slot='aui_assistant-message-content'] > [data-slot='aui_thinking-disclosure'] {
+/* Top-level tool blocks align with the model's text. */
+[data-slot='aui_assistant-message-content'] > [data-slot='tool-block'] {
   width: 100%;
   max-width: 100%;
   border-radius: 1.125rem !important;
@@ -2014,7 +2011,6 @@ button:not(:disabled):active,
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-[data-slot='aui_thinking-disclosure'][data-state='open'],
 [data-slot='tool-block'][data-status='running'] {
   border-color: color-mix(in srgb, var(--dt-primary) 50%, transparent) !important;
   box-shadow: var(--shadow-apple-ambient), 0 0 16px -2px color-mix(in srgb, var(--dt-primary) 22%, transparent) !important;
@@ -2130,12 +2126,8 @@ button:not(:disabled):active,
   border-bottom-color: var(--ui-stroke-tertiary) !important;
 }
 
-/* Tool / thinking blocks are scaffolding around the model's reply, so we
-   keep them transparent and fade them slightly. The reading column (prose)
-   stays at full strength; scaffolding lifts back to full opacity on
-   hover/focus so it stays legible when the user actually wants to read it. */
-[data-slot='tool-block'],
-[data-slot='aui_thinking-disclosure'] {
+/* Nested tool rows share the outer tool block's surface. */
+[data-slot='tool-block'] {
   background: transparent !important;
 }
 
@@ -2279,6 +2271,13 @@ button:not(:disabled):active,
    painted value lands well under the number here. */
 [data-slot='aui_thinking-disclosure'] {
   --disclosure-caret-rest: 0.4;
+}
+
+/* A live preview follows the latest text. Show the thumb at rest so earlier
+   reasoning is discoverable even with the pointer still over the composer. */
+[data-slot='aui_thinking-body'][data-preview] {
+  scrollbar-color: var(--ui-text-quaternary) transparent;
+  scrollbar-width: thin;
 }
 
 /* A streaming turn is sealed into several assistant bubbles as it goes

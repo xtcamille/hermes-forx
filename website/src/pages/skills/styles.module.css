@@ -23,12 +23,7 @@
   transform: translateX(-50%);
   width: 700px;
   height: 420px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(41, 151, 255, 0.12) 0%,
-    rgba(99, 102, 241, 0.05) 45%,
-    transparent 70%
-  );
+  background: var(--forx-brand-wash);
   pointer-events: none;
 }
 
@@ -206,11 +201,7 @@
 .searchInput:focus {
   border-color: var(--ifm-color-primary);
   background: var(--ifm-background-surface-color);
-  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2);
-}
-
-[data-theme="light"] .searchInput:focus {
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
+  box-shadow: 0 0 0 3px var(--forx-accent-tint);
 }
 
 .searchInput::placeholder {
@@ -266,17 +257,12 @@
   color: var(--ifm-font-color-base);
 }
 
-.srcPillActive {
-  border-color: rgba(41, 151, 255, 0.4);
-  background: rgba(41, 151, 255, 0.15);
-  color: #2997ff;
+.srcPillActive,
+.srcPillActive:hover {
+  border-color: var(--forx-accent-border);
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-weight: 600;
-}
-
-[data-theme="light"] .srcPillActive {
-  border-color: rgba(0, 113, 227, 0.35);
-  background: rgba(0, 113, 227, 0.10);
-  color: #0071e3;
 }
 
 .srcCount {
@@ -377,15 +363,10 @@
   color: var(--ifm-font-color-base);
 }
 
-.catItemActive {
-  background: rgba(41, 151, 255, 0.16);
-  color: #2997ff;
-  font-weight: 600;
-}
-
-[data-theme="light"] .catItemActive {
-  background: rgba(0, 113, 227, 0.10);
-  color: #0071e3;
+.catItemActive,
+.catItemActive:hover {
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-weight: 600;
 }
 
@@ -448,18 +429,12 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.65rem;
-  border: 1px solid rgba(41, 151, 255, 0.25);
+  border: 1px solid var(--forx-accent-border);
   border-radius: 9999px;
-  background: rgba(41, 151, 255, 0.10);
-  color: #2997ff;
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-size: 0.75rem;
   font-weight: 500;
-}
-
-[data-theme="light"] .filterChip {
-  border-color: rgba(0, 113, 227, 0.22);
-  background: rgba(0, 113, 227, 0.08);
-  color: #0071e3;
 }
 
 .filterChip button {
@@ -536,22 +511,20 @@
 
 .card:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 113, 227, 0.25);
+  border-color: var(--forx-accent-border);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] .card:hover {
-  border-color: rgba(41, 151, 255, 0.3);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 .cardExpanded {
-  border-color: rgba(0, 113, 227, 0.35);
+  border-color: var(--forx-accent-border);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .cardExpanded {
-  border-color: rgba(41, 151, 255, 0.4);
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
 }
 
@@ -704,9 +677,9 @@
 }
 
 .tagPill:hover {
-  background: rgba(41, 151, 255, 0.15);
+  background: var(--forx-accent-tint);
   color: var(--ifm-color-primary);
-  border-color: rgba(41, 151, 255, 0.3);
+  border-color: var(--forx-accent-border);
 }
 
 .authorRow {

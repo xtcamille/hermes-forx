@@ -1,3 +1,4 @@
+import { FORX_BRAND_COLORS } from '@hermes/shared/theme-presets'
 import { useState } from 'react'
 
 import { BrandMark } from '@/components/brand-mark'
@@ -145,7 +146,15 @@ function pickCopy(copies: IntroCopy[], seed = 0): IntroCopy {
   return copies[Math.abs(seed) % copies.length] || FALLBACK_COPY[0]
 }
 
-const WORDMARK = 'FORX AGENT'
+const WORDMARK = 'ForX Agent'
+const BRAND_WASH = {
+  background: [
+    `radial-gradient(ellipse 35% 65% at 31% 32%, color-mix(in srgb, ${FORX_BRAND_COLORS.blue} var(--brand-wash-opacity), transparent), transparent 95%)`,
+    `radial-gradient(ellipse 35% 66% at 68% 36%, color-mix(in srgb, ${FORX_BRAND_COLORS.rose} var(--brand-wash-opacity), transparent), transparent 95%)`,
+    `radial-gradient(ellipse 25% 52% at 66% 61%, color-mix(in srgb, ${FORX_BRAND_COLORS.coral} 18%, transparent), transparent 95%)`
+  ].join(', '),
+  maskImage: 'linear-gradient(transparent, black 18%, black 62%, transparent)'
+}
 
 function resolveCopy(personality?: string, seed?: number): IntroCopy {
   const personalityKey = normalizeKey(personality)
@@ -163,26 +172,21 @@ export function Intro({ personality, seed }: IntroProps) {
 
   return (
     <div
-      className="pointer-events-none flex w-full min-w-0 flex-col items-center justify-center px-3 py-8 text-center text-muted-foreground sm:px-6 lg:px-8"
+      className="pointer-events-none relative isolate flex w-full min-w-0 flex-col items-center justify-center px-3 py-8 text-center text-muted-foreground sm:px-6 lg:px-8"
       data-slot="aui_intro"
     >
-      <div className="flex max-w-md flex-col items-center gap-3.5">
-        <div className="relative flex items-center justify-center">
-          <div
-            aria-hidden
-            className="absolute -inset-3 rounded-full bg-primary/10 blur-xl dark:bg-primary/15"
-          />
-          <BrandMark className="relative size-12 rounded-2xl shadow-sm ring-1 ring-(--ui-stroke-secondary)/70" />
-        </div>
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10 mx-auto max-w-3xl [--brand-wash-opacity:44%] dark:[--brand-wash-opacity:33%]"
+        style={BRAND_WASH}
+      />
+      <div className="flex max-w-md flex-col items-center gap-4">
+        <BrandMark />
 
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-secondary)/70 px-2.5 py-0.5 text-[0.65rem] font-medium tracking-[0.14em] text-(--ui-text-tertiary) uppercase">
-          {WORDMARK}
-        </span>
+        <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">{WORDMARK}</span>
 
         <div className="flex flex-col items-center gap-1.5">
-          <h2 className="m-0 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            {copy.headline}
-          </h2>
+          <h2 className="m-0 text-lg font-semibold tracking-tight text-foreground sm:text-xl">{copy.headline}</h2>
           <p className="m-0 max-w-sm text-center text-[length:var(--conversation-text-font-size)] leading-relaxed text-(--ui-text-secondary)">
             {copy.body}
           </p>
@@ -191,4 +195,3 @@ export function Intro({ personality, seed }: IntroProps) {
     </div>
   )
 }
-

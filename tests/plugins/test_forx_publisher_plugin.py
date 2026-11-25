@@ -375,36 +375,27 @@ def test_auth_token_save_and_clear_lifecycle(tmp_path, monkeypatch):
     assert "ghp_validtoken123" not in (hermes_home / ".env").read_text(encoding="utf-8")
 
 
-def test_plugin_registration(publisher_module):
-    """Verify plugin register(ctx) registers expected CLI, slash commands, tools, and skill."""
-    class FakeContext:
-        def __init__(self):
-            self.commands = {}
-            self.cli_commands = {}
-            self.tools = {}
-            self.skills = {}
+def test_plugin_registration():
+    from hermes_cli.plugins import discover_plugins, get_plugin_commands, get_plugin_manager
+    from hermes_constants import get_hermes_home
+    from tools.registry import registry
 
-        def register_cli_command(self, name, help, setup_fn, handler_fn):
-            self.cli_commands[name] = {"help": help, "setup": setup_fn, "handler": handler_fn}
+    (get_hermes_home() / "config.yaml").write_text(
+        "plugins:\n  enabled: [forx-publisher]\n", encoding="utf-8"
+    )
+    discover_plugins()
+    manager = get_plugin_manager()
 
-        def register_command(self, name, handler, description="", args_hint=""):
-            self.commands[name] = {"handler": handler, "desc": description, "hint": args_hint}
-
-        def register_tool(self, name, toolset, schema, handler, description="", **kwargs):
-            self.tools[name] = {"toolset": toolset, "schema": schema, "handler": handler}
-
-        def register_skill(self, name, skill_path, description=""):
-            self.skills[name] = {"path": skill_path, "desc": description}
-
-    ctx = FakeContext()
-    publisher_module.register(ctx)
-
-    assert "publish" in ctx.cli_commands
-    assert "publish" in ctx.commands
-    assert "forx_publish_check" in ctx.tools
-    assert "forx_publish_plugin" in ctx.tools
-    assert "forx_publish_skill" in ctx.tools
-    assert "forx-publish" in ctx.skills
+    plugin = next(row for row in manager.list_plugins() if row["key"] == "forx-publisher")
+    assert plugin["enabled"], plugin["error"]
+    assert "publish" in manager._cli_commands
+    assert "publish" in get_plugin_commands()
+    assert {"forx_publish_check", "forx_publish_plugin", "forx_publish_skill"} <= set(
+        registry.get_tool_names_for_toolset("publisher")
+    )
+    assert manager.find_plugin_skill("forx-publisher:forx-publish") == (
+        PLUGIN_ROOT / "skills" / "forx-publish" / "SKILL.md"
+    )
 
 
 def test_slash_handler_conversational_discovery(publisher_module):

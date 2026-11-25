@@ -1,4 +1,5 @@
 import { parseColor, THEME_PRESET_PALETTES, type ThemePresetPalette } from "@hermes/shared";
+import { FORX_BRAND_COLORS } from "@hermes/shared/theme-presets";
 import type { DashboardTheme, ThemePalette, ThemeTypography, ThemeLayout } from "./types";
 
 /**
@@ -65,20 +66,54 @@ export function webPresetFromShared(
 // Themes
 // ---------------------------------------------------------------------------
 
+const forxDarkColors = THEME_PRESET_PALETTES.cupertino.darkColors;
+const forxHeaderBackground = `linear-gradient(
+  110deg,
+  color-mix(in srgb, ${FORX_BRAND_COLORS.blue} 17%, ${forxDarkColors.sidebarBackground}),
+  color-mix(in srgb, ${FORX_BRAND_COLORS.rose} 16%, ${forxDarkColors.sidebarBackground})
+)`;
+
 export const defaultTheme: DashboardTheme = {
   name: "default",
-  label: "ForX Teal",
-  description: "Classic dark teal — the canonical ForX look",
+  label: "ForX",
+  description: "Indigo surfaces with blue, pink and coral accents",
   palette: {
-    background: { hex: "#041c1c", alpha: 1 },
-    midground: { hex: "#ffe6cb", alpha: 1 },
-    foreground: { hex: "#ffffff", alpha: 0 },
-    warmGlow: "rgba(255, 189, 56, 0.35)",
+    ...webPresetFromShared(THEME_PRESET_PALETTES.cupertino),
+    midground: { hex: forxDarkColors.foreground, alpha: 1 },
     noiseOpacity: 1,
   },
   typography: DEFAULT_TYPOGRAPHY,
   layout: DEFAULT_LAYOUT,
-  terminalBackground: "#000000",
+  componentStyles: {
+    header: { background: forxHeaderBackground },
+    sidebar: {
+      background: `linear-gradient(
+        165deg,
+        color-mix(in srgb, ${FORX_BRAND_COLORS.blue} 9%, ${forxDarkColors.sidebarBackground}),
+        ${forxDarkColors.sidebarBackground} 58%,
+        color-mix(in srgb, ${FORX_BRAND_COLORS.rose} 11%, ${forxDarkColors.sidebarBackground})
+      )`,
+    },
+    tab: {
+      background: `linear-gradient(
+        105deg,
+        color-mix(in srgb, ${FORX_BRAND_COLORS.blue} 15%, transparent),
+        color-mix(in srgb, ${FORX_BRAND_COLORS.rose} 17%, transparent) 74%,
+        color-mix(in srgb, ${FORX_BRAND_COLORS.coral} 14%, transparent)
+      )`,
+    },
+  },
+  colorOverrides: {
+    primary: forxDarkColors.primary,
+    primaryForeground: forxDarkColors.primaryForeground,
+    ring: forxDarkColors.ring,
+  },
+  seriesColors: {
+    inputTokenAccent: FORX_BRAND_COLORS.blue,
+    outputTokenAccent: FORX_BRAND_COLORS.rose,
+  },
+  terminalBackground: forxDarkColors.background,
+  terminalForeground: forxDarkColors.foreground,
 };
 
 export const midnightTheme: DashboardTheme = {
@@ -228,10 +263,10 @@ export const nousBlueTheme: DashboardTheme = {
  * dashboard scales up. For users who find the default 15px UI too dense.
  */
 export const defaultLargeTheme: DashboardTheme = {
+  ...defaultTheme,
   name: "default-large",
-  label: "ForX Teal (Large)",
-  description: "ForX Teal with bigger fonts and roomier spacing",
-  palette: defaultTheme.palette,
+  label: "ForX (Large)",
+  description: "ForX with bigger fonts and roomier spacing",
   typography: {
     ...DEFAULT_TYPOGRAPHY,
     baseSize: "18px",

@@ -1,7 +1,7 @@
 <div dir="rtl">
 
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/banner.png" alt="ForX Agent" width="100%">
 </p>
 
 # ہرمیس ایجنٹ ☤ (Hermes Agent)

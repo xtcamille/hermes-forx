@@ -34,6 +34,42 @@ test.afterAll(async () => {
   }
 })
 
+test('the first streaming thought stays legible and scrollable', async ({ page }) => {
+  await page.goto(`${url}?reasoning&light`)
+  const thread = page.getByTestId('first-transcript')
+  const preview = thread.locator('[data-slot="aui_thinking-body"]')
+  const first = preview.getByText('Reasoning paragraph 1', { exact: true })
+  const last = preview.getByText('Reasoning paragraph 16', { exact: true })
+  const toggle = thread.getByRole('button', { name: 'Thinking', exact: true })
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(last).toBeInViewport({ ratio: 1 })
+  const overflow = () => preview.evaluate(el => el.scrollHeight - el.clientHeight)
+  await expect.poll(overflow).toBeGreaterThan(0)
+
+  const opacity = await last.evaluate(el => {
+    let effective = 1
+
+    for (let node: Element | null = el; node; node = node.parentElement) {
+      effective *= Number(getComputedStyle(node).opacity)
+    }
+
+    return effective
+  })
+
+  expect(opacity).toBe(1)
+  await expect(preview).not.toHaveCSS('scrollbar-color', 'auto')
+
+  await preview.hover()
+  await page.mouse.wheel(0, -1000)
+  await expect(first).toBeInViewport({ ratio: 1 })
+
+  await toggle.click()
+  await expect(preview).toHaveCount(0)
+  await toggle.click()
+  await expect.poll(overflow).toBe(0)
+})
+
 test('glass tabs fade the label beneath the close button without repainting the field', async ({ page }) => {
   await page.goto(url)
   const tab = page.getByTestId('active-tab')

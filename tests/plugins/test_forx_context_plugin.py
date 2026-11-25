@@ -246,31 +246,21 @@ def test_cli_presentation(tmp_path, monkeypatch):
     assert "错误" in err_out
 
 
-def test_plugin_registration(context_module):
-    """Verify plugin register(ctx) invokes expected registrar methods."""
-    class FakeContext:
-        def __init__(self):
-            self.commands = {}
-            self.cli_commands = {}
-            self.tools = {}
-            self.skills = {}
+def test_plugin_registration():
+    from hermes_cli.plugins import discover_plugins, get_plugin_manager
+    from hermes_constants import get_hermes_home
+    from tools.registry import registry
 
-        def register_cli_command(self, name, help, setup_fn, handler_fn):
-            self.cli_commands[name] = {"help": help, "setup": setup_fn, "handler": handler_fn}
+    (get_hermes_home() / "config.yaml").write_text(
+        "plugins:\n  enabled: [forx-context]\n", encoding="utf-8"
+    )
+    discover_plugins()
+    manager = get_plugin_manager()
 
-        def register_command(self, name, handler, description="", args_hint=""):
-            self.commands[name] = {"handler": handler, "desc": description, "hint": args_hint}
-
-        def register_tool(self, name, toolset, schema, handler, description="", **kwargs):
-            self.tools[name] = {"toolset": toolset, "schema": schema, "handler": handler}
-
-        def register_skill(self, name, skill_path, description=""):
-            self.skills[name] = {"path": skill_path, "desc": description}
-
-    ctx = FakeContext()
-    context_module.register(ctx)
-
-    assert "context" in ctx.cli_commands
-    assert "context" in ctx.commands
-    assert "context_inspect" in ctx.tools
-    assert "context-inspect" in ctx.skills
+    plugin = next(row for row in manager.list_plugins() if row["key"] == "forx-context")
+    assert plugin["enabled"], plugin["error"]
+    assert "context" in manager._cli_commands
+    assert "context_inspect" in registry.get_tool_names_for_toolset("context")
+    assert manager.find_plugin_skill("forx-context:context-inspect") == (
+        PLUGIN_ROOT / "skills" / "context-inspect" / "SKILL.md"
+    )

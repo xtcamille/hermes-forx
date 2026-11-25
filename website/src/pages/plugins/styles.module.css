@@ -23,12 +23,7 @@
   transform: translateX(-50%);
   width: 700px;
   height: 420px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(41, 151, 255, 0.12) 0%,
-    rgba(99, 102, 241, 0.05) 45%,
-    transparent 70%
-  );
+  background: var(--forx-brand-wash);
   pointer-events: none;
 }
 
@@ -115,7 +110,7 @@
   color: var(--ifm-color-primary);
   font-weight: 600;
   text-decoration: none;
-  border-bottom: 1px solid rgba(41, 151, 255, 0.35);
+  border-bottom: 1px solid var(--forx-accent-border);
   transition: border-color 0.15s;
 }
 
@@ -190,11 +185,7 @@
 .searchInput:focus {
   border-color: var(--ifm-color-primary);
   background: var(--ifm-background-surface-color);
-  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2);
-}
-
-[data-theme="light"] .searchInput:focus {
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
+  box-shadow: 0 0 0 3px var(--forx-accent-tint);
 }
 
 .searchInput::placeholder {
@@ -250,17 +241,12 @@
   color: var(--ifm-font-color-base);
 }
 
-.tierBtnActive {
-  border-color: rgba(41, 151, 255, 0.4);
-  background: rgba(41, 151, 255, 0.15);
-  color: #2997ff;
+.tierBtnActive,
+.tierBtnActive:hover {
+  border-color: var(--forx-accent-border);
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-weight: 600;
-}
-
-[data-theme="light"] .tierBtnActive {
-  border-color: rgba(0, 113, 227, 0.35);
-  background: rgba(0, 113, 227, 0.10);
-  color: #0071e3;
 }
 
 .tierCount {
@@ -306,17 +292,12 @@
   color: var(--ifm-font-color-base);
 }
 
-.categoryBtnActive {
-  border-color: rgba(41, 151, 255, 0.4);
-  background: rgba(41, 151, 255, 0.15);
-  color: #2997ff;
+.categoryBtnActive,
+.categoryBtnActive:hover {
+  border-color: var(--forx-accent-border);
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-weight: 600;
-}
-
-[data-theme="light"] .categoryBtnActive {
-  border-color: rgba(0, 113, 227, 0.35);
-  background: rgba(0, 113, 227, 0.10);
-  color: #0071e3;
 }
 
 .categoryBtnActive .tierCount {
@@ -431,8 +412,8 @@
 }
 
 .categoryChip {
-  border: 1px solid rgba(41, 151, 255, 0.25);
-  background: rgba(41, 151, 255, 0.08);
+  border: 1px solid var(--forx-accent-border);
+  background: var(--forx-accent-tint);
   color: var(--ifm-color-primary);
   border-radius: 9999px;
   padding: 0.12rem 0.55rem;
@@ -443,7 +424,7 @@
 }
 
 .categoryChip:hover {
-  background: rgba(41, 151, 255, 0.18);
+  background: var(--forx-accent-border);
 }
 
 .main {
@@ -494,22 +475,20 @@
 
 .card:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 113, 227, 0.25);
+  border-color: var(--forx-accent-border);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] .card:hover {
-  border-color: rgba(41, 151, 255, 0.3);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 .cardExpanded {
-  border-color: rgba(0, 113, 227, 0.35);
+  border-color: var(--forx-accent-border);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .cardExpanded {
-  border-color: rgba(41, 151, 255, 0.4);
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
 }
 
@@ -792,9 +771,9 @@
   display: block;
   margin-top: 0.75rem;
   padding: 0.5rem 0.85rem;
-  border: 1px solid rgba(41, 151, 255, 0.25);
+  border: 1px solid var(--forx-accent-border);
   border-radius: 9999px;
-  background: rgba(41, 151, 255, 0.08);
+  background: var(--forx-accent-tint);
   color: var(--ifm-color-primary);
   font-size: 0.8rem;
   font-weight: 600;

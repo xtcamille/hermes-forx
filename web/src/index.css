@@ -43,22 +43,19 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Hermes Agent — Nous DS with the LENS_0 (Hermes teal) palette applied
-   statically as the default dashboard theme. */
+/* ForX dashboard palette for the first paint. ThemeProvider applies the
+   selected theme once the app mounts. */
 /* ------------------------------------------------------------------ */
 
 :root {
-  /* LENS_0 — from design-language/src/ui/components/overlays/index.tsx.
-     These are the defaults for the `default` (Hermes Teal) dashboard theme;
-     ThemeProvider rewrites them as inline styles when a user switches themes. */
   --foreground: color-mix(in srgb, #ffffff 0%, transparent);
   --foreground-base: #ffffff;
   --foreground-alpha: 0;
-  --midground: color-mix(in srgb, #ffe6cb 100%, transparent);
-  --midground-base: #ffe6cb;
+  --midground: color-mix(in srgb, #f1edfa 100%, transparent);
+  --midground-base: #f1edfa;
   --midground-alpha: 1;
-  --background: color-mix(in srgb, #041c1c 100%, transparent);
-  --background-base: #041c1c;
+  --background: color-mix(in srgb, #17152b 100%, transparent);
+  --background-base: #17152b;
   --background-alpha: 1;
 
   /* Typography tokens — rewritten by ThemeProvider. Defaults match the
@@ -80,9 +77,7 @@
 
   /* Data-series accents — consumed by Analytics + Models pages for the
      input-vs-output token visualisations (chart bars, table values,
-     legend swatches). Defaults are tuned for the Hermes-teal LENS_0
-     look: cream input + emerald-400 output read as warm/cool against
-     the dark canvas. Themes override via ThemeProvider, which emits
+     legend swatches). Themes override via ThemeProvider, which emits
      these as `--series-input-token` / `--series-output-token`. */
   --series-input-token: #ffe6cb;
   --series-output-token: #34d399;
@@ -151,6 +146,13 @@ code { font-size: 0.875rem; }
    utility classes (bg-card, text-muted-foreground, border-border, etc.)
    extensively. Rather than rewrite every call site, we expose those
    tokens on top of the Nous palette so classes continue to resolve. */
+/* Reference these variables from utilities so theme overrides take effect. */
+@theme {
+  --color-primary: var(--midground);
+  --color-primary-foreground: var(--background-base);
+  --color-ring: var(--midground);
+}
+
 @theme inline {
   /* Remap foreground to midground so `text-foreground` / `bg-foreground`
      stay visible — in LENS_0, `--foreground` itself has alpha 0. */
@@ -158,8 +160,6 @@ code { font-size: 0.875rem; }
 
   --color-card: color-mix(in srgb, var(--midground-base) 4%, var(--background-base));
   --color-card-foreground: var(--midground);
-  --color-primary: var(--midground);
-  --color-primary-foreground: var(--background-base);
   --color-secondary: color-mix(in srgb, var(--midground-base) 6%, var(--background-base));
   --color-secondary-foreground: var(--midground);
   --color-muted: color-mix(in srgb, var(--midground-base) 8%, var(--background-base));
@@ -176,7 +176,6 @@ code { font-size: 0.875rem; }
   --color-warning: #ffbd38;
   --color-border: color-mix(in srgb, var(--midground-base) 15%, transparent);
   --color-input: color-mix(in srgb, var(--midground-base) 15%, transparent);
-  --color-ring: var(--midground);
   --color-popover: color-mix(in srgb, var(--midground-base) 4%, var(--background-base));
   --color-popover-foreground: var(--midground);
 

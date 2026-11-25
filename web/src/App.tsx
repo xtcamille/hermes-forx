@@ -75,6 +75,7 @@ import { ProfileScopeBanner } from "@/components/ProfileScopeBanner";
 import { MemoryPressureBanner } from "@/components/MemoryPressureBanner";
 import { useSystemActions } from "@/contexts/useSystemActions";
 import type { SystemAction } from "@/contexts/system-actions-context";
+import forxMark from "../../assets/forx-mark.svg";
 // Route pages are lazy-loaded so the initial dashboard shell does not pay for
 // every admin surface (and heavy deps like xterm) up front.
 const ConfigPage = lazy(() => import("@/pages/ConfigPage"));
@@ -551,7 +552,8 @@ export default function App() {
           <Menu />
         </Button>
 
-        <Typography className="font-bold text-[0.95rem] leading-[0.95] tracking-[0.05em] text-midground">
+        <img alt="" className="size-6 shrink-0" src={forxMark} />
+        <Typography className="text-base font-semibold tracking-tight text-midground">
           {t.app.brand}
         </Typography>
       </header>
@@ -605,6 +607,7 @@ export default function App() {
                 "border-b border-current/20",
                 collapsed ? "lg:justify-center lg:px-0" : "px-4 justify-between",
               )}
+              style={{ background: "var(--component-header-background)" }}
             >
               <div
                 className={cn(
@@ -614,10 +617,9 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
-                <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  ForX
-                  <br />
-                  Agent
+                <img alt="" className="size-8 shrink-0" src={forxMark} />
+                <Typography className="text-lg font-semibold tracking-tight text-midground">
+                  {t.app.brand}
                 </Typography>
               </div>
 
@@ -884,19 +886,22 @@ function SidebarNavLink({
         onBlur={collapsed ? hideTooltip : undefined}
         className={({ isActive }) =>
           cn(
-            "group/nav relative flex items-center gap-3",
+            "relative flex items-center gap-3",
             "px-5 py-2.5",
-            "font-sans text-display uppercase text-sm tracking-[0.12em]",
+            "font-sans text-sm font-medium",
             "whitespace-nowrap transition-colors cursor-pointer",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-inset",
             isActive
-              ? "text-midground"
-              : "text-text-secondary hover:text-midground",
+              ? "text-primary"
+              : "text-text-secondary hover:bg-midground/5 hover:text-midground",
           )
         }
-        style={{
+        style={({ isActive }) => ({
+          background: isActive
+            ? "var(--component-tab-background, color-mix(in srgb, var(--color-primary) 10%, transparent))"
+            : undefined,
           clipPath: "var(--component-tab-clip-path)",
-        }}
+        })}
       >
         {({ isActive }) => (
           <>
@@ -911,15 +916,10 @@ function SidebarNavLink({
               {navLabel}
             </span>
 
-            <span
-              aria-hidden
-              className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
-            />
-
             {isActive && (
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-px bg-midground"
+                className="absolute inset-y-0 left-0 w-0.5 bg-primary"
               />
             )}
           </>

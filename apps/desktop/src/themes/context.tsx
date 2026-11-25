@@ -10,6 +10,7 @@
  */
 
 import { ensureContrast, mix, parseColor } from '@hermes/shared/color'
+import { desktopColorSeeds } from '@hermes/shared/theme-presets'
 import { useStore } from '@nanostores/react'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
@@ -232,19 +233,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark', chatFontFamily 
   setAppearance(rendered)
 
   // Brand seeds feed every glass + shadcn token via `color-mix()` in styles.css.
-  const seeds: Record<string, string> = {
-    '--theme-foreground': c.foreground,
-    '--theme-primary': c.primary,
-    '--theme-secondary': c.secondary,
-    '--theme-accent-soft': c.accent,
-    '--theme-midground': midground,
-    '--theme-warm': c.primary,
-    '--theme-background-seed': c.background,
-    '--theme-sidebar-seed': c.sidebarBackground ?? c.background,
-    '--theme-card-seed': c.card,
-    '--theme-elevated-seed': c.popover,
-    '--theme-bubble-seed': c.userBubble ?? c.popover
-  }
+  const seeds = desktopColorSeeds(c)
 
   // shadcn/Tailwind tokens that aren't derived from the seed chain.
   const palette: Record<string, string> = {

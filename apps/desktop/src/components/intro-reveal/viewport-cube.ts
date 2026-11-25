@@ -1,5 +1,7 @@
 /** Canvas geometry and texture noise derive from score time, so every playback draws the same frames. */
 
+import forxMark from '../../../../../assets/forx-mark.svg'
+
 import { INTRO_BEATS } from './timeline'
 
 const N = 4
@@ -161,11 +163,7 @@ function textureImage(): HTMLImageElement | null {
     texture = img
   }
 
-  // Not `nous-girl.jpg`: that asset is the BrandMark tile art, dark on white, and
-  // reads as a solid white block once it is wrapped around a cube. This one is
-  // light-on-dark line work, so the faces keep their shading and the channel
-  // split has edges to offset.
-  img.src = `${import.meta.env.BASE_URL}intro-nous-girl.png`
+  img.src = forxMark
 
   return null
 }
@@ -294,16 +292,16 @@ function paintTexturedCube(
 
     cube.closePath()
     cube.clip()
-    // The image is light-on-dark line work, so each face needs an opaque fill
+    // The image is a light glyph on a dark tile, so each face needs an opaque fill
     // first. Without it the cube's unlit areas are the same black as the viewport
-    // behind it and only stray white curves show. The fill also covers the
-    // inflated overlap before the line work is drawn.
+    // behind it and only the bright glyph shows. The fill also covers the
+    // inflated overlap before the mark is drawn.
     cube.fillStyle = `rgb(${12 + q.shade * 20}, ${13 + q.shade * 22}, ${17 + q.shade * 28})`
     cube.fillRect(0, 0, w, h)
     // Affine map from the unit cell to this quad. It ignores the fourth corner, so
     // the texture swims slightly across a face (affine texture warping).
     cube.transform(p1[0] - p0[0], p1[1] - p0[1], p3[0] - p0[0], p3[1] - p0[1], p0[0], p0[1])
-    // 'lighter' adds the line work instead of covering the fill: black in the
+    // 'lighter' adds the mark instead of covering the fill: black in the
     // image contributes nothing, and the alpha below scales with the face's shade.
     cube.globalCompositeOperation = 'lighter'
     cube.globalAlpha = 0.55 + q.shade * 0.45

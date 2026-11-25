@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes forX" width="100%">
+  <img src="assets/banner.png" alt="ForX Agent" width="100%">
 </p>
 
-# Hermes-forX ☤
+# Hermes-forX
 
 <p align="center">
   <a href="https://github.com/xtcamille/hermes-forX"><img src="https://img.shields.io/badge/Repo-xtcamille%2Fhermes--forX-blue?style=for-the-badge&logo=github" alt="GitHub Repo"></a>

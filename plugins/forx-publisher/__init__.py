@@ -269,6 +269,6 @@ def register(ctx: Any) -> None:
     if skill_file.exists():
         ctx.register_skill(
             name="forx-publish",
-            skill_path=skill_file,
+            path=skill_file,
             description="Guide users to inspect, validate, package, and publish their plugins or skills to the public repository.",
         )

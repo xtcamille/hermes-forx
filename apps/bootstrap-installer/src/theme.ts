@@ -1,5 +1,7 @@
 import { getCurrentWindow, type Theme } from '@tauri-apps/api/window'
 
+import { desktopColorSeeds, THEME_PRESET_PALETTES } from '../../shared/src/theme-presets'
+
 /*
  * OS appearance follower.
  *
@@ -15,17 +17,32 @@ import { getCurrentWindow, type Theme } from '@tauri-apps/api/window'
  *      that and fall back to the media query only outside Tauri (e.g. plain
  *      `vite preview`).
  *
- * We only flip the `.dark` class + `color-scheme`; the dark seed values live in
- * styles.css (:root.dark), mirroring apps/desktop's applyTheme() palette.
+ * Paint the default desktop palette into the shared stylesheet for that appearance.
  */
 
 const prefersDark = (): boolean => window.matchMedia('(prefers-color-scheme: dark)').matches
 
 function paint(theme: Theme): void {
   const dark = theme === 'dark'
+  const { colors, darkColors } = THEME_PRESET_PALETTES.cupertino
+  const palette = dark ? darkColors : colors
   const root = document.documentElement
   root.classList.toggle('dark', dark)
   root.style.colorScheme = dark ? 'dark' : 'light'
+
+  const properties = {
+    ...desktopColorSeeds(palette),
+    '--dt-primary-foreground': palette.primaryForeground,
+    '--dt-primary-solid-foreground': palette.primaryForeground,
+    '--dt-ring': palette.ring,
+    '--dt-border': palette.border,
+    '--dt-destructive': palette.destructive,
+    '--dt-destructive-foreground': palette.destructiveForeground
+  }
+
+  for (const [name, value] of Object.entries(properties)) {
+    root.style.setProperty(name, value)
+  }
 }
 
 // Best-effort synchronous first paint from the media query so the very first
@@ -46,6 +63,8 @@ export async function watchTheme(): Promise<void> {
     await win.onThemeChanged(({ payload }) => paint(payload))
   } catch {
     // Non-Tauri context (e.g. `vite preview`): keep the media query live.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => paint(e.matches ? 'dark' : 'light'))
+    window
+      .matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', e => paint(e.matches ? 'dark' : 'light'))
   }
 }

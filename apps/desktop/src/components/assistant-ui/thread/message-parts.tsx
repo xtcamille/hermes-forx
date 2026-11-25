@@ -260,35 +260,28 @@ const ThinkingDisclosure: FC<{
   }, [isPreview, open])
 
   return (
-    <div
-      className="text-[length:var(--conversation-tool-font-size)] text-(--ui-text-tertiary)"
-      data-conversation-scaffold=""
-      data-slot="aui_thinking-disclosure"
-      ref={enterRef}
-    >
-      <ScaffoldRow
-        onToggle={() => setUserOpen(!open)}
-        open={open}
-        trailing={
-          <span className="flex shrink-0 items-center gap-1.5">
-            <TimelineTimestamp className={SCAFFOLD_META_CLASS} completedAt={completedAt} timestamp={timestamp} />
-            {pending && <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />}
-          </span>
-        }
-      >
-        <span className={cn(SCAFFOLD_LABEL_CLASS, pending && 'shimmer')}>{thoughtLabel}</span>
-      </ScaffoldRow>
+    <div data-slot="aui_thinking-disclosure" ref={enterRef}>
+      <div data-conversation-scaffold="">
+        <ScaffoldRow
+          onToggle={() => setUserOpen(!open)}
+          open={open}
+          trailing={
+            <span className="flex shrink-0 items-center gap-1.5">
+              <TimelineTimestamp className={SCAFFOLD_META_CLASS} completedAt={completedAt} timestamp={timestamp} />
+              {pending && <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />}
+            </span>
+          }
+        >
+          <span className={cn(SCAFFOLD_LABEL_CLASS, pending && 'shimmer')}>{thoughtLabel}</span>
+        </ScaffoldRow>
+      </div>
       {open && (
         <div
           className={cn(
-            // Body sits flush with the "Thinking" header — no left indent —
-            // and inherits the disclosure-level opacity fade defined in
-            // styles.css (~0.67 at rest, 1 on hover/focus). overflow-auto so
-            // the max-h-40 preview is a real scroller, not a clip.
-            // Even a body that fits must hand vertical input to the thread.
-            'mt-0.5 w-full min-w-0 max-w-full overflow-auto overscroll-x-contain overscroll-y-auto wrap-anywhere pb-1',
+            'mt-1 w-full min-w-0 max-w-full overflow-auto overscroll-x-contain overscroll-y-auto wrap-anywhere pb-1',
             isPreview && 'max-h-40'
           )}
+          data-preview={isPreview ? '' : undefined}
           data-slot="aui_thinking-body"
           ref={scrollRef}
         >
@@ -392,7 +385,7 @@ const ReasoningTextPart: ReasoningMessagePartComponent = () => {
 
   return (
     <MarkdownTextContent
-      containerClassName="text-xs leading-snug text-muted-foreground/85"
+      containerClassName="text-xs leading-snug text-(--ui-text-secondary) prose-li:marker:text-current"
       containerProps={{ 'data-slot': 'aui_reasoning-text' } as ComponentProps<'div'>}
       isRunning={status.type === 'running' || messageRunning}
       scratchpad

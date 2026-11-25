@@ -117,6 +117,6 @@ def register(ctx: Any) -> None:
     if skill_file.exists():
         ctx.register_skill(
             name="context-inspect",
-            skill_path=skill_file,
+            path=skill_file,
             description="Inspect context window token usage, compression points, and memory health.",
         )

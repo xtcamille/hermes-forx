@@ -1,3 +1,19 @@
+.intro-reveal-spotlight {
+  background:
+    radial-gradient(
+      ellipse 42% 44% at 29% 43%,
+      color-mix(in srgb, var(--intro-glow-blue) 30%, transparent),
+      transparent 84%
+    ),
+    radial-gradient(
+      ellipse 43% 45% at 70% 46%,
+      color-mix(in srgb, var(--intro-glow-rose) 28%, transparent),
+      color-mix(in srgb, var(--intro-glow-coral) 12%, transparent) 32%,
+      transparent 86%
+    );
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
 @keyframes intro-caret {
   0%,
   55% {

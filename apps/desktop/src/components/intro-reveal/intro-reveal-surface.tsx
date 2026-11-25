@@ -1,12 +1,13 @@
 import './intro-reveal.css'
 
-import type { Ref } from 'react'
+import { FORX_BRAND_COLORS } from '@hermes/shared/theme-presets'
+import type { CSSProperties, Ref } from 'react'
 
 import { cn } from '@/lib/utils'
 
 import { BrandClose } from './scenes/brand'
 import { SideAgents } from './scenes/side-agents'
-import { BLUE, BLUE_DIM, EASE, NOUS_SHADOW } from './scenes/style'
+import { ACCENT, ACCENT_DIM, EASE, INTRO_PALETTE, NOUS_SHADOW } from './scenes/style'
 import { decoded, SPINNER } from './scenes/text'
 import { INTRO_BEATS, INTRO_PROMPT, INTRO_REPLY_WORDS, INTRO_TOOL_ROWS } from './timeline'
 import { useIntroClock } from './use-intro-clock'
@@ -15,6 +16,15 @@ import { viewportSlot } from './viewport-cube'
 const INTRO_BEAT_INDEX: Record<string, number> = Object.fromEntries(INTRO_BEATS.map((b, i) => [b.id, i]))
 const SKIP = 'Skip'
 const SURFACES = 'Desktop · Messages · Phone · Anywhere'
+const INTRO_COLORS = {
+  '--intro-canvas': INTRO_PALETTE.background,
+  '--intro-accent': ACCENT,
+  '--intro-glow-blue': FORX_BRAND_COLORS.blue,
+  '--intro-glow-rose': FORX_BRAND_COLORS.rose,
+  '--intro-glow-coral': FORX_BRAND_COLORS.coral,
+  '--intro-title': INTRO_PALETTE.foreground,
+  '--intro-caption': INTRO_PALETTE.mutedForeground
+} as CSSProperties
 
 export function IntroRevealSurface() {
   const { frame, leaving, faded, skip, glowRef, stageRef, brandRef, viewportRef } = useIntroClock()
@@ -37,21 +47,20 @@ export function IntroRevealSurface() {
         }
       }}
       role="dialog"
+      style={INTRO_COLORS}
       tabIndex={-1}
     >
       {/* The film stays dark regardless of the desktop beneath it. */}
       <div
-        className="absolute inset-0 bg-black/82"
+        className="absolute inset-0 bg-(--intro-canvas)/92"
         style={{ opacity: faded && !leaving ? 1 : 0, transition: `opacity 900ms ${EASE}` }}
       />
 
       {/* One frame clock keeps the spotlight and brand group together. */}
       <div
-        className="pointer-events-none absolute left-1/2 top-0 h-[130vmin] w-[150vmin] opacity-0"
+        className="intro-reveal-spotlight pointer-events-none absolute left-1/2 top-0 h-[130vmin] w-[150vmin] opacity-0"
         ref={glowRef}
         style={{
-          background:
-            'radial-gradient(ellipse 46% 44% at 50% 22%, rgba(255,255,255,0.16), rgba(255,255,255,0.045) 48%, transparent 72%)',
           transform: 'translate(-50%, -30%) scale(0.9)'
         }}
       />
@@ -84,7 +93,7 @@ export function IntroRevealSurface() {
       <BrandClose ref={brandRef} />
 
       <button
-        className="absolute bottom-6 right-7 text-[0.72rem] uppercase tracking-[0.24em] text-white/40 transition-colors hover:text-white/80"
+        className="absolute bottom-6 right-7 text-[0.72rem] uppercase tracking-[0.24em] text-(color:--intro-caption) transition-colors hover:text-(color:--intro-accent)"
         onClick={skip}
         style={{ fontFamily: "'Collapse', sans-serif" }}
         type="button"
@@ -112,7 +121,7 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
     <div
       className="relative w-[46vw] min-w-[560px] max-w-[1350px] rounded-xl p-7"
       style={{
-        background: 'rgba(10, 11, 14, 0.88)',
+        background: `color-mix(in srgb, ${INTRO_PALETTE.card} 88%, transparent)`,
         border: '1px solid rgba(255,255,255,0.09)',
         boxShadow: NOUS_SHADOW,
         animation: 'intro-hover-a 8.4s ease-in-out infinite alternate',
@@ -158,7 +167,7 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
             >
               <span
                 className={cn('w-4 text-center font-mono text-[0.95rem]', !done && 'text-white/55')}
-                style={{ color: done ? BLUE : undefined, fontFamily: "'JetBrains Mono', monospace" }}
+                style={{ color: done ? ACCENT : undefined, fontFamily: "'JetBrains Mono', monospace" }}
               >
                 {done ? '✓' : SPINNER[frame.tick % SPINNER.length]}
               </span>
@@ -181,7 +190,7 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
                 </span>
                 <span
                   className="col-start-1 row-start-1 text-right"
-                  style={{ color: BLUE_DIM, opacity: done ? 1 : 0, transition: `opacity 400ms ${EASE}` }}
+                  style={{ color: ACCENT_DIM, opacity: done ? 1 : 0, transition: `opacity 400ms ${EASE}` }}
                 >
                   {done ? decoded(row.doneText, row.doneAt, frame.tick, 380) : row.doneText}
                 </span>
@@ -207,7 +216,7 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
           {replying && frame.replyWords < INTRO_REPLY_WORDS.length ? (
             <span
               className="dither ml-1 inline-block h-[1.05em] w-[0.5em] translate-y-[3px]"
-              style={{ animation: 'intro-caret 0.9s step-end infinite', color: BLUE }}
+              style={{ animation: 'intro-caret 0.9s step-end infinite', color: ACCENT }}
             />
           ) : null}
         </div>
@@ -231,7 +240,7 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
             {!sent ? (
               <span
                 className="dither ml-0.5 inline-block h-[1.1em] w-[0.52em] translate-y-[3px]"
-                style={{ animation: 'intro-caret 1.05s step-end infinite', color: BLUE }}
+                style={{ animation: 'intro-caret 1.05s step-end infinite', color: ACCENT }}
               />
             ) : null}
           </div>
@@ -267,8 +276,10 @@ function HeroChat({ frame, viewportRef }: HeroChatProps) {
             <span
               className="grid size-[1.65rem] shrink-0 place-items-center rounded-full"
               style={{
-                background: sent ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.92)',
-                color: '#0a0b0e',
+                background: sent
+                  ? ACCENT_DIM
+                  : `linear-gradient(130deg, ${FORX_BRAND_COLORS.blue}, ${FORX_BRAND_COLORS.rose})`,
+                color: INTRO_PALETTE.primaryForeground,
                 transform: !sent && frame.typed >= INTRO_PROMPT.length ? 'scale(1.08)' : 'scale(1)',
                 transition: `transform 300ms ${EASE}, background 400ms ${EASE}`
               }}
@@ -303,7 +314,7 @@ function ViewportNode({ frame, viewportRef }: HeroChatProps) {
       <div
         className="absolute -left-64 -top-20 w-52 rounded-xl"
         style={{
-          background: 'rgba(10, 11, 14, 0.88)',
+          background: `color-mix(in srgb, ${INTRO_PALETTE.card} 88%, transparent)`,
           border: '1px solid rgba(255,255,255,0.09)',
           boxShadow: NOUS_SHADOW,
           animation: 'intro-hover-b 6.8s ease-in-out infinite alternate',
@@ -325,13 +336,13 @@ function ViewportNode({ frame, viewportRef }: HeroChatProps) {
           <span className="flex items-center gap-1.5">
             <span
               className="inline-block size-1 rounded-full"
-              style={{ animation: 'intro-dot 1.6s ease-in-out infinite', background: BLUE }}
+              style={{ animation: 'intro-dot 1.6s ease-in-out infinite', background: ACCENT }}
             />
             viewport
           </span>
           <span
             className="text-[0.6rem] normal-case tracking-normal"
-            style={{ color: BLUE_DIM, fontFamily: "'JetBrains Mono', monospace" }}
+            style={{ color: ACCENT_DIM, fontFamily: "'JetBrains Mono', monospace" }}
           >
             {decoded(viewport.mode, viewport.at, frame.tick, 300)}
           </span>

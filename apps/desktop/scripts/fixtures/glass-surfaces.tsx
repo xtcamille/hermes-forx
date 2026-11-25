@@ -20,8 +20,10 @@ import { RootTooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/i18n'
 
 // Real primitives and stylesheet; only the sample labels and glass inputs are fixtures.
+const params = new URLSearchParams(location.search)
+const streamingReasoning = params.has('reasoning')
 const root = document.documentElement
-root.classList.add('dark')
+root.classList.toggle('dark', !params.has('light'))
 root.setAttribute('data-hermes-glass', '')
 root.setAttribute('data-hermes-glass-scope', 'window')
 root.style.setProperty('--translucency-glass-keep', '40%')
@@ -44,6 +46,20 @@ const messages = Array.from({ length: 6 }, (_, turn) => [
     metadata: { custom: {}, unstable_state: null, unstable_annotations: [], unstable_data: [], steps: [] }
   }
 ]).flat() as ThreadMessage[]
+
+const firstTurn = [
+  messages[0],
+  {
+    ...messages[1],
+    content: [
+      {
+        type: 'reasoning',
+        text: Array.from({ length: 16 }, (_, index) => `Reasoning paragraph ${index + 1}`).join('\n\n')
+      }
+    ],
+    status: { type: 'running' }
+  }
+] as ThreadMessage[]
 
 function User() {
   const [expanded, setExpanded] = useState(false)
@@ -80,20 +96,24 @@ function Assistant() {
 const components = { UserMessage: User, AssistantMessage: Assistant }
 
 function Transcript({ id }: { id: string }) {
-  const [currentMessages, setMessages] = useState(() =>
-    new URLSearchParams(location.search).has('preceding')
+  const [currentMessages, setMessages] = useState(() => {
+    if (streamingReasoning) {
+      return firstTurn
+    }
+
+    return params.has('preceding')
       ? ([{ ...messages[1], id: 'standalone' }, ...messages] as ThreadMessage[])
       : messages
-  )
+  })
 
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: currentMessages,
-    isRunning: false,
+    isRunning: streamingReasoning,
     onNew: async () => {},
     onEdit: async () => {}
   })
 
-  const realMessages = new URLSearchParams(location.search).has('real')
+  const realMessages = streamingReasoning || params.has('real')
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

@@ -56,6 +56,31 @@ export interface ThemePresetPalette {
   darkColors?: ThemePresetColors
 }
 
+/** The colors used in the ForX mark and its decorative gradients. */
+export const FORX_BRAND_COLORS = {
+  blue: '#adbfff',
+  violet: '#bfabff',
+  rose: '#ff8fb1',
+  coral: '#ffc18f'
+} as const
+
+/** Shared color seeds for renderers that use the desktop stylesheet. */
+export function desktopColorSeeds(colors: ThemePresetColors): Record<string, string> {
+  return {
+    '--theme-foreground': colors.foreground,
+    '--theme-primary': colors.primary,
+    '--theme-secondary': colors.secondary,
+    '--theme-accent-soft': colors.accent,
+    '--theme-midground': colors.midground ?? colors.ring,
+    '--theme-warm': colors.primary,
+    '--theme-background-seed': colors.background,
+    '--theme-sidebar-seed': colors.sidebarBackground ?? colors.background,
+    '--theme-card-seed': colors.card,
+    '--theme-elevated-seed': colors.popover,
+    '--theme-bubble-seed': colors.userBubble ?? colors.popover
+  }
+}
+
 const NOUS_ALT_BLUE = '#0053FD'
 const NOUS_ALT_NAVY = '#1540B1'
 const NOUS_ALT_CREAM = '#FFE6CB'
@@ -552,60 +577,60 @@ export const THEME_PRESET_PALETTES = {
   },
   cupertino: {
     colors: {
-      background: '#fbfbfd',
-      foreground: '#1d1d1f',
+      background: '#f7f5ff',
+      foreground: '#27213e',
       card: '#ffffff',
-      cardForeground: '#1d1d1f',
-      muted: '#f5f5f7',
-      mutedForeground: '#86868b',
+      cardForeground: '#27213e',
+      muted: '#efedf8',
+      mutedForeground: '#625c79',
       popover: '#ffffff',
-      popoverForeground: '#1d1d1f',
-      primary: '#0071e3',
+      popoverForeground: '#27213e',
+      primary: '#553bc4',
       primaryForeground: '#ffffff',
-      secondary: '#f5f5f7',
-      secondaryForeground: '#1d1d1f',
-      accent: '#e8e8ed',
-      accentForeground: '#1d1d1f',
-      border: 'rgba(0, 0, 0, 0.08)',
+      secondary: '#ebeeff',
+      secondaryForeground: '#2e365f',
+      accent: '#f3e9fb',
+      accentForeground: '#4b306c',
+      border: 'rgba(77, 60, 131, 0.16)',
       input: '#ffffff',
-      ring: '#0071e3',
-      midground: '#0071e3',
+      ring: '#6349d9',
+      midground: '#553bc4',
       midgroundForeground: '#ffffff',
-      composerRing: '#0071e3',
+      composerRing: '#7959d6',
       destructive: '#ff3b30',
       destructiveForeground: '#ffffff',
-      sidebarBackground: '#f5f5f7',
-      sidebarBorder: 'rgba(0, 0, 0, 0.08)',
-      userBubble: '#e8f2fe',
-      userBubbleBorder: 'rgba(0, 113, 227, 0.15)'
+      sidebarBackground: '#efedfb',
+      sidebarBorder: 'rgba(77, 60, 131, 0.14)',
+      userBubble: '#f3ecff',
+      userBubbleBorder: '#dfd2f3'
     },
     darkColors: {
-      background: '#161618',
-      foreground: '#f5f5f7',
-      card: '#1e1e20',
-      cardForeground: '#f5f5f7',
-      muted: '#242426',
-      mutedForeground: '#a1a1a6',
-      popover: '#242426',
-      popoverForeground: '#f5f5f7',
-      primary: '#2997ff',
-      primaryForeground: '#ffffff',
-      secondary: '#2c2c2e',
-      secondaryForeground: '#f5f5f7',
-      accent: '#3a3a3c',
-      accentForeground: '#f5f5f7',
-      border: 'rgba(255, 255, 255, 0.09)',
-      input: '#1e1e20',
-      ring: '#2997ff',
-      midground: '#2997ff',
-      midgroundForeground: '#ffffff',
-      composerRing: '#2997ff',
+      background: '#17152b',
+      foreground: '#f1edfa',
+      card: '#211c37',
+      cardForeground: '#f1edfa',
+      muted: '#29223e',
+      mutedForeground: '#b4aacb',
+      popover: '#29213e',
+      popoverForeground: '#f1edfa',
+      primary: FORX_BRAND_COLORS.violet,
+      primaryForeground: '#231641',
+      secondary: '#29294b',
+      secondaryForeground: '#f1edfa',
+      accent: '#3b2850',
+      accentForeground: '#ead9ff',
+      border: 'rgba(196, 173, 235, 0.20)',
+      input: '#211c37',
+      ring: FORX_BRAND_COLORS.violet,
+      midground: FORX_BRAND_COLORS.violet,
+      midgroundForeground: '#231641',
+      composerRing: '#a383ed',
       destructive: '#ff453a',
       destructiveForeground: '#ffffff',
-      sidebarBackground: '#111113',
-      sidebarBorder: 'rgba(255, 255, 255, 0.08)',
-      userBubble: '#1b3252',
-      userBubbleBorder: 'rgba(41, 151, 255, 0.25)'
+      sidebarBackground: '#201a35',
+      sidebarBorder: 'rgba(196, 173, 235, 0.17)',
+      userBubble: '#32274a',
+      userBubbleBorder: 'rgba(191, 171, 255, 0.26)'
     }
   }
 } satisfies Record<string, ThemePresetPalette>

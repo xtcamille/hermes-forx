@@ -140,8 +140,8 @@ renderer and Electron's first window paint.
 | `--chrome-action-hover` | hover fill for quiet controls |
 | `--theme-primary`, `--ui-accent` | brand/accent |
 
-Never hardcode `border-gray-*`, `bg-white`, `text-black`, etc. The white tile in
-`BrandMark` is the one sanctioned literal (the mark needs a fixed backdrop).
+Never hardcode `border-gray-*`, `bg-white`, `text-black`, etc. The ForX mark
+uses its own palette for consistent contrast across themes.
 
 ## Buttons — one component
 
@@ -397,10 +397,10 @@ so glass and message-bubble transparency do not reveal scrolling text.
 - Pick the vocabulary by semantic context and reuse the existing icon for an
   action. Do not introduce a third icon set or mix styles within one control
   group.
-- **`BrandMark`** (`src/components/brand-mark.tsx`) is the brand glyph — the
-  `nous-girl` mark on a white tile, softly rounded, identical in light/dark.
-  It replaced scattered Sparkles glyphs in updates / onboarding / about. Use it
-  for hero/brand moments; don't reintroduce decorative star/sparkle icons.
+- **`BrandMark`** (`src/components/brand-mark.tsx`) shows the ForX monogram with
+  blue, violet, rose, and coral gradients. Use it in brand placements such as
+  onboarding, updates, and About. The source artwork lives in
+  `assets/forx-mark.svg` at the repo root.
 
 ## Motion
 

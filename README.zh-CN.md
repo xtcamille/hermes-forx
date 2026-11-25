@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes forX" width="100%">
+  <img src="assets/banner.png" alt="ForX Agent" width="100%">
 </p>
 
-# Hermes-forX ☤
+# Hermes-forX
 
 可选安装[论文工作台插件](plugins/paper-compare/README.md)，在 ForX Desktop 中阅读论文、并行比较多个模型、精读图表与公式并核验证据。插件通过官方 Desktop / Dashboard 接口接入，复用 ForX 的账号与模型配置，论文和阅读记录保存在所属配置档案中。
 

@@ -1,32 +1,50 @@
 /**
- * ForX Agent — Cupertino Human Interface Design Theme
- * Inspired by Apple Human Interface Guidelines:
- * SF Pro typography, translucent frosted glass (vibrancy blur),
- * System Blue accents, squircle rounded corners, and clean depth.
+ * ForX Agent documentation. Violet accents, blue and coral gradients,
+ * and translucent navigation.
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Apple Cupertino System Blue Palette (Light Mode) */
-  --ifm-color-primary: #0071e3;
-  --ifm-color-primary-dark: #0066cc;
-  --ifm-color-primary-darker: #005bb5;
-  --ifm-color-primary-darkest: #00478f;
-  --ifm-color-primary-light: #1a82e6;
-  --ifm-color-primary-lighter: #3391ea;
-  --ifm-color-primary-lightest: #66b0f0;
+  --ifm-color-primary: #553bc4;
+  --ifm-color-primary-dark: #4932ac;
+  --ifm-color-primary-darker: #432d9b;
+  --ifm-color-primary-darkest: #352279;
+  --ifm-color-primary-light: #674adc;
+  --ifm-color-primary-lighter: #775de5;
+  --ifm-color-primary-lightest: #937ef0;
+  --forx-accent-ink: #ffffff;
+  --forx-accent-tint: color-mix(in srgb, var(--ifm-color-primary) 11%, transparent);
+  --forx-accent-border: color-mix(in srgb, var(--ifm-color-primary) 28%, transparent);
+  --forx-brand-blue: #adbfff;
+  --forx-brand-violet: #bfabff;
+  --forx-brand-rose: #ff8fb1;
+  --forx-brand-coral: #ffc18f;
+  --forx-ambient-strength: 31%;
+  --forx-brand-wash:
+    radial-gradient(
+      ellipse 44% 78% at 17% 10%,
+      color-mix(in srgb, var(--forx-brand-blue) var(--forx-ambient-strength), transparent),
+      transparent 92%
+    ),
+    radial-gradient(
+      ellipse 43% 80% at 87% 9%,
+      color-mix(in srgb, var(--forx-brand-rose) var(--forx-ambient-strength), transparent),
+      color-mix(in srgb, var(--forx-brand-coral) 12%, transparent) 32%,
+      transparent 88%
+    );
+  --forx-action-gradient: linear-gradient(112deg, #4852c7, #6037bb 48%, #a3397e 79%, #a84058);
 
   --ifm-font-family-base: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Inter", sans-serif;
   --ifm-font-family-monospace: "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 
-  --ifm-background-color: #f5f5f7;
+  --ifm-background-color: #f7f5ff;
   --ifm-background-surface-color: #ffffff;
   --ifm-navbar-background-color: rgba(255, 255, 255, 0.82);
-  --ifm-footer-background-color: #f5f5f7;
+  --forx-footer-background: #efedfb;
 
-  --ifm-font-color-base: #1d1d1f;
-  --ifm-font-color-secondary: #86868b;
+  --ifm-font-color-base: #27213e;
+  --ifm-font-color-secondary: #625c79;
 
   --ifm-color-emphasis-100: rgba(0, 0, 0, 0.03);
   --ifm-color-emphasis-200: rgba(0, 0, 0, 0.06);
@@ -36,47 +54,47 @@
   --ifm-heading-font-weight: 600;
   --ifm-heading-letter-spacing: -0.022em;
 
-  --ifm-link-color: #0071e3;
-  --ifm-link-hover-color: #0077ed;
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: var(--ifm-color-primary-darker);
 
-  --ifm-code-background: #ebebed;
+  --ifm-code-background: #efedf8;
   --ifm-toc-border-color: rgba(0, 0, 0, 0.08);
   --ifm-hr-border-color: rgba(0, 0, 0, 0.08);
 
-  --docusaurus-highlighted-code-line-bg: rgba(0, 113, 227, 0.08);
+  --docusaurus-highlighted-code-line-bg: var(--forx-accent-tint);
 }
 
-/* Dark mode — Cupertino OLED Black & Translucent Glass */
+/* Dark mode */
 [data-theme='dark'] {
-  --ifm-color-primary: #2997ff;
-  --ifm-color-primary-dark: #0071e3;
-  --ifm-color-primary-darker: #0062c4;
-  --ifm-color-primary-darkest: #004891;
-  --ifm-color-primary-light: #52abff;
-  --ifm-color-primary-lighter: #7abfff;
-  --ifm-color-primary-lightest: #a3d4ff;
+  --ifm-color-primary: var(--forx-brand-violet);
+  --ifm-color-primary-dark: #b29bf6;
+  --ifm-color-primary-darker: #a88eea;
+  --ifm-color-primary-darkest: #9274d4;
+  --ifm-color-primary-light: #cbb9ff;
+  --ifm-color-primary-lighter: #d7c9ff;
+  --ifm-color-primary-lightest: #e7deff;
+  --forx-accent-ink: #231641;
+  --forx-ambient-strength: 23%;
+  --forx-action-gradient: linear-gradient(112deg, var(--forx-brand-blue), var(--forx-brand-violet) 40%, var(--forx-brand-rose) 73%, var(--forx-brand-coral));
 
-  --ifm-background-color: #000000;
-  --ifm-background-surface-color: #161618;
-  --ifm-navbar-background-color: rgba(22, 22, 24, 0.82);
-  --ifm-footer-background-color: #09090b;
+  --ifm-background-color: #17152b;
+  --ifm-background-surface-color: #211c37;
+  --ifm-navbar-background-color: rgba(32, 26, 53, 0.86);
+  --forx-footer-background: #201a35;
 
   --ifm-color-emphasis-100: rgba(255, 255, 255, 0.04);
   --ifm-color-emphasis-200: rgba(255, 255, 255, 0.08);
   --ifm-color-emphasis-300: rgba(255, 255, 255, 0.14);
 
-  --ifm-font-color-base: #f5f5f7;
-  --ifm-font-color-secondary: #a1a1a6;
+  --ifm-font-color-base: #f1edfa;
+  --ifm-font-color-secondary: #b4aacb;
 
-  --ifm-link-color: #2997ff;
-  --ifm-link-hover-color: #5cb5ff;
+  --ifm-link-hover-color: var(--ifm-color-primary-light);
 
-  --ifm-code-background: #1c1c1e;
+  --ifm-code-background: #29223e;
 
   --ifm-toc-border-color: rgba(255, 255, 255, 0.08);
   --ifm-hr-border-color: rgba(255, 255, 255, 0.08);
-
-  --docusaurus-highlighted-code-line-bg: rgba(41, 151, 255, 0.12);
 }
 
 /* Base typography smoothing */
@@ -86,10 +104,12 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
-/* Subtle top atmospheric glow in dark mode */
-[data-theme='dark'] .main-wrapper {
-  background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(41, 151, 255, 0.07), transparent 60%);
+/* Brand colors fade into the reading surface. */
+.main-wrapper {
+  background-image: var(--forx-brand-wash);
   background-attachment: local;
+  background-repeat: no-repeat;
+  background-size: 100% 420px;
 }
 
 /* Cupertino Translucent Navbar */
@@ -129,7 +149,7 @@ html, body {
 }
 
 .navbar__link:hover {
-  background-color: rgba(120, 120, 128, 0.08);
+  background-color: var(--forx-accent-tint);
   color: var(--ifm-color-primary);
 }
 
@@ -155,20 +175,55 @@ html, body {
   background-color: rgba(120, 120, 128, 0.08);
 }
 
-[data-theme='dark'] .menu__link--active:not(.menu__link--sublist) {
-  background-color: rgba(41, 151, 255, 0.16);
-  color: #2997ff;
+.menu__link--active:not(.menu__link--sublist) {
+  background-color: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
   font-weight: 600;
   border-left: none;
   padding-left: 0.75rem;
 }
 
-[data-theme='light'] .menu__link--active:not(.menu__link--sublist) {
-  background-color: rgba(0, 113, 227, 0.10);
-  color: #0071e3;
+.forx-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.forx-home-actions .button {
+  padding: 0.6rem 1rem;
+  border-radius: 0.65rem;
   font-weight: 600;
-  border-left: none;
-  padding-left: 0.75rem;
+  text-decoration: none;
+}
+
+.forx-home-actions .button--primary {
+  background: var(--forx-action-gradient);
+  border-color: transparent;
+  color: var(--forx-accent-ink);
+}
+
+.forx-home-actions .button--primary:hover {
+  background: var(--forx-action-gradient);
+  border-color: transparent;
+  box-shadow: 0 3px 12px var(--forx-accent-border);
+  color: var(--forx-accent-ink);
+}
+
+.forx-home-actions .button--outline {
+  background: transparent;
+  border-color: var(--forx-accent-border);
+  color: var(--ifm-color-primary);
+}
+
+.forx-home-actions .button--outline:hover {
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
+}
+
+.forx-home-actions .button:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 3px;
 }
 
 /* Code blocks (Xcode / macOS Terminal Squircle Style) */
@@ -177,13 +232,13 @@ html, body {
 }
 
 [data-theme='dark'] .prism-code {
-  background-color: #161618 !important;
+  background-color: var(--ifm-background-surface-color) !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 [data-theme='light'] .prism-code {
-  background-color: #f5f5f7 !important;
+  background-color: var(--ifm-background-color) !important;
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -297,7 +352,7 @@ table {
 /* Minimalist Cupertino Footer */
 .footer {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  background-color: var(--ifm-footer-background-color);
+  background-color: var(--forx-footer-background);
   padding: 3rem 1.5rem 2rem;
 }
 

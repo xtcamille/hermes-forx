@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react'
 
-const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+import { BrandMark } from '@/components/brand-mark'
 
 interface BrandCloseProps extends ComponentProps<'div'> {}
 
@@ -11,21 +11,16 @@ export function BrandClose({ ref }: BrandCloseProps) {
       ref={ref}
       style={{ willChange: 'transform, opacity' }}
     >
-      <img alt="" className="h-[32vmin] w-auto object-contain" src={assetPath('nous-badge.png')} />
+      <BrandMark className="size-[28vmin]" />
       <div className="flex flex-col items-center gap-[1.6vmin]">
         <h1
-          className="text-[10.2vmin] leading-none uppercase text-white/95"
-          style={{
-            fontFamily: "'Collapse', sans-serif",
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textShadow: '0 2px 24px rgba(0,0,0,0.45)'
-          }}
+          className="text-[9.5vmin] leading-none font-bold tracking-tight text-(color:--intro-title)"
+          style={{ fontFamily: "'Collapse', sans-serif" }}
         >
           ForX Agent
         </h1>
         <p
-          className="text-[2vmin] uppercase tracking-[0.42em] text-white/50"
+          className="text-[2.2vmin] tracking-[0.24em] text-(color:--intro-caption) uppercase"
           style={{ fontFamily: "'Collapse', sans-serif" }}
         >
           Your agent, everywhere

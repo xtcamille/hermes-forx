@@ -1,6 +1,6 @@
 import { INTRO_BEATS } from '../timeline'
 
-import { BLUE, BLUE_FAINT, EASE, NOUS_SHADOW } from './style'
+import { ACCENT, ACCENT_DIM, EASE, INTRO_PALETTE, NOUS_SHADOW } from './style'
 import { decoded } from './text'
 
 const EVERYWHERE_T = INTRO_BEATS.find(b => b.id === 'everywhere')!.t
@@ -16,7 +16,7 @@ export function SideAgents({ active, side, tick }: SideAgentsProps) {
     <div
       className="w-full rounded-xl p-5"
       style={{
-        background: 'rgba(12, 13, 16, 0.82)',
+        background: `color-mix(in srgb, ${INTRO_PALETTE.card} 82%, transparent)`,
         border: '1px solid rgba(255,255,255,0.09)',
         boxShadow: NOUS_SHADOW,
         opacity: active ? 1 : 0,
@@ -33,14 +33,14 @@ export function SideAgents({ active, side, tick }: SideAgentsProps) {
       >
         <span
           className="inline-block size-1.5 rounded-full"
-          style={{ animation: 'intro-dot 1.6s ease-in-out infinite', background: BLUE }}
+          style={{ animation: 'intro-dot 1.6s ease-in-out infinite', background: ACCENT }}
         />
         {title}
       </div>
       <div className="text-[0.95rem] leading-6 text-white/85">{line1}</div>
       <div
         className="mt-1 text-[0.85rem] leading-6"
-        style={{ color: BLUE_FAINT, fontFamily: "'JetBrains Mono', monospace" }}
+        style={{ color: ACCENT_DIM, fontFamily: "'JetBrains Mono', monospace" }}
       >
         {active ? decoded(line2, EVERYWHERE_T + delayMs + 500, tick, 700) : line2}
       </div>
