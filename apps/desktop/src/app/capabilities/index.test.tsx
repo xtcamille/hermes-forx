@@ -345,6 +345,21 @@ describe('CapabilitiesView toolset management', { timeout: 60_000 }, () => {
     expect(kept!.closest('section')!.classList.contains('hidden')).toBe(true)
   })
 
+  it('keeps the loaded Skills Hub when the user collapses and reopens it', async () => {
+    const { EmbeddedHubPicker } = await import('./skills/embedded-hub-picker')
+    render(<EmbeddedHubPicker installedNames={new Set()} profile={null} />)
+    const frame = screen.getByTitle('Skills Hub')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide the hub browser' }))
+    const browse = screen.getByRole('button', { name: 'Browse the full hub' })
+    expect(browse.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.getByTitle('Skills Hub')).toBe(frame)
+
+    fireEvent.click(browse)
+    expect(screen.getByRole('button', { name: 'Hide the hub browser' }).getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByTitle('Skills Hub')).toBe(frame)
+  })
+
   it('shows a vision explainer that deep-links to Settings → Models', async () => {
     // Vision has no TOOL_CATEGORIES provider matrix — its model lives in the
     // auxiliary model config, so the detail pane must point there instead of

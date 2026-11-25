@@ -388,7 +388,7 @@ describe('PluginsTab catalog UX', () => {
     const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(900)
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 })
     render(<PluginsTab profile={null} />)
-    const sash = screen.getByTestId('plugin-catalog-sash')
+    const sash = screen.getByTestId('capabilities-plugin-catalog-sash')
 
     fireEvent.pointerDown(sash, { button: 0, clientY: 600 })
     fireEvent.pointerMove(window, { clientY: 400 })

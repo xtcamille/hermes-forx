@@ -1,0 +1,550 @@
+.page {
+  --catalog-max-width: 80rem;
+  --catalog-inset: clamp(1rem, 3vw, 2rem);
+  --catalog-sticky-top: var(--ifm-navbar-height, 60px);
+  --catalog-stroke: var(--ifm-color-emphasis-300);
+  --catalog-control: var(--ifm-color-emphasis-100);
+  --catalog-control-hover: var(--ifm-color-emphasis-200);
+  --catalog-control-radius: 0.65rem;
+  min-height: 100vh;
+  color-scheme: light;
+}
+
+[data-theme="dark"] .page {
+  color-scheme: dark;
+}
+
+.hero,
+.toolbarInner,
+.content {
+  max-width: var(--catalog-max-width);
+  margin-inline: auto;
+  padding-inline: var(--catalog-inset);
+}
+
+.hero {
+  padding-block: clamp(1.75rem, 5vw, 4rem) 1.5rem;
+}
+
+.heroTop,
+.heroHeading,
+.crossNav {
+  display: flex;
+  align-items: center;
+}
+
+.heroTop {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.heroHeading {
+  gap: 0.8rem;
+}
+
+.heroHeading h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 2.85rem);
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.mark {
+  display: block;
+  flex: none;
+}
+
+.crossNav {
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border: 1px solid var(--catalog-stroke);
+  border-radius: var(--catalog-control-radius);
+  background: var(--catalog-control);
+}
+
+.crossNav a {
+  padding: 0.35rem 0.8rem;
+  border-radius: 0.45rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.crossNav a:hover {
+  color: var(--ifm-font-color-base);
+}
+
+.crossNav a[aria-current="page"] {
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-color-primary);
+}
+
+.heroIntro {
+  max-width: 42rem;
+  margin: 0.85rem 0 0;
+  color: var(--ifm-font-color-secondary);
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-top: 0.5rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.84rem;
+}
+
+.toolbar {
+  position: sticky;
+  top: var(--catalog-sticky-top);
+  z-index: 10;
+  border-block: 1px solid var(--catalog-stroke);
+  background: color-mix(in srgb, var(--ifm-background-color) 92%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.toolbarInner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-block: 0.75rem;
+}
+
+.searchRow,
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.searchRow,
+.searchWrap {
+  flex: 1;
+}
+
+.searchWrap {
+  position: relative;
+  min-width: 0;
+}
+
+.searchIcon,
+.clearSearch {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ifm-font-color-secondary);
+}
+
+.searchIcon {
+  left: 0.7rem;
+  pointer-events: none;
+}
+
+.searchInput,
+.filters select {
+  width: 100%;
+  min-width: 0;
+  height: 2.4rem;
+  border: 1px solid var(--catalog-stroke);
+  border-radius: var(--catalog-control-radius);
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.searchInput {
+  padding-inline: 2.25rem;
+}
+
+.searchInput::placeholder {
+  color: var(--ifm-font-color-secondary);
+}
+
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clearSearch {
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.clearSearch:hover,
+.filters select:hover {
+  background: var(--catalog-control-hover);
+}
+
+.filters {
+  flex: 0 1 24rem;
+}
+
+.filters select {
+  flex: 1;
+  padding-inline: 0.65rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.page :where(button, a, input, select):focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.content {
+  min-width: 0;
+  padding-block: 1.25rem 3rem;
+  scroll-margin-top: calc(var(--catalog-sticky-top) + 7rem);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18.5rem), 1fr));
+  align-items: start;
+  gap: 0.9rem;
+}
+
+.card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--catalog-stroke);
+  border-radius: 0.95rem;
+  background: var(--ifm-background-surface-color);
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+.card:hover,
+.cardExpanded {
+  border-color: var(--forx-accent-border);
+}
+
+.cardInner {
+  padding: 1rem;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.cardIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: var(--catalog-control-radius);
+  background: var(--forx-accent-tint);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.cardTitleGroup {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  min-width: 0;
+}
+
+.cardTitle {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ifm-font-color-base);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.cardTitle button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  overflow-wrap: inherit;
+  cursor: pointer;
+}
+
+.cardTitle button:hover {
+  color: var(--ifm-color-primary);
+}
+
+.badge,
+.platformPill,
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.12rem 0.45rem;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  border-radius: 999px;
+}
+
+.badge {
+  --badge-accent: var(--catalog-badge-accent, var(--ifm-color-primary));
+  border: 1px solid color-mix(in srgb, var(--badge-accent) 27%, transparent);
+  background: color-mix(in srgb, var(--badge-accent) 12%, transparent);
+  color: color-mix(in srgb, var(--badge-accent) 40%, var(--ifm-font-color-base));
+  font-weight: 600;
+}
+
+.platformPill {
+  border: 1px solid var(--catalog-stroke);
+  background: var(--catalog-control);
+  color: var(--ifm-font-color-secondary);
+}
+
+.categoryChip {
+  border: 1px solid var(--forx-accent-border);
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
+  cursor: pointer;
+}
+
+.categoryChip:hover {
+  background: var(--forx-accent-border);
+}
+
+.cardDesc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-height: 3em;
+  margin: 0 0 0.65rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.cardDescFull {
+  -webkit-line-clamp: unset;
+  min-height: 0;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cardDetail {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--catalog-stroke);
+  overflow-wrap: anywhere;
+}
+
+.installHint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+  border: 1px solid var(--catalog-stroke);
+  border-radius: var(--catalog-control-radius);
+  background: var(--catalog-control);
+}
+
+.installHint code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ifm-font-color-base);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.pickBtn,
+.secondaryButton,
+.copyBtn {
+  display: inline-block;
+  padding: 0.48rem 0.75rem;
+  border: 1px solid var(--forx-accent-border);
+  border-radius: var(--catalog-control-radius);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pickBtn {
+  background: var(--forx-action-gradient);
+  border-color: transparent;
+  color: var(--forx-accent-ink);
+}
+
+.pickBtn:hover {
+  color: var(--forx-accent-ink);
+  text-decoration: none;
+  filter: brightness(1.06);
+}
+
+.card .pickBtn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.secondaryButton,
+.copyBtn {
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
+}
+
+.secondaryButton:hover,
+.copyBtn:hover {
+  background: var(--forx-accent-border);
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.copyBtn {
+  flex: none;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.cardLinks,
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.cardLinks .secondaryButton {
+  flex: 1 1 auto;
+}
+
+.emptyActions {
+  justify-content: center;
+}
+
+.highlight {
+  padding-inline: 0.08em;
+  border-radius: 0.2rem;
+  background: var(--forx-accent-tint);
+  color: var(--ifm-color-primary);
+}
+
+.resultsBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.9rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.85rem;
+}
+
+.resultsBar button {
+  background: none;
+  border: none;
+  color: var(--ifm-color-primary);
+  cursor: pointer;
+  font: inherit;
+  margin-left: auto;
+  padding: 0;
+}
+
+.resultsBar button:hover {
+  text-decoration: underline;
+}
+
+.resultsBar strong {
+  color: var(--ifm-font-color-base);
+}
+
+.empty {
+  padding: clamp(1.75rem, 6vw, 4rem) 1rem;
+  text-align: center;
+}
+
+.empty h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.empty p {
+  max-width: 30rem;
+  margin: 0 auto 0.85rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.loadingSpinner {
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: 0 auto 0.75rem;
+  border: 2px solid var(--forx-accent-border);
+  border-top-color: var(--ifm-color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pickerMode {
+  --catalog-sticky-top: 0px;
+  --catalog-inset: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.pickerMode .toolbar {
+  border-top: 0;
+}
+
+:global(html):has(.pickerMode) :global(.navbar) {
+  display: none;
+}
+
+@media (max-width: 660px) {
+  .toolbarInner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filters {
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingSpinner {
+    animation: none;
+  }
+}

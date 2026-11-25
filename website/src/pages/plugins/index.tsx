@@ -1,7 +1,16 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
 import useBaseUrl from "@docusaurus/useBaseUrl";
+import {
+  CatalogPage,
+  CatalogPlatforms,
+  CatalogStatus,
+  CatalogToolbar,
+  CopyInstallCommand,
+  highlightMatch,
+  useCatalogPickerMode,
+} from "../../components/Catalog";
+import catalogStyles from "../../components/Catalog/styles.module.css";
 import styles from "./styles.module.css";
 
 interface PluginCapabilities {
@@ -56,27 +65,23 @@ function desktopInstallLink(name: string): string {
 
 const TIER_CONFIG: Record<
   string,
-  { label: string; color: string; bg: string; border: string; icon: string }
+  { label: string; color: string; icon: string }
 > = {
   official: {
     label: "Official",
     color: "#2997ff",
-    bg: "rgba(41, 151, 255, 0.12)",
-    border: "rgba(41, 151, 255, 0.3)",
     icon: "\u{2713}",
   },
   community: {
     label: "Community",
     color: "#94a3b8",
-    bg: "rgba(148, 163, 184, 0.08)",
-    border: "rgba(148, 163, 184, 0.2)",
     icon: "\u{2756}",
   },
 };
 
 const TIER_ORDER = ["all", "official", "community"];
 
-// Browse taxonomy. Order here is the order of the filter pills and of the
+// Browse taxonomy. Order here is the order of the category filter and of the
 // grouped sections; keep it in sync with CATALOG_CATEGORIES in
 // hermes_cli/plugin_catalog.py and website/scripts/extract-plugins.py.
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; blurb: string }> = {
@@ -113,60 +118,6 @@ function formatStars(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n);
 }
 
-function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query || !text) return text;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return text;
-  return (
-    <>
-      {text.slice(0, idx)}
-      <mark className={styles.highlight}>{text.slice(idx, idx + query.length)}</mark>
-      {text.slice(idx + query.length)}
-    </>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const onCopy = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      navigator.clipboard?.writeText(text).then(
-        () => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        },
-        () => {},
-      );
-    },
-    [text],
-  );
-  return (
-    <button
-      className={styles.copyBtn}
-      onClick={onCopy}
-      title="Copy install command"
-      aria-label="Copy install command"
-    >
-      {copied ? (
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path
-            fillRule="evenodd"
-            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-          <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-        </svg>
-      )}
-      <span className={styles.copyBtnLabel}>{copied ? "Copied" : "Copy"}</span>
-    </button>
-  );
-}
-
 function PluginCard({
   plugin,
   query,
@@ -174,7 +125,6 @@ function PluginCard({
   onToggle,
   onPick,
   onCategoryClick,
-  style,
 }: {
   plugin: CatalogPlugin;
   query: string;
@@ -183,10 +133,9 @@ function PluginCard({
   /** Picker embed mode: render "+ Add to this Agent" and call this. */
   onPick?: (plugin: CatalogPlugin) => void;
   onCategoryClick?: (category: string) => void;
-  style?: React.CSSProperties;
 }) {
   const tier = TIER_CONFIG[plugin.tier] || TIER_CONFIG.community;
-  const category = CATEGORY_CONFIG[plugin.category] || CATEGORY_CONFIG.other;
+  const category = CATEGORY_CONFIG[plugin.category] || CATEGORY_CONFIG.general;
   const caps = plugin.capabilities || {};
   const toolCount = caps.providesTools?.length || 0;
   const hookCount = caps.providesHooks?.length || 0;
@@ -195,12 +144,9 @@ function PluginCard({
 
   return (
     <div
-      className={`${styles.card} ${expanded ? styles.cardExpanded : ""}`}
+      className={`${catalogStyles.card} ${expanded ? catalogStyles.cardExpanded : ""}`}
       onClick={onToggle}
-      style={style}
     >
-      <div className={styles.cardAccent} style={{ background: tier.color }} />
-
       {plugin.image && (
         <img
           className={styles.cardImage}
@@ -213,29 +159,36 @@ function PluginCard({
         />
       )}
 
-      <div className={styles.cardInner}>
-        <div className={styles.cardTop}>
-          <span className={styles.cardIcon} title={category.label}>{category.icon}</span>
-          <div className={styles.cardTitleGroup}>
-            <h3 className={styles.cardTitle}>{highlightMatch(plugin.name, query)}</h3>
+      <div className={catalogStyles.cardInner}>
+        <div className={catalogStyles.cardTop}>
+          <span aria-hidden="true" className={catalogStyles.cardIcon}>{category.icon}</span>
+          <div className={catalogStyles.cardTitleGroup}>
+            <h3 className={catalogStyles.cardTitle}>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggle();
+                }}
+              >
+                {highlightMatch(plugin.name, query)}
+              </button>
+            </h3>
             <span
-              className={styles.tierPill}
-              style={{
-                color: tier.color,
-                background: tier.bg,
-                borderColor: tier.border,
-              }}
+              className={catalogStyles.badge}
+              style={{ "--catalog-badge-accent": tier.color } as React.CSSProperties}
             >
               {tier.icon} {tier.label}
             </span>
             {plugin.version && (
-              <span className={styles.versionPill} title={`Version ${plugin.version} at ${plugin.sha}`}>
+              <span className={catalogStyles.badge} title={`Version ${plugin.version} at ${plugin.sha}`}>
                 v{plugin.version.replace(/^v/i, "")}
               </span>
             )}
             {typeof plugin.stars === "number" && (
               <a
-                className={styles.starPill}
+                className={`${catalogStyles.badge} ${styles.starPill}`}
                 href={`${plugin.repo.replace(/\.git$/, "").replace(/\/$/, "")}/stargazers`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -248,13 +201,13 @@ function PluginCard({
           </div>
         </div>
 
-        <p className={`${styles.cardDesc} ${expanded ? styles.cardDescFull : ""}`}>
+        <p className={`${catalogStyles.cardDesc} ${expanded ? catalogStyles.cardDescFull : ""}`}>
           {highlightMatch(plugin.description || "No description available.", query)}
         </p>
 
-        <div className={styles.cardMeta}>
+        <div className={catalogStyles.cardMeta}>
           <button
-            className={styles.categoryChip}
+            className={catalogStyles.categoryChip}
             onClick={(e) => {
               e.stopPropagation();
               onCategoryClick?.(plugin.category);
@@ -264,17 +217,17 @@ function PluginCard({
             {category.label}
           </button>
           {toolCount > 0 && (
-            <span className={styles.capChip}>
+            <span className={catalogStyles.platformPill}>
               {toolCount} tool{toolCount === 1 ? "" : "s"}
             </span>
           )}
           {hookCount > 0 && (
-            <span className={styles.capChip}>
+            <span className={catalogStyles.platformPill}>
               {hookCount} hook{hookCount === 1 ? "" : "s"}
             </span>
           )}
           {middlewareCount > 0 && (
-            <span className={styles.capChip}>
+            <span className={catalogStyles.platformPill}>
               {middlewareCount} middleware
             </span>
           )}
@@ -283,16 +236,12 @@ function PluginCard({
               {v}
             </code>
           ))}
-          {plugin.platforms?.map((p) => (
-            <span key={p} className={styles.platformPill}>
-              {p === "macos" ? "\u{F8FF} macOS" : p === "linux" ? "\u{1F427} Linux" : p}
-            </span>
-          ))}
+          <CatalogPlatforms platforms={plugin.platforms} />
         </div>
 
         {onPick ? (
           <button
-            className={styles.pickBtn}
+            className={catalogStyles.pickBtn}
             onClick={(e) => {
               e.stopPropagation();
               onPick(plugin);
@@ -302,7 +251,7 @@ function PluginCard({
           </button>
         ) : (
           <a
-            className={styles.pickBtn}
+            className={catalogStyles.pickBtn}
             href={desktopInstallLink(plugin.name)}
             title="Opens the Install Plugin dialog in ForX Desktop at the reviewed version. No app? Use the install command below."
             onClick={(e) => e.stopPropagation()}
@@ -312,7 +261,7 @@ function PluginCard({
         )}
 
         {expanded && (
-          <div className={styles.cardDetail}>
+          <div className={catalogStyles.cardDetail}>
             {plugin.maintainer && (
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>Maintainer</span>
@@ -335,7 +284,6 @@ function PluginCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className={styles.shaLink}
                   title={plugin.sha}
                 >
                   <code>{plugin.version ? `${plugin.version} @ ${plugin.shaShort}` : plugin.shaShort}</code> ↗
@@ -354,13 +302,10 @@ function PluginCard({
                 </span>
               </div>
             ) : null}
-            <div className={styles.installHint}>
-              <code>{plugin.installCommand}</code>
-              <CopyButton text={plugin.installCommand} />
-            </div>
-            <div className={styles.cardLinks}>
+            <CopyInstallCommand text={plugin.installCommand} />
+            <div className={catalogStyles.cardLinks}>
               <a
-                className={styles.docsLink}
+                className={catalogStyles.secondaryButton}
                 href={plugin.repo}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -370,7 +315,7 @@ function PluginCard({
               </a>
               {plugin.docsUrl ? (
                 <a
-                  className={styles.docsLink}
+                  className={catalogStyles.secondaryButton}
                   href={plugin.docsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -414,9 +359,7 @@ export default function PluginCatalogPage() {
   // to the parent window. The HOST performs the actual install through its
   // own gateway (plugins.manage, catalog_name=<name>) — this page never
   // installs anything; parents must validate event.origin before acting.
-  const pickerMode =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("embed") === "picker";
+  const pickerMode = useCatalogPickerMode();
 
   const pickPlugin = useCallback((plugin: CatalogPlugin) => {
     if (typeof window === "undefined" || window.parent === window) return;
@@ -475,10 +418,6 @@ export default function PluginCatalogPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
       if (e.key === "Escape") {
         searchRef.current?.blur();
         setExpandedCard(null);
@@ -541,7 +480,7 @@ export default function PluginCatalogPage() {
 
   const catalogEmpty = data !== null && allPlugins.length === 0;
 
-  const renderCard = (plugin: CatalogPlugin, i: number) => {
+  const renderCard = (plugin: CatalogPlugin) => {
     const key = `${plugin.tier}-${plugin.name}`;
     return (
       <PluginCard
@@ -552,246 +491,143 @@ export default function PluginCatalogPage() {
         onToggle={() => setExpandedCard(expandedCard === key ? null : key)}
         onPick={pickerMode ? pickPlugin : undefined}
         onCategoryClick={pickCategory}
-        style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
       />
     );
   };
 
   return (
-    <Layout
-      title="ForX Plugin Catalog"
+    <CatalogPage
+      path="/plugins"
+      pickerMode={pickerMode}
       description="Give ForX new powers: reviewed plugins you can install in one click"
-    >
-      <div className={`${styles.page} ${pickerMode ? styles.pickerMode : ""}`}>
-        <header className={styles.hero}>
-          <div className={styles.heroGlow} />
-          <div className={styles.heroContent}>
-            <p className={styles.heroEyebrow}>ForX Agent</p>
-            <h1 className={styles.heroTitle}>Plugin Catalog</h1>
-            <nav className={styles.crossNav} aria-label="Catalog pages">
-              <Link className={styles.crossNavLink} to="/skills">
-                Skills
-              </Link>
-              <span className={`${styles.crossNavLink} ${styles.crossNavActive}`}>
-                Plugins
+      intro="Browse reviewed plugins for memory, voice, messaging, browsing, and ForX Desktop."
+      meta={!catalogEmpty && (
+        <>
+          {meta.generatedAt && (
+            <span>
+              {allPlugins.length} plugins across {Object.keys(categoryCounts).length} categories
+              {" · "}Updated{" "}
+              <span title={meta.starsFetchedAt ? `Catalog ${meta.generatedAt}; popularity ranking as of ${meta.starsFetchedAt}` : meta.generatedAt}>
+                {formatRelativeTime(meta.generatedAt) || "recently"}
               </span>
-            </nav>
-            <p className={styles.heroSub}>
-              Give ForX new powers. Memory, voice, messaging, browsing, Desktop panes and more,
-              built by the community.
-              {loadError && (
-                <span style={{ color: "#f87171", marginLeft: 8 }}>
-                  · failed to load catalog ({loadError})
-                </span>
-              )}
-            </p>
-            {!catalogEmpty && (
-              <p className={styles.heroSub} style={{ fontSize: "0.9rem" }}>
-                Built a plugin?{" "}
-                <Link className={styles.heroLink} to={SUBMIT_PLUGIN_URL}>
-                  Submit it to the catalog →
-                </Link>
-              </p>
-            )}
-            {meta.generatedAt && !catalogEmpty && (
-              <p className={styles.heroMeta}>
-                {allPlugins.length} plugins across {Object.keys(categoryCounts).length} categories
-                {" · "}updated{" "}
-                <span
-                  title={
-                    meta.starsFetchedAt
-                      ? `Catalog ${meta.generatedAt}; popularity ranking as of ${meta.starsFetchedAt}`
-                      : meta.generatedAt
-                  }
-                >
-                  {formatRelativeTime(meta.generatedAt) || "recently"}
-                </span>
-              </p>
-            )}
-          </div>
-        </header>
-
-        {!catalogEmpty && (
-          <div className={styles.controlsBar}>
-            <div className={styles.searchWrap}>
-              <svg
-                className={styles.searchIcon}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                width="18"
-                height="18"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Search plugins by name or by what you want ForX to do"
-                title='Tip: press "/" to jump here'
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={styles.searchInput}
-              />
-              {search && (
-                <button className={styles.clearBtn} onClick={() => setSearch("")}>
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            <div className={styles.tierPills}>
-              {TIER_ORDER.map((tier) => {
-                const active = tierFilter === tier;
-                const conf = TIER_CONFIG[tier];
-                const count =
-                  tier === "all"
-                    ? allPlugins.length
-                    : allPlugins.filter((p) => p.tier === tier).length;
-                return (
-                  <button
-                    key={tier}
-                    className={`${styles.tierBtn} ${active ? styles.tierBtnActive : ""}`}
-                    onClick={() => setTierFilter(tier)}
-                    style={
-                      active && conf
-                        ? ({
-                            "--pill-color": conf.color,
-                            "--pill-bg": conf.bg,
-                            "--pill-border": conf.border,
-                          } as React.CSSProperties)
-                        : undefined
-                    }
-                  >
-                    {tier === "all" ? "All" : conf?.label || tier}
-                    <span className={styles.tierCount}>{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={styles.categoryPills} role="tablist" aria-label="Plugin categories">
-              <button
-                className={`${styles.categoryBtn} ${categoryFilter === "all" ? styles.categoryBtnActive : ""}`}
-                onClick={() => setCategoryFilter("all")}
-                role="tab"
-                aria-selected={categoryFilter === "all"}
-              >
-                All categories
-              </button>
-              {CATEGORY_ORDER.filter((c) => categoryCounts[c]).map((c) => {
-                const conf = CATEGORY_CONFIG[c];
-                const active = categoryFilter === c;
-                return (
-                  <button
-                    key={c}
-                    className={`${styles.categoryBtn} ${active ? styles.categoryBtnActive : ""}`}
-                    onClick={() => pickCategory(c)}
-                    role="tab"
-                    aria-selected={active}
-                    title={conf.blurb}
-                  >
-                    <span aria-hidden="true">{conf.icon}</span> {conf.label}
-                    <span className={styles.tierCount}>{categoryCounts[c]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <main className={styles.main}>
-          {!data && !loadError ? (
-            <div className={styles.empty}>
-              <div className={styles.loadingSpinner} />
-              <h3 className={styles.emptyTitle}>Loading the catalog…</h3>
-            </div>
-          ) : catalogEmpty ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyIcon}>{"\u{1F331}"}</div>
-              <h3 className={styles.emptyTitle}>The catalog is just getting started</h3>
-              <p className={styles.emptyDesc}>
-                The plugin catalog is a curated, human-reviewed list of ForX
-                plugins — each entry pinned to an exact commit. Want yours listed?
-                Submissions are open.
-              </p>
-              <div className={styles.emptyActions}>
-                <Link className={styles.emptyCta} to={SUBMIT_PLUGIN_URL}>
-                  How to submit a plugin
-                </Link>
-                <Link className={styles.emptyCtaSecondary} to="/user-guide/features/plugin-catalog">
-                  Read the catalog docs
-                </Link>
-              </div>
-            </div>
-          ) : filtered.length > 0 && grouped ? (
-            grouped.map(([cat, plugins]) => {
-              const conf = CATEGORY_CONFIG[cat];
-              return (
-                <section key={cat} className={styles.categorySection} aria-labelledby={`cat-${cat}`}>
-                  <header className={styles.categoryHeader}>
-                    <h2 id={`cat-${cat}`} className={styles.categoryTitle}>
-                      <span aria-hidden="true">{conf.icon}</span> {conf.label}
-                      <span className={styles.tierCount}>{plugins.length}</span>
-                    </h2>
-                    <p className={styles.categoryBlurb}>{conf.blurb}</p>
-                    <button className={styles.categoryViewAll} onClick={() => pickCategory(cat)}>
-                      View only {conf.label} →
-                    </button>
-                  </header>
-                  <div className={styles.grid}>
-                    {plugins.map((plugin, i) => renderCard(plugin, i))}
-                  </div>
-                </section>
-              );
-            })
-          ) : filtered.length > 0 ? (
-            <>
-              <div className={styles.resultsBar} role="status">
-                {categoryFilter !== "all" && CATEGORY_CONFIG[categoryFilter] && (
-                  <span>
-                    <span aria-hidden="true">{CATEGORY_CONFIG[categoryFilter].icon}</span>{" "}
-                    <strong>{CATEGORY_CONFIG[categoryFilter].label}</strong>
-                    <span style={{ opacity: 0.7 }}> · {CATEGORY_CONFIG[categoryFilter].blurb}</span>
-                  </span>
-                )}
-                {search.trim() && (
-                  <span>
-                    Results for <strong>“{search.trim()}”</strong>
-                  </span>
-                )}
-                <span>
-                  {filtered.length} plugin{filtered.length === 1 ? "" : "s"}
-                </span>
-                <button className={styles.resultsClear} onClick={clearAll}>
-                  Clear filters
-                </button>
-              </div>
-              <div className={styles.grid}>{filtered.map((plugin, i) => renderCard(plugin, i))}</div>
-            </>
-          ) : (
-            <div className={styles.empty}>
-              <div className={styles.emptyIcon}>{"\u{1F50D}"}</div>
-              <h3 className={styles.emptyTitle}>No plugins found</h3>
-              <p className={styles.emptyDesc}>
-                Try a different search term or clear your filters.
-              </p>
-              <button className={styles.emptyReset} onClick={clearAll}>
-                Reset all filters
-              </button>
-            </div>
+            </span>
           )}
-        </main>
-      </div>
-    </Layout>
+          <Link to={SUBMIT_PLUGIN_URL}>Submit a plugin →</Link>
+        </>
+      )}
+    >
+      <CatalogToolbar
+        pickerMode={pickerMode}
+        search={search}
+        searchLabel="Search plugins"
+        searchRef={searchRef}
+        onSearchChange={setSearch}
+        filters={[
+          {
+            label: "Plugin tier",
+            value: tierFilter,
+            onChange: setTierFilter,
+            options: TIER_ORDER.map((tier) => ({
+              value: tier,
+              label: tier === "all" ? "All tiers" : TIER_CONFIG[tier].label,
+              count: tier === "all" ? allPlugins.length : allPlugins.filter((p) => p.tier === tier).length,
+            })),
+          },
+          {
+            label: "Plugin category",
+            value: categoryFilter,
+            onChange: (category) => {
+              if (category === "all") setCategoryFilter("all");
+              else pickCategory(category);
+            },
+            options: [
+              { value: "all", label: "All categories" },
+              ...CATEGORY_ORDER.filter((category) => categoryCounts[category] || category === categoryFilter)
+                .map((category) => ({
+                  value: category,
+                  label: CATEGORY_CONFIG[category].label,
+                  count: categoryCounts[category] ?? 0,
+                })),
+            ],
+          },
+        ]}
+      />
+
+      <main className={catalogStyles.content}>
+        {!data && !loadError ? (
+          <CatalogStatus loading title="Loading the catalog…" />
+        ) : loadError ? (
+          <CatalogStatus title="Couldn’t load the catalog" description={loadError} />
+        ) : catalogEmpty ? (
+          <CatalogStatus
+            title="The catalog is just getting started"
+            description="Entries are reviewed and pinned to an exact commit. Submissions are open."
+          >
+            <div className={catalogStyles.emptyActions}>
+              <Link className={catalogStyles.pickBtn} to={SUBMIT_PLUGIN_URL}>
+                How to submit a plugin
+              </Link>
+              <Link className={catalogStyles.secondaryButton} to="/user-guide/features/plugin-catalog">
+                Read the catalog docs
+              </Link>
+            </div>
+          </CatalogStatus>
+        ) : filtered.length > 0 && grouped ? (
+          grouped.map(([cat, plugins]) => {
+            const conf = CATEGORY_CONFIG[cat];
+            return (
+              <section key={cat} className={styles.categorySection} aria-labelledby={`cat-${cat}`}>
+                <header className={styles.categoryHeader}>
+                  <h2 id={`cat-${cat}`} className={styles.categoryTitle}>
+                    <span aria-hidden="true">{conf.icon}</span> {conf.label}
+                    <span className={catalogStyles.platformPill}>{plugins.length}</span>
+                  </h2>
+                  <p className={styles.categoryBlurb}>{conf.blurb}</p>
+                  <button className={styles.categoryViewAll} type="button" onClick={() => pickCategory(cat)}>
+                    View only {conf.label} →
+                  </button>
+                </header>
+                <div className={catalogStyles.grid}>
+                  {plugins.map(renderCard)}
+                </div>
+              </section>
+            );
+          })
+        ) : filtered.length > 0 ? (
+          <>
+            <div className={catalogStyles.resultsBar} role="status">
+              {categoryFilter !== "all" && CATEGORY_CONFIG[categoryFilter] && (
+                <span>
+                  <span aria-hidden="true">{CATEGORY_CONFIG[categoryFilter].icon}</span>{" "}
+                  <strong>{CATEGORY_CONFIG[categoryFilter].label}</strong>
+                  <span style={{ opacity: 0.7 }}> · {CATEGORY_CONFIG[categoryFilter].blurb}</span>
+                </span>
+              )}
+              {search.trim() && (
+                <span>
+                  Results for <strong>“{search.trim()}”</strong>
+                </span>
+              )}
+              <span>
+                {filtered.length} plugin{filtered.length === 1 ? "" : "s"}
+              </span>
+              <button type="button" onClick={clearAll}>
+                Clear filters
+              </button>
+            </div>
+            <div className={catalogStyles.grid}>{filtered.map(renderCard)}</div>
+          </>
+        ) : (
+          <CatalogStatus
+            title="No plugins found"
+            description="Try a different search term or clear your filters."
+          >
+            <button className={catalogStyles.secondaryButton} type="button" onClick={clearAll}>
+              Reset all filters
+            </button>
+          </CatalogStatus>
+        )}
+      </main>
+    </CatalogPage>
   );
 }

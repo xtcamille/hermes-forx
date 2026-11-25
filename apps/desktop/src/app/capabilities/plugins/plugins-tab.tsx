@@ -1,13 +1,5 @@
 import { useStore } from '@nanostores/react'
-import {
-  memo,
-  type ReactNode,
-  type PointerEvent as ReactPointerEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { memo, type ReactNode, useCallback, useEffect, useMemo } from 'react'
 
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { Button } from '@/components/ui/button'
@@ -37,7 +29,6 @@ import {
 } from '@/store/agent-plugins'
 import { confirm } from '@/store/confirm'
 import { notify, notifyError } from '@/store/notifications'
-import { $paneHeightOverride, setPaneHeightOverride } from '@/store/panes'
 import { openCatalogPluginInstall } from '@/store/plugin-catalog-install'
 import { openPluginInstallRequest } from '@/store/plugin-install-request'
 import { $connection } from '@/store/session'
@@ -45,6 +36,7 @@ import { $connection } from '@/store/session'
 import { PanelEmpty } from '../../overlays/panel'
 import { Pill } from '../../settings/primitives'
 import { useDeepLinkHighlight } from '../../settings/use-deep-link-highlight'
+import { EmbeddedCatalogPane } from '../embedded-catalog-pane'
 
 import { mergePluginPackages, type PackageKind, type PluginPackage } from './plugin-packages'
 
@@ -57,16 +49,6 @@ import { mergePluginPackages, type PackageKind, type PluginPackage } from './plu
 // scoped profile; desktop half → this app), so unified packages install both
 // halves in one flow. URLs live in `@/lib/plugin-catalog` so the
 // `hermes://plugin/install?catalog=` deep link resolves against the same feed.
-
-// Catalog viewport: persisted through the shared pane store, dragged from the
-// section's TOP edge ("pull the catalog up"), clamped so neither the catalog
-// nor the plugin list above can vanish. Same contract as EmbeddedHubPicker.
-const CATALOG_PANE_ID = 'capabilities-plugin-catalog'
-const CATALOG_DEFAULT_PX = 380
-const CATALOG_MIN_PX = 120
-const CATALOG_MAX_VH = 0.75
-const CATALOG_COLLAPSED_PX = 4
-const CATALOG_LIST_RESERVED_PX = 176
 
 interface PluginPickMessage {
   installCmd?: string
@@ -420,53 +402,8 @@ export const PluginsTab = memo(function PluginsTab({
 
   useDeepLinkHighlight({ param: 'plugin', ready: () => true, elementId: pluginElementId })
 
-  // Catalog picker viewport (persisted height, collapse toggle, top-edge sash).
-  const heightOverride = useStore($paneHeightOverride(CATALOG_PANE_ID))
-  const height = heightOverride ?? CATALOG_DEFAULT_PX
-  const open = height > CATALOG_COLLAPSED_PX
-  const [pickerMounted, setPickerMounted] = useState(open)
-  const [dragging, setDragging] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
-
-  if (open && !pickerMounted) {
-    setPickerMounted(true)
-  }
-
-  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
-      return
-    }
-
-    event.preventDefault()
-    const startY = event.clientY
-    const startHeight = height
-    const column = sectionRef.current?.parentElement
-    const columnMax = column ? column.clientHeight - CATALOG_LIST_RESERVED_PX : Number.POSITIVE_INFINITY
-    const max = Math.max(CATALOG_MIN_PX, Math.round(Math.min(window.innerHeight * CATALOG_MAX_VH, columnMax)))
-    setDragging(true)
-
-    const onMove = (move: globalThis.PointerEvent) => {
-      setPaneHeightOverride(
-        CATALOG_PANE_ID,
-        Math.round(Math.min(max, Math.max(CATALOG_MIN_PX, startHeight + (startY - move.clientY))))
-      )
-    }
-
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove)
-      setDragging(false)
-    }
-
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp, { once: true })
-  }
-
-  useEffect(() => {
-    if (!open) {
-      return undefined
-    }
-
-    const onMessage = (event: MessageEvent) => {
+  const onCatalogMessage = useCallback(
+    (event: MessageEvent) => {
       if (event.origin !== CATALOG_ORIGIN) {
         return
       }
@@ -477,8 +414,6 @@ export const PluginsTab = memo(function PluginsTab({
         return
       }
 
-      // Already-installed short-circuit + the dialog itself live in the shared
-      // helper so a catalog deep link behaves identically to this pick.
       openCatalogPluginInstall(
         {
           name: String(data.name),
@@ -488,12 +423,9 @@ export const PluginsTab = memo(function PluginsTab({
         },
         scope
       )
-    }
-
-    window.addEventListener('message', onMessage)
-
-    return () => window.removeEventListener('message', onMessage)
-  }, [open, p, scope])
+    },
+    [scope]
+  )
 
   const agentBusy = (row: AgentPluginRow) => busyKey === (row.key ?? row.name) || busyKey === row.name
 
@@ -629,65 +561,15 @@ export const PluginsTab = memo(function PluginsTab({
         )}
       </div>
 
-      <section
-        className="relative flex min-h-9 flex-col overflow-hidden border-t border-(--ui-stroke-secondary)"
-        ref={sectionRef}
-      >
-        <div
-          className="group/catsash absolute inset-x-0 top-0 z-10 h-1 -translate-y-1/2 cursor-row-resize"
-          data-testid="plugin-catalog-sash"
-          onDoubleClick={() => setPaneHeightOverride(CATALOG_PANE_ID, undefined)}
-          onPointerDown={startDrag}
-        >
-          <div
-            className={cn(
-              'absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-colors',
-              dragging ? 'bg-(--ui-stroke-secondary)' : 'group-hover/catsash:bg-(--ui-stroke-secondary)'
-            )}
-          />
-        </div>
-        <div className="flex shrink-0 items-center justify-between px-3 py-1.5">
-          <span className="text-[0.62rem] font-medium tracking-wide uppercase text-(--ui-text-quaternary)">
-            {p.catalogTitle}
-          </span>
-          <Button onClick={() => setPaneHeightOverride(CATALOG_PANE_ID, open ? 0 : undefined)} size="xs" variant="text">
-            {open ? p.catalogHide : p.catalogBrowse}
-          </Button>
-        </div>
-        {pickerMounted && (
-          <div className={cn('flex min-h-0 flex-col gap-1 px-3 pb-2', !open && 'hidden')}>
-            <div
-              style={{
-                border: '1px solid var(--ui-stroke-secondary)',
-                borderRadius: 8,
-                flex: `0 1 ${height}px`,
-                maxWidth: '100%',
-                minHeight: 0,
-                minWidth: 320,
-                overflow: 'hidden',
-                position: 'relative',
-                width: '100%'
-              }}
-            >
-              <iframe
-                sandbox="allow-scripts allow-same-origin"
-                src={CATALOG_PICKER_URL}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  height: '133.34%',
-                  pointerEvents: dragging ? 'none' : 'auto',
-                  transform: 'scale(0.75)',
-                  transformOrigin: 'top left',
-                  width: '133.34%'
-                }}
-                title={p.catalogTitle}
-              />
-            </div>
-            <p className="shrink-0 px-1 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">{p.catalogHint}</p>
-          </div>
-        )}
-      </section>
+      <EmbeddedCatalogPane
+        browseLabel={p.catalogBrowse}
+        hideLabel={p.catalogHide}
+        hint={p.catalogHint}
+        onMessage={onCatalogMessage}
+        paneId="capabilities-plugin-catalog"
+        src={CATALOG_PICKER_URL}
+        title={p.catalogTitle}
+      />
     </div>
   )
 })

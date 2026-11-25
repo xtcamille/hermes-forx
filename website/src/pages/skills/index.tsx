@@ -1,7 +1,15 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import Layout from "@theme/Layout";
-import Link from "@docusaurus/Link";
 import useBaseUrl from "@docusaurus/useBaseUrl";
+import {
+  CatalogPage,
+  CatalogPlatforms,
+  CatalogStatus,
+  CatalogToolbar,
+  CopyInstallCommand,
+  highlightMatch,
+  useCatalogPickerMode,
+} from "../../components/Catalog";
+import catalogStyles from "../../components/Catalog/styles.module.css";
 import styles from "./styles.module.css";
 
 interface Skill {
@@ -62,7 +70,7 @@ function formatRelativeTime(iso?: string): string | null {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
-  apple: "\u{f179}",
+  apple: "\u{1F34E}",
   "autonomous-ai-agents": "\u{1F916}",
   blockchain: "\u{26D3}",
   communication: "\u{1F4AC}",
@@ -97,111 +105,81 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const SOURCE_CONFIG: Record<
   string,
-  { label: string; color: string; bg: string; border: string; icon: string }
+  { label: string; color: string; icon: string }
 > = {
   "built-in": {
     label: "Built-in",
     color: "#4ade80",
-    bg: "rgba(74, 222, 128, 0.08)",
-    border: "rgba(74, 222, 128, 0.2)",
     icon: "\u{2713}",
   },
   optional: {
     label: "Optional",
     color: "#fbbf24",
-    bg: "rgba(251, 191, 36, 0.08)",
-    border: "rgba(251, 191, 36, 0.2)",
     icon: "\u{2B50}",
   },
   Anthropic: {
     label: "Anthropic",
     color: "#d4845a",
-    bg: "rgba(212, 132, 90, 0.08)",
-    border: "rgba(212, 132, 90, 0.2)",
     icon: "\u{25C6}",
   },
   LobeHub: {
     label: "LobeHub",
     color: "#60a5fa",
-    bg: "rgba(96, 165, 250, 0.08)",
-    border: "rgba(96, 165, 250, 0.2)",
     icon: "\u{25CB}",
   },
   "skills.sh": {
     label: "skills.sh",
     color: "#34d399",
-    bg: "rgba(52, 211, 153, 0.08)",
-    border: "rgba(52, 211, 153, 0.2)",
     icon: "\u{2734}",
   },
   ClawHub: {
     label: "ClawHub",
     color: "#f472b6",
-    bg: "rgba(244, 114, 182, 0.08)",
-    border: "rgba(244, 114, 182, 0.2)",
     icon: "\u{2726}",
   },
   "browse.sh": {
     label: "browse.sh",
     color: "#22d3ee",
-    bg: "rgba(34, 211, 238, 0.08)",
-    border: "rgba(34, 211, 238, 0.2)",
     icon: "\u{29BF}",
   },
   OpenAI: {
     label: "OpenAI",
     color: "#10b981",
-    bg: "rgba(16, 185, 129, 0.08)",
-    border: "rgba(16, 185, 129, 0.2)",
     icon: "\u{2737}",
   },
   HuggingFace: {
     label: "HuggingFace",
     color: "#fbbf24",
-    bg: "rgba(251, 191, 36, 0.08)",
-    border: "rgba(251, 191, 36, 0.2)",
     icon: "\u{1F917}",
   },
   NVIDIA: {
     label: "NVIDIA",
     color: "#76b900",
-    bg: "rgba(118, 185, 0, 0.08)",
-    border: "rgba(118, 185, 0, 0.25)",
     icon: "\u{25B6}",
   },
   VoltAgent: {
     label: "VoltAgent",
     color: "#facc15",
-    bg: "rgba(250, 204, 21, 0.08)",
-    border: "rgba(250, 204, 21, 0.2)",
     icon: "\u{26A1}",
   },
   GitHub: {
     label: "GitHub",
     color: "#94a3b8",
-    bg: "rgba(148, 163, 184, 0.08)",
-    border: "rgba(148, 163, 184, 0.2)",
     icon: "\u{2756}",
   },
   "Well-Known": {
     label: "Well-Known",
     color: "#818cf8",
-    bg: "rgba(129, 140, 248, 0.08)",
-    border: "rgba(129, 140, 248, 0.2)",
     icon: "\u{2756}",
   },
   gstack: {
     label: "gstack",
     color: "#fb923c",
-    bg: "rgba(251, 146, 60, 0.08)",
-    border: "rgba(251, 146, 60, 0.2)",
     icon: "\u{2756}",
   },
   MiniMax: {
     label: "MiniMax",
     color: "#f87171",
-    bg: "rgba(248, 113, 113, 0.08)",
-    border: "rgba(248, 113, 113, 0.2)",
     icon: "\u{2756}",
   },
 };
@@ -225,60 +203,6 @@ const SOURCE_ORDER = [
   "MiniMax",
 ];
 
-function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query || !text) return text;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return text;
-  return (
-    <>
-      {text.slice(0, idx)}
-      <mark className={styles.highlight}>{text.slice(idx, idx + query.length)}</mark>
-      {text.slice(idx + query.length)}
-    </>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const onCopy = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      navigator.clipboard?.writeText(text).then(
-        () => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        },
-        () => {},
-      );
-    },
-    [text],
-  );
-  return (
-    <button
-      className={styles.copyBtn}
-      onClick={onCopy}
-      title="Copy install command"
-      aria-label="Copy install command"
-    >
-      {copied ? (
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path
-            fillRule="evenodd"
-            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-          <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-        </svg>
-      )}
-      <span className={styles.copyBtnLabel}>{copied ? "Copied" : "Copy"}</span>
-    </button>
-  );
-}
-
 /** Deep link into the Desktop app's Install Skill action. */
 function desktopSkillInstallLink(skill: Skill): string {
   const target = skill.identifier || skill.name;
@@ -292,7 +216,6 @@ function SkillCard({
   onToggle,
   onCategoryClick,
   onTagClick,
-  style,
   onPick,
 }: {
   skill: Skill;
@@ -301,7 +224,6 @@ function SkillCard({
   onToggle: () => void;
   onCategoryClick: (cat: string) => void;
   onTagClick: (tag: string) => void;
-  style?: React.CSSProperties;
   /** Picker embed mode: render "+ Add to this Agent" and call this. */
   onPick?: (skill: Skill) => void;
 }) {
@@ -311,39 +233,41 @@ function SkillCard({
 
   return (
     <div
-      className={`${styles.card} ${expanded ? styles.cardExpanded : ""}`}
+      className={`${catalogStyles.card} ${expanded ? catalogStyles.cardExpanded : ""}`}
       onClick={onToggle}
-      style={style}
     >
-      <div className={styles.cardAccent} style={{ background: src.color }} />
-
-      <div className={styles.cardInner}>
-        <div className={styles.cardTop}>
-          <span className={styles.cardIcon}>{icon}</span>
-          <div className={styles.cardTitleGroup}>
-            <h3 className={styles.cardTitle}>
-              {highlightMatch(skill.name, query)}
+      <div className={catalogStyles.cardInner}>
+        <div className={catalogStyles.cardTop}>
+          <span aria-hidden="true" className={catalogStyles.cardIcon}>{icon}</span>
+          <div className={catalogStyles.cardTitleGroup}>
+            <h3 className={catalogStyles.cardTitle}>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggle();
+                }}
+              >
+                {highlightMatch(skill.name, query)}
+              </button>
             </h3>
             <span
-              className={styles.sourcePill}
-              style={{
-                color: src.color,
-                background: src.bg,
-                borderColor: src.border,
-              }}
+              className={catalogStyles.badge}
+              style={{ "--catalog-badge-accent": src.color } as React.CSSProperties}
             >
               {src.icon} {src.label}
             </span>
           </div>
         </div>
 
-        <p className={`${styles.cardDesc} ${expanded ? styles.cardDescFull : ""}`}>
+        <p className={`${catalogStyles.cardDesc} ${expanded ? catalogStyles.cardDescFull : ""}`}>
           {highlightMatch(skill.description || "No description available.", query)}
         </p>
 
-        <div className={styles.cardMeta}>
+        <div className={catalogStyles.cardMeta}>
           <button
-            className={styles.catButton}
+            className={catalogStyles.categoryChip}
             onClick={(e) => {
               e.stopPropagation();
               onCategoryClick(skill.category);
@@ -352,16 +276,12 @@ function SkillCard({
           >
             {skill.categoryLabel || skill.category}
           </button>
-          {skill.platforms?.map((p) => (
-            <span key={p} className={styles.platformPill}>
-              {p === "macos" ? "\u{F8FF} macOS" : p === "linux" ? "\u{1F427} Linux" : p}
-            </span>
-          ))}
+          <CatalogPlatforms platforms={skill.platforms} />
         </div>
 
         {onPick ? (
           <button
-            className={styles.pickBtn}
+            className={catalogStyles.pickBtn}
             onClick={(e) => {
               e.stopPropagation();
               onPick(skill);
@@ -371,7 +291,7 @@ function SkillCard({
           </button>
         ) : (
           <a
-            className={styles.pickBtn}
+            className={catalogStyles.pickBtn}
             href={desktopSkillInstallLink(skill)}
             title={`Opens the install dialog in ForX Desktop for ${skill.name}. No app? Use the install command below.`}
             onClick={(e) => e.stopPropagation()}
@@ -381,7 +301,7 @@ function SkillCard({
         )}
 
         {expanded && (
-          <div className={styles.cardDetail}>
+          <div className={catalogStyles.cardDetail}>
             {skill.overview && (
               <div className={styles.overviewBlock}>
                 <span className={styles.detailLabel}>Overview</span>
@@ -418,7 +338,7 @@ function SkillCard({
                 {skill.tags.map((tag) => (
                   <button
                     key={tag}
-                    className={styles.tagPill}
+                    className={catalogStyles.categoryChip}
                     onClick={(e) => {
                       e.stopPropagation();
                       onTagClick(tag);
@@ -447,16 +367,11 @@ function SkillCard({
                 <span className={styles.authorValue}>{skill.license}</span>
               </div>
             )}
-            <div className={styles.installHint}>
-              <code>{installCmd}</code>
-              <CopyButton
-                text={installCmd}
-              />
-            </div>
-            <div className={styles.cardLinks}>
+            <CopyInstallCommand text={installCmd} />
+            <div className={catalogStyles.cardLinks}>
               {skill.docsPath ? (
                 <a
-                  className={styles.docsLink}
+                  className={catalogStyles.secondaryButton}
                   href={`/docs/user-guide/skills/${skill.docsPath}`}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -464,7 +379,7 @@ function SkillCard({
                 </a>
               ) : skill.sourceUrl ? (
                 <a
-                  className={styles.docsLink}
+                  className={catalogStyles.secondaryButton}
                   href={skill.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -477,17 +392,6 @@ function SkillCard({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <div className={styles.stat}>
-      <span className={styles.statValue} style={{ color }}>
-        {value}
-      </span>
-      <span className={styles.statLabel}>{label}</span>
     </div>
   );
 }
@@ -521,9 +425,7 @@ export default function SkillsDashboard() {
   // own gateway (skills.manage) — the page never installs anything, so
   // there is no origin to trust in this direction; parents must validate
   // event.origin themselves before acting on the message.
-  const pickerMode =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("embed") === "picker";
+  const pickerMode = useCatalogPickerMode();
 
   const pickSkill = useCallback(
     (skill: Skill) => {
@@ -558,9 +460,8 @@ export default function SkillsDashboard() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLElement>(null);
 
   const skillsUrl = useBaseUrl("/api/skills.json");
   const metaUrl = useBaseUrl("/api/skills-meta.json");
@@ -598,15 +499,11 @@ export default function SkillsDashboard() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const allSkillsLocal: Skill[] = data?.skills ?? [];
+  const allSkillsLocal = data?.skills ?? allSkills;
   const indexMetaLocal: IndexMeta = data?.meta ?? indexMeta;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
       if (e.key === "Escape") {
         searchRef.current?.blur();
         setExpandedCard(null);
@@ -616,10 +513,14 @@ export default function SkillsDashboard() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const sources = useMemo(() => {
-    const set = new Set(allSkillsLocal.map((s) => s.source));
-    return SOURCE_ORDER.filter((s) => s === "all" || set.has(s));
+  const sourceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const skill of allSkillsLocal) {
+      counts.set(skill.source, (counts.get(skill.source) ?? 0) + 1);
+    }
+    return counts;
   }, [allSkillsLocal]);
+  const sources = SOURCE_ORDER.filter((source) => source === "all" || sourceCounts.has(source));
 
   const categoryEntries = useMemo(() => {
     const pool =
@@ -676,7 +577,6 @@ export default function SkillsDashboard() {
   const handleCategoryClick = useCallback((cat: string) => {
     setCategoryFilter(cat);
     gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setSidebarOpen(false);
   }, []);
 
   const handleTagClick = useCallback((tag: string) => {
@@ -690,287 +590,105 @@ export default function SkillsDashboard() {
     setCategoryFilter("all");
   }, []);
 
+  const updatedAt = indexMetaLocal.indexGeneratedAt || indexMetaLocal.extractedAt;
+
   return (
-    <Layout
-      title="ForX Skills Hub"
+    <CatalogPage
+      path="/skills"
+      pickerMode={pickerMode}
       description="Browse all skills and capabilities available for ForX Agent"
+      intro={data
+        ? `Browse ${allSkillsLocal.length.toLocaleString()} skills across ${sources.length - 1} registries.`
+        : "Browse skills from ForX and community registries."}
+      meta={updatedAt ? (
+        <span title={updatedAt}>Catalog refreshed {formatRelativeTime(updatedAt) || "recently"}</span>
+      ) : undefined}
     >
-      <div className={`${styles.page} ${pickerMode ? styles.pickerMode : ""}`}>
-        <header className={styles.hero}>
-          <div className={styles.heroGlow} />
-          <div className={styles.heroContent}>
-            <p className={styles.heroEyebrow}>ForX Agent</p>
-            <h1 className={styles.heroTitle}>Skills Hub</h1>
-            <nav className={styles.crossNav} aria-label="Catalog pages">
-              <span className={`${styles.crossNavLink} ${styles.crossNavActive}`}>
-                Skills
-              </span>
-              <Link className={styles.crossNavLink} to="/plugins">
-                Plugins
-              </Link>
-            </nav>
-            <p className={styles.heroSub}>
-              Discover, search, and install from{" "}
-              <strong className={styles.heroAccent}>
-                {data ? allSkillsLocal.length.toLocaleString() : "…"}
-              </strong>{" "}
-              skills across {sources.length - 1} registries
-              {loadError && (
-                <span style={{ color: "#f87171", marginLeft: 8 }}>
-                  · failed to load catalog ({loadError})
-                </span>
-              )}
-            </p>
-            {(indexMetaLocal?.indexGeneratedAt || indexMetaLocal?.extractedAt) && (
-              <p className={styles.heroSub} style={{ fontSize: "0.85rem", opacity: 0.75 }}>
-                Catalog refreshed{" "}
-                <span title={indexMetaLocal.indexGeneratedAt || indexMetaLocal.extractedAt}>
-                  {formatRelativeTime(
-                    indexMetaLocal.indexGeneratedAt || indexMetaLocal.extractedAt,
-                  ) || "recently"}
-                </span>
-                {" "}· auto-rebuilt twice daily
-              </p>
-            )}
+      <CatalogToolbar
+        pickerMode={pickerMode}
+        search={search}
+        searchLabel="Search skills"
+        searchRef={searchRef}
+        onSearchChange={setSearch}
+        filters={[
+          {
+            label: "Skill source",
+            value: sourceFilter,
+            onChange: handleSourceChange,
+            options: sources.map((source) => ({
+              value: source,
+              label: source === "all" ? "All sources" : SOURCE_CONFIG[source]?.label ?? source,
+              count: source === "all" ? allSkillsLocal.length : sourceCounts.get(source),
+            })),
+          },
+          {
+            label: "Skill category",
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: [
+              { value: "all", label: "All categories" },
+              ...categoryEntries.map(({ key, label, count }) => ({ value: key, label, count })),
+            ],
+          },
+        ]}
+      />
 
-            <div className={styles.statsRow}>
-              <StatCard
-                value={allSkillsLocal.filter((s) => s.source === "built-in").length}
-                label="Built-in"
-                color="#4ade80"
-              />
-              <StatCard
-                value={allSkillsLocal.filter((s) => s.source === "optional").length}
-                label="Optional"
-                color="#fbbf24"
-              />
-              <StatCard
-                value={
-                  allSkillsLocal.filter(
-                    (s) => s.source !== "built-in" && s.source !== "optional"
-                  ).length
-                }
-                label="Community"
-                color="#60a5fa"
-              />
-              <StatCard
-                value={new Set(allSkillsLocal.map((s) => s.category)).size}
-                label="Categories"
-                color="#a78bfa"
-              />
-            </div>
+      <main className={catalogStyles.content} ref={gridRef}>
+        {(search || sourceFilter !== "all" || categoryFilter !== "all") && (
+          <div className={catalogStyles.resultsBar}>
+            <span role="status">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
+            <button type="button" onClick={clearAll}>Clear filters</button>
           </div>
-        </header>
+        )}
 
-        <div className={styles.controlsBar}>
-          <div className={styles.searchWrap}>
-            <svg className={styles.searchIcon} viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder='Search skills... (press "/" to focus)'
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={styles.searchInput}
-            />
-            {search && (
-              <button className={styles.clearBtn} onClick={() => setSearch("")}>
-                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
+        {!data && !loadError ? (
+          <CatalogStatus loading title="Loading the catalog…" />
+        ) : loadError ? (
+          <CatalogStatus title="Couldn’t load the catalog" description={loadError} />
+        ) : visible.length > 0 ? (
+          <>
+            <div className={catalogStyles.grid}>
+              {visible.map((skill, i) => {
+                const key = `${skill.source}-${skill.name}-${i}`;
+                return (
+                  <SkillCard
+                    key={key}
+                    skill={skill}
+                    query={search}
+                    expanded={expandedCard === key}
+                    onToggle={() =>
+                      setExpandedCard(expandedCard === key ? null : key)
+                    }
+                    onCategoryClick={handleCategoryClick}
+                    onTagClick={handleTagClick}
+                    onPick={pickerMode ? pickSkill : undefined}
                   />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          <div className={styles.sourcePills}>
-            {sources.map((src) => {
-              const active = sourceFilter === src;
-              const conf = SOURCE_CONFIG[src];
-              const count =
-                src === "all"
-                  ? allSkillsLocal.length
-                  : allSkillsLocal.filter((s) => s.source === src).length;
-              return (
-                <button
-                  key={src}
-                  className={`${styles.srcPill} ${active ? styles.srcPillActive : ""}`}
-                  onClick={() => handleSourceChange(src)}
-                  style={
-                    active && conf
-                      ? ({
-                          "--pill-color": conf.color,
-                          "--pill-bg": conf.bg,
-                          "--pill-border": conf.border,
-                        } as React.CSSProperties)
-                      : undefined
-                  }
-                >
-                  {src === "all" ? "All" : conf?.label || src}
-                  <span className={styles.srcCount}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles.layout}>
-          <button
-            className={styles.sidebarToggle}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path
-                fillRule="evenodd"
-                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Categories
-            {categoryFilter !== "all" && (
-              <span className={styles.activeCatBadge}>
-                {categoryEntries.find((c) => c.key === categoryFilter)?.label}
-              </span>
-            )}
-          </button>
-
-          <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""}`}>
-            <div className={styles.sidebarHeader}>
-              <h2 className={styles.sidebarTitle}>Categories</h2>
-              {categoryFilter !== "all" && (
-                <button className={styles.sidebarClear} onClick={() => setCategoryFilter("all")}>
-                  Clear
-                </button>
-              )}
+                );
+              })}
             </div>
-            <nav className={styles.catList}>
-              <button
-                className={`${styles.catItem} ${categoryFilter === "all" ? styles.catItemActive : ""}`}
-                onClick={() => {
-                  setCategoryFilter("all");
-                  setSidebarOpen(false);
-                }}
-              >
-                <span className={styles.catItemIcon}>{"\u{1F4CB}"}</span>
-                <span className={styles.catItemLabel}>All Skills</span>
-                <span className={styles.catItemCount}>{filtered.length}</span>
-              </button>
-              {categoryEntries.map((cat) => (
+            {hasMore && (
+              <div className={styles.loadMoreWrap}>
                 <button
-                  key={cat.key}
-                  className={`${styles.catItem} ${categoryFilter === cat.key ? styles.catItemActive : ""}`}
-                  onClick={() => handleCategoryClick(cat.key)}
+                  className={catalogStyles.secondaryButton}
+                  type="button"
+                  onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
                 >
-                  <span className={styles.catItemIcon}>
-                    {CATEGORY_ICONS[cat.key] || "\u{1F4E6}"}
-                  </span>
-                  <span className={styles.catItemLabel}>{cat.label}</span>
-                  <span className={styles.catItemCount}>{cat.count}</span>
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          <main className={styles.main} ref={gridRef}>
-            {(search || sourceFilter !== "all" || categoryFilter !== "all") && (
-              <div className={styles.filterSummary}>
-                <span className={styles.filterCount}>
-                  {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-                </span>
-                {search && (
-                  <span className={styles.filterChip}>
-                    &ldquo;{search}&rdquo;
-                    <button onClick={() => setSearch("")}>&times;</button>
-                  </span>
-                )}
-                {sourceFilter !== "all" && (
-                  <span className={styles.filterChip}>
-                    {SOURCE_CONFIG[sourceFilter]?.label || sourceFilter}
-                    <button onClick={() => setSourceFilter("all")}>&times;</button>
-                  </span>
-                )}
-                {categoryFilter !== "all" && (
-                  <span className={styles.filterChip}>
-                    {categoryEntries.find((c) => c.key === categoryFilter)?.label ||
-                      categoryFilter}
-                    <button onClick={() => setCategoryFilter("all")}>&times;</button>
-                  </span>
-                )}
-                <button className={styles.clearAllBtn} onClick={clearAll}>
-                  Clear all
+                  Show more ({filtered.length - visibleCount} remaining)
                 </button>
               </div>
             )}
-
-            {!data && !loadError ? (
-              <div className={styles.empty}>
-                <div className={styles.loadingSpinner} />
-                <h3 className={styles.emptyTitle}>Loading the catalog…</h3>
-                <p className={styles.emptyDesc}>
-                  Fetching 88k+ skills across every registry. One moment.
-                </p>
-              </div>
-            ) : visible.length > 0 ? (
-              <>
-                <div className={styles.grid}>
-                  {visible.map((skill, i) => {
-                    const key = `${skill.source}-${skill.name}-${i}`;
-                    return (
-                      <SkillCard
-                        key={key}
-                        skill={skill}
-                        query={search}
-                        expanded={expandedCard === key}
-                        onToggle={() =>
-                          setExpandedCard(expandedCard === key ? null : key)
-                        }
-                        onCategoryClick={handleCategoryClick}
-                        onTagClick={handleTagClick}
-                        style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
-                        onPick={pickerMode ? pickSkill : undefined}
-                      />
-                    );
-                  })}
-                </div>
-                {hasMore && (
-                  <div className={styles.loadMoreWrap}>
-                    <button
-                      className={styles.loadMoreBtn}
-                      onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    >
-                      Show more ({filtered.length - visibleCount} remaining)
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className={styles.empty}>
-                <div className={styles.emptyIcon}>{"\u{1F50D}"}</div>
-                <h3 className={styles.emptyTitle}>No skills found</h3>
-                <p className={styles.emptyDesc}>
-                  Try a different search term or clear your filters.
-                </p>
-                <button className={styles.emptyReset} onClick={clearAll}>
-                  Reset all filters
-                </button>
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
-
-      {sidebarOpen && (
-        <div className={styles.backdrop} onClick={() => setSidebarOpen(false)} />
-      )}
-    </Layout>
+          </>
+        ) : (
+          <CatalogStatus
+            title="No skills found"
+            description="Try a different search term or clear your filters."
+          >
+            <button className={catalogStyles.secondaryButton} type="button" onClick={clearAll}>
+              Reset all filters
+            </button>
+          </CatalogStatus>
+        )}
+      </main>
+    </CatalogPage>
   );
 }
