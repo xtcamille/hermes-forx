@@ -27,8 +27,13 @@ import {
 
 // Shared chrome styling for interactive statusbar items (button / link / menu
 // trigger). The 'text' variant intentionally omits hover/transition/disabled.
-const STATUSBAR_ACTION_CLASS =
-  'inline-flex h-full items-center gap-1 rounded-none px-1.5 text-[0.6875rem] text-(--ui-text-tertiary) transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground disabled:cursor-default disabled:opacity-45'
+const STATUSBAR_ITEM_CLASS =
+  'inline-flex h-full min-w-0 items-center gap-(--statusbar-item-gap) px-(--statusbar-item-padding) text-(--ui-text-tertiary) [&>svg]:size-(--chrome-icon-size) [&>svg]:shrink-0'
+
+const STATUSBAR_ACTION_CLASS = cn(
+  STATUSBAR_ITEM_CLASS,
+  'rounded-md transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground disabled:cursor-default disabled:opacity-45'
+)
 
 export interface StatusbarMenuItem {
   id: string
@@ -101,7 +106,8 @@ export function StatusbarControls({ className, leftItems = [], items = [], ...pr
       <ContextMenuTrigger asChild>
         <footer
           className={cn(
-            'flex h-5 shrink-0 items-stretch justify-between gap-2 bg-(--ui-sidebar-surface-background) px-1 py-0 text-(--ui-text-tertiary) [-webkit-app-region:no-drag]',
+            'flex h-7 shrink-0 items-stretch justify-between gap-1 bg-(--ui-sidebar-surface-background) px-0.5 py-0 text-sm text-(--ui-text-tertiary) [-webkit-app-region:no-drag] sm:gap-2 sm:px-1',
+            '[--statusbar-item-gap:0.125rem] [--statusbar-item-padding:0.25rem] sm:[--statusbar-item-gap:0.25rem] sm:[--statusbar-item-padding:0.375rem]',
             className
           )}
           data-slot="statusbar"
@@ -318,14 +324,7 @@ const StatusbarItemView = memo(function StatusbarItemView({
   if (item.variant === 'text' && !item.onSelect && !item.to && !item.href) {
     return (
       <Tip label={tooltipLabel}>
-        <div
-          className={cn(
-            'inline-flex h-full items-center gap-1 px-1.5 text-[0.6875rem] text-(--ui-text-tertiary)',
-            item.className
-          )}
-        >
-          {content}
-        </div>
+        <div className={cn(STATUSBAR_ITEM_CLASS, item.className)}>{content}</div>
       </Tip>
     )
   }

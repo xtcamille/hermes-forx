@@ -581,7 +581,7 @@ export function TreeGroup({
                         onPointerDown={e => e.stopPropagation()}
                         type="button"
                       >
-                        <Codicon name={node.minimized ? 'chevron-up' : 'chevron-down'} size="0.75rem" />
+                        <Codicon name={node.minimized ? 'chevron-up' : 'chevron-down'} size="1rem" />
                       </button>
                     )}
                     <StripDropCaret groupId={node.id} stripRef={stripRef} />
@@ -719,7 +719,7 @@ export function TreeGroup({
                     onPointerDownCapture={() => noteActiveTreeGroup(node.id)}
                   >
                     <PaneStripGlyph
-                      icon={<Codicon name="add" size="0.8125rem" />}
+                      icon={<Codicon name="add" size="1rem" />}
                       label={newTab.label}
                       onSelect={newTab.onSelect}
                     />

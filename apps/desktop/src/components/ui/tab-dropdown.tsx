@@ -35,8 +35,8 @@ export interface TabDropdownItem {
   separatorBefore?: boolean
 }
 
-function TabDropdownIcon({ icon: Icon, indent }: { icon: IconComponent; indent?: boolean }) {
-  return <Icon className={cn('shrink-0 text-muted-foreground/80', indent ? 'size-3.5' : 'size-4')} />
+function TabDropdownIcon({ icon: Icon }: { icon: IconComponent }) {
+  return <Icon className="size-(--chrome-icon-size) shrink-0 text-muted-foreground/80" size="var(--chrome-icon-size)" />
 }
 
 /** The Capabilities tab dropdown: a borderless "Label ⌄" trigger and a menu of
@@ -57,13 +57,13 @@ export function TabDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex h-7 cursor-pointer items-center gap-1.5 px-1 text-[length:var(--conversation-caption-font-size)] font-medium text-foreground [-webkit-app-region:no-drag]"
+          className="flex h-7 cursor-pointer items-center gap-1.5 px-1 text-sm font-medium text-foreground [-webkit-app-region:no-drag]"
           type="button"
         >
-          {active?.icon && <TabDropdownIcon icon={active.icon} indent={active.indent} />}
+          {active?.icon && <TabDropdownIcon icon={active.icon} />}
           <span className="min-w-0 truncate">{active?.label}</span>
           {active?.meta !== undefined && <TextTabMeta>{tabMetaContent(active.meta)}</TextTabMeta>}
-          <Codicon className="text-muted-foreground" name="chevron-down" size="0.75rem" />
+          <Codicon className="shrink-0 text-muted-foreground" name="chevron-down" size="var(--chrome-icon-size)" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className={cn('w-44', className)} sideOffset={6}>
@@ -71,10 +71,10 @@ export function TabDropdown({
           <Fragment key={item.id}>
             {item.separatorBefore && index > 0 && <DropdownMenuSeparator />}
             <DropdownMenuItem
-              className={cn(item.indent && 'pl-6', item.active && 'text-foreground')}
+              className={cn('text-sm', item.indent && 'pl-6', item.active && 'text-foreground')}
               onSelect={item.onSelect}
             >
-              {item.icon && <TabDropdownIcon icon={item.icon} indent={item.indent} />}
+              {item.icon && <TabDropdownIcon icon={item.icon} />}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {item.meta !== undefined && (
                 <span className="text-xs text-muted-foreground">{tabMetaContent(item.meta)}</span>

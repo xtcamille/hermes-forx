@@ -147,7 +147,7 @@ export function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
             aria-label={`${p.title}: ${triggerLabel}`}
             className={cn(
               'w-full min-w-0 justify-between overflow-hidden px-1 text-(--ui-text-secondary) data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground',
-              compact && 'h-full min-h-0 rounded-none px-1.5 text-[0.6875rem] font-normal'
+              compact && 'h-full min-h-0 px-1.5 text-sm font-normal'
             )}
             size="xs"
             type="button"
@@ -155,21 +155,35 @@ export function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
           >
             <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
               {pendingRoute !== null ? (
-                <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin" />
+                <Loader2
+                  aria-hidden="true"
+                  className={cn('shrink-0 animate-spin', compact ? 'size-(--chrome-icon-size)' : 'size-4')}
+                />
               ) : showAll || !active ? (
-                <Codicon aria-hidden="true" className="shrink-0" name="layers" size="0.75rem" />
+                <Codicon
+                  aria-hidden="true"
+                  className="shrink-0"
+                  name="layers"
+                  size={compact ? 'var(--chrome-icon-size)' : '1rem'}
+                />
               ) : (
                 <ProfileGlyph
                   aria-hidden="true"
-                  className="size-3 text-[0.4375rem]"
+                  className={compact ? 'size-(--chrome-icon-size) text-2xs' : 'size-4 text-[0.625rem]'}
                   color={resolveProfileColor(active.name, colors)}
+                  iconSize={compact ? 'var(--chrome-icon-size)' : undefined}
                   isDefault={active.is_default}
                   name={active.name}
                 />
               )}
               <span className="truncate">{triggerLabel}</span>
             </span>
-            <Codicon aria-hidden="true" className="shrink-0 opacity-60" name="chevron-down" size="0.875rem" />
+            <Codicon
+              aria-hidden="true"
+              className="shrink-0 opacity-60"
+              name="chevron-down"
+              size={compact ? 'var(--chrome-icon-size)' : '0.875rem'}
+            />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-48 max-w-72" collisionPadding={8} side="top">

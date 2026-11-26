@@ -89,7 +89,7 @@ import { ToolRunTicker } from './run-ticker'
 // false, so every row currently owns its own chrome; kept as a seam for any
 // future embedding surface.
 const ToolEmbedContext = createContext(false)
-const ToolRunDisclosureContext = createContext<string | null>(null)
+const ToolRunDisclosureContext = createContext<{ id: string; expanded: boolean } | null>(null)
 
 // A search hit's title is result *content* inside an expanded row, not one of
 // the scaffolding lines, so it keeps the brighter secondary grey.
@@ -111,7 +111,7 @@ const TOOL_SECTION_LABEL_CLASS = 'mb-1 text-[0.65rem] font-medium uppercase trac
 const TOOL_SECTION_SURFACE_CLASS =
   'max-h-20 max-w-full overflow-auto bg-transparent px-2 py-1.5 text-(--ui-text-secondary)'
 
-const TOOL_EXPANDED_SHELL_CLASS = 'rounded-xl border border-(--ui-stroke-tertiary)'
+const TOOL_EXPANDED_SHELL_CLASS = 'w-full rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary)'
 
 const TOOL_SECTION_PRE_CLASS = cn(TOOL_SECTION_SURFACE_CLASS, 'font-mono text-[0.7rem] leading-relaxed')
 
@@ -200,26 +200,26 @@ function statusGlyph(status: ToolStatus, copy: ToolStatusCopy): ReactNode {
     return (
       <GlyphSpinner
         ariaLabel={copy.statusRunning}
-        className="size-3.5 shrink-0 text-[0.95rem] text-(--ui-text-tertiary)"
+        className="size-4 shrink-0 text-[1rem] text-(--ui-text-tertiary)"
         spinner="breathe"
       />
     )
   }
 
   if (status === 'error') {
-    return <AlertCircle aria-label={copy.statusError} className="size-3.5 shrink-0 text-destructive" />
+    return <AlertCircle aria-label={copy.statusError} className="size-4 shrink-0 text-destructive" />
   }
 
   if (status === 'warning') {
     return (
-      <AlertCircle aria-label={copy.statusRecovered} className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+      <AlertCircle aria-label={copy.statusRecovered} className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
     )
   }
 
   return (
     <CheckCircle2
       aria-label={copy.statusDone}
-      className="size-3.5 shrink-0 text-emerald-600/85 dark:text-emerald-400/85"
+      className="size-4 shrink-0 text-emerald-600/85 dark:text-emerald-400/85"
     />
   )
 }
@@ -244,12 +244,12 @@ function ToolGlyph({
   const node = status ? (
     statusGlyph(status, copy)
   ) : filePath ? (
-    <FileTypeIcon className="text-(--ui-text-tertiary)" path={filePath} size="0.875rem" />
+    <FileTypeIcon className="text-(--ui-text-tertiary)" path={filePath} size="1rem" />
   ) : icon ? (
     <ToolIcon
       className={legendary ? 'text-(--tool-memory-legendary-icon)' : 'text-(--ui-text-tertiary)'}
       name={icon}
-      size="0.875rem"
+      size="1rem"
     />
   ) : null
 
@@ -316,8 +316,6 @@ function ToolTitle({
     <FadeText
       className={cn(
         SCAFFOLD_LABEL_CLASS,
-        isPending && 'text-(--conversation-scaffold-meta)',
-        status === 'error' && 'text-destructive',
         status === 'warning' && 'text-amber-700 dark:text-amber-300',
         legendary && !isPending && 'tool-memory-legendary-title text-transparent'
       )}
@@ -352,7 +350,7 @@ function ToolEntry({ part }: ToolEntryProps) {
   const messageId = useAuiState(s => s.message.id)
   const messageRunning = useAuiState(selectMessageRunning)
   const embedded = useContext(ToolEmbedContext)
-  const runDisclosureId = useContext(ToolRunDisclosureContext)
+  const runDisclosure = useContext(ToolRunDisclosureContext)
   const toolViewMode = useStore($toolViewMode)
   const hideCodeDiffs = useStore($hideCodeDiffs)
 
@@ -402,15 +400,17 @@ function ToolEntry({ part }: ToolEntryProps) {
     const p =
       !isPending && result === undefined ? { ...stablePart, completedAt: stablePart.completedAt ?? 0 } : stablePart
 
-    return buildToolView(p, inlineDiff)
-  }, [inlineDiff, isPending, result, stablePart])
+    return buildToolView(p, inlineDiff, copy)
+  }, [copy, inlineDiff, isPending, result, stablePart])
 
   // Keep counts and saved disclosure intent, but never mount code while hidden.
   // Failed edits still expose their explanation.
   const summaryOnly = hideCodeDiffs && isFileEdit && view.status !== 'error'
-  const open = disclosureOpen && !summaryOnly
+  // A collapsed run may remember an open row. Its live ticker only has room for the header.
+  const open = disclosureOpen && !summaryOnly && (runDisclosure?.expanded ?? true)
   const showInlineDiff = Boolean(view.inlineDiff) && !hideCodeDiffs
   const showPayload = toolViewMode === 'technical' && !(hideCodeDiffs && isFileEdit)
+  const scriptCode = showPayload ? undefined : view.scriptCode
 
   // Surface a previewable artifact (HTML file / localhost URL) as a compact link
   // in the composer status stack rather than a bulky inline card. Uses the same
@@ -476,7 +476,9 @@ function ToolEntry({ part }: ToolEntryProps) {
     (Boolean(view.stdout || view.stderr) ||
       (view.status === 'error' && Boolean(detailSections.summary || detailSections.body)) ||
       (view.status === 'notice' && Boolean(view.detail)) ||
-      (view.status !== 'error' && Boolean(view.detail) && !detailMatchesTitle && !detailMatchesSubtitle))
+      (view.status !== 'error' &&
+        Boolean(view.detail) &&
+        (Boolean(view.scriptCode) || (!detailMatchesTitle && !detailMatchesSubtitle))))
 
   const renderDetailAsCode =
     view.status !== 'error' &&
@@ -494,6 +496,7 @@ function ToolEntry({ part }: ToolEntryProps) {
       hasSearchHits ||
       view.stdout ||
       view.stderr ||
+      view.scriptCode ||
       view.terminalCommand ||
       view.terminalExitCode !== undefined ||
       showPayload
@@ -568,7 +571,7 @@ function ToolEntry({ part }: ToolEntryProps) {
     <div
       className={cn(
         'group/tool-block min-w-0 max-w-full overflow-hidden text-[length:var(--conversation-tool-font-size)] text-(--ui-text-tertiary)',
-        open && TOOL_EXPANDED_SHELL_CLASS
+        open ? TOOL_EXPANDED_SHELL_CLASS : 'w-fit'
       )}
       data-conversation-scaffold=""
       data-file-edit={isFileEdit && open ? '' : undefined}
@@ -577,15 +580,15 @@ function ToolEntry({ part }: ToolEntryProps) {
       data-tool-row=""
       ref={enterRef}
     >
-      <div className={cn(open && 'border-b border-(--ui-stroke-tertiary) px-2 py-1.5')}>
+      <div className={cn(open && 'border-b border-(--ui-stroke-tertiary) px-1.5 py-1.5')} data-tool-header="">
         <DisclosureRow
           action={dismissAction}
           onToggle={
             hasExpandableContent
               ? () => {
                   // Opening a row is newer intent than an earlier group collapse.
-                  if (!open && runDisclosureId) {
-                    setToolDisclosureOpen(runDisclosureId, true)
+                  if (!open && runDisclosure) {
+                    setToolDisclosureOpen(runDisclosure.id, true)
                   }
 
                   setToolDisclosureOpen(disclosureId, !open)
@@ -634,7 +637,7 @@ function ToolEntry({ part }: ToolEntryProps) {
       </div>
       {open && (
         <div className="relative grid w-full min-w-0 max-w-full gap-1.5 overflow-hidden p-1.5">
-          {copyAction.text && (
+          {copyAction.text && copyAction.text !== scriptCode && (
             <CopyButton
               appearance="inline"
               className="absolute right-4 top-1.5 z-10 h-5 gap-0 rounded-md px-1 opacity-5 transition-opacity group-hover/tool-block:opacity-100 hover:opacity-100 focus-visible:opacity-100"
@@ -648,6 +651,17 @@ function ToolEntry({ part }: ToolEntryProps) {
           )}
           {part.toolName === 'terminal' && toolViewMode !== 'technical' && (
             <TerminalTranscript command={view.terminalCommand} exitCode={view.terminalExitCode} />
+          )}
+          {scriptCode && (
+            <div className="min-w-0">
+              <div className="mb-1 flex items-center gap-1.5">
+                <span className={cn(TOOL_SECTION_LABEL_CLASS, 'mb-0')}>{t.artifactCard.kind.code}</span>
+                <CopyButton appearance="inline" label={copy.copyCode} showLabel={false} text={scriptCode} />
+              </div>
+              <pre className={cn(TOOL_SECTION_PRE_CLASS, 'whitespace-pre-wrap wrap-anywhere')}>
+                <code>{clampForDisplay(scriptCode)}</code>
+              </pre>
+            </div>
           )}
           {view.imageUrl && (
             <div className="max-w-72 overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)">
@@ -848,7 +862,7 @@ function ToolRunHeader({
   summary: string
 }) {
   return (
-    <div data-conversation-scaffold="" data-tool-summary="">
+    <div className="w-fit max-w-full" data-conversation-scaffold="" data-tool-header="" data-tool-summary="">
       <ScaffoldRow
         onToggle={onToggle}
         open={open}
@@ -879,7 +893,7 @@ interface ToolRunState {
 // re-render the group on every text delta in the turn. The run only changes
 // when a call arrives or one finishes; cache on exactly that.
 function useToolRun(startIndex: number, endIndex: number): ToolRunState {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const cache = useRef<null | { signature: string; tools: readonly ToolPart[]; value: ToolRunState }>(null)
 
   return useAuiState(state => {
@@ -948,7 +962,7 @@ function useToolRun(startIndex: number, endIndex: number): ToolRunState {
                   : Math.min(earliest, tool.timestamp),
             undefined
           ),
-          summary: summarizeToolRun(tools, live)
+          summary: summarizeToolRun(tools, live, t.assistant.tool)
         }
       }
     }
@@ -977,10 +991,12 @@ const ToolRun: FC<PropsWithChildren<{ endIndex: number; startIndex: number }>> =
   startIndex
 }) => {
   const messageRunning = useAuiState(selectMessageRunning)
+
   const { completedAt, count, entryIds, key, live, startedAt, summary, approvalActivity } = useToolRun(
     startIndex,
     endIndex
   )
+
   const sessionId = useStore(useSessionView().$runtimeId)
   const approval = useStore(useMemo(() => sessionApprovalRequest(sessionId), [sessionId]))
   const currentTurn = useAuiState(state => isCurrentTurnMessage(state.thread.messages, state.message.id))
@@ -990,6 +1006,7 @@ const ToolRun: FC<PropsWithChildren<{ endIndex: number; startIndex: number }>> =
   const enterRef = useEnterAnimation(messageRunning, `tool-run:${key}`)
   const representedByApproval = !!approval && currentTurn && approvalActivity
   const expanded = count < 2 || (persistedOpen ?? rowOpen)
+  const disclosure = useMemo(() => ({ id: disclosureId, expanded }), [disclosureId, expanded])
   const collapsed = representedByApproval && !rowOpen && !persistedOpen
   const reduced = useReducedMotion()
 
@@ -997,7 +1014,7 @@ const ToolRun: FC<PropsWithChildren<{ endIndex: number; startIndex: number }>> =
   // Reveal its footprint gradually when the last approval clears, instead of
   // inserting all represented rows in the outgoing card's first exit frame.
   return (
-    <ToolRunDisclosureContext.Provider value={disclosureId}>
+    <ToolRunDisclosureContext.Provider value={disclosure}>
       <motion.div
         animate={{ height: collapsed ? 0 : 'auto' }}
         aria-hidden={collapsed || undefined}

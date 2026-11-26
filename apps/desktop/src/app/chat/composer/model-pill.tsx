@@ -125,7 +125,7 @@ export function ModelPill({
   // flash a literal "No model", show a quiet loader (inherits the pill text
   // color at half opacity) until a model lands.
   const label = compact ? (
-    <ChevronDown className="size-3.5 shrink-0 opacity-70" />
+    <ChevronDown className="size-4 shrink-0 opacity-70" />
   ) : (
     <>
       {currentModel.trim() ? (
@@ -141,7 +141,7 @@ export function ModelPill({
           role="img"
         />
       )}
-      <ChevronDown className="size-2.5 shrink-0 opacity-50" />
+      <ChevronDown className="size-3 shrink-0 opacity-50" />
     </>
   )
 

@@ -96,7 +96,7 @@ export function VoiceMenu({
             ) : wakeListening ? (
               <Ear className={iconSize.sm} />
             ) : (
-              <Codicon name="mic" size="0.875rem" />
+              <Codicon name="mic" size="1rem" />
             )}
           </Button>
         </DropdownMenuTrigger>

@@ -1,4 +1,4 @@
-import { translateNow } from '@/i18n'
+import type { Translations } from '@/i18n/types'
 import { firstStringField } from '@/lib/text'
 import { extractToolErrorMessage } from '@/lib/tool-result-summary'
 
@@ -14,7 +14,11 @@ interface SkillCall {
 
 /** Loading instructions is not the same action as reading a skill resource,
  * and neither proves the task described by the skill has been completed. */
-export function skillActivityTitle(part: SkillCall, live = true): string | undefined {
+export function skillActivityTitle(
+  part: SkillCall,
+  live: boolean,
+  copy: Translations['assistant']['tool']['skillActivity']
+): string | undefined {
   if (part.toolName !== 'skill_view' && part.toolName !== 'skills_list') {
     return undefined
   }
@@ -33,7 +37,7 @@ export function skillActivityTitle(part: SkillCall, live = true): string | undef
   const name = firstStringField(args, ['name'])
   const target = [name, file].filter(Boolean).join(' → ')
 
-  const keys =
+  const keys: Record<'pending' | 'done' | 'failed', keyof typeof copy> =
     part.toolName === 'skills_list'
       ? { pending: 'listing', done: 'listed', failed: 'listFailed' }
       : file
@@ -41,7 +45,7 @@ export function skillActivityTitle(part: SkillCall, live = true): string | undef
         : { pending: 'loading', done: 'loaded', failed: 'loadFailed' }
 
   const key = failed ? keys.failed : missing ? 'unavailable' : pending ? keys.pending : keys.done
-  const label = translateNow(`assistant.tool.skillActivity.${key}`)
+  const label = copy[key]
 
   return target ? `${label}: ${target}` : label
 }

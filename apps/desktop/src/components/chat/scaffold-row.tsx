@@ -12,19 +12,18 @@ import { DisclosureRow } from '@/components/chat/disclosure-row'
  * summary `--ui-text-tertiary`, both under the same opacity — which read as two
  * different kinds of line for what is one kind of thing.
  *
- * The resting fade is the other half and lives in CSS, on the *block* that
- * holds the row rather than on the row: mark it `data-conversation-scaffold`.
- * A surface that skips the mark reads a shade brighter than its neighbours.
+ * Mark the containing block with `data-conversation-scaffold`. The transcript
+ * stylesheet owns its resting opacity, including full-strength tool output.
  */
 export const SCAFFOLD_LABEL_CLASS =
   'text-[length:var(--conversation-tool-font-size)] leading-(--conversation-line-height) text-(--conversation-scaffold-text)'
 
 /** Durations, counts and diff stats trailing a scaffold label. */
-export const SCAFFOLD_META_CLASS = 'shrink-0 text-[0.625rem] tabular-nums text-(--conversation-scaffold-meta)'
+export const SCAFFOLD_META_CLASS = 'shrink-0 text-2xs tabular-nums text-(--conversation-scaffold-meta)'
 
 /** The fixed cell a scaffold line's leading glyph sits in — status dot, tool
  *  icon, spinner. Same box on every line, so the labels share a left edge. */
-export const SCAFFOLD_GLYPH_CLASS = 'grid size-3.5 shrink-0 place-items-center'
+export const SCAFFOLD_GLYPH_CLASS = 'grid size-4 shrink-0 place-items-center'
 
 /**
  * One scaffold line. `children` is the label and whatever trails it in flow

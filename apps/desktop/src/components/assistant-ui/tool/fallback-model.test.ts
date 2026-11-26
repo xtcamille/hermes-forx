@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { setRuntimeI18nLocale } from '@/i18n'
+import { setRuntimeI18nLocale, TRANSLATIONS } from '@/i18n'
 
 import {
   buildToolView,
@@ -24,6 +24,30 @@ const part = (overrides: Partial<ToolPart>): ToolPart => ({
 
 afterEach(() => {
   setRuntimeI18nLocale('en')
+})
+
+it('labels discovery and invocation with their localized action and requested targets', () => {
+  setRuntimeI18nLocale('zh')
+  const copy = TRANSLATIONS.zh.assistant.tool
+  const name = 'project_check'
+  const call = { name, arguments: { path: 'detail-only-directory' } }
+
+  for (const [toolName, args, target] of [
+    ['tool_search', { queries: '项目工具' }, '项目工具'],
+    ['tool_describe', { names: ['project_info', name] }, name],
+    ['tool_call', call, name],
+    ['tool_call', { calls: [call] }, name],
+    ['tool_call', { calls: JSON.stringify([call]) }, name]
+  ] as const) {
+    const view = buildToolView(part({ toolName, args }), '')
+    expect(view.title).toContain(target)
+    expect(view.title).toContain(copy.titles[toolName].done)
+    expect(view.title).not.toContain(call.arguments.path)
+  }
+
+  const tools = { project_info: {}, project_check: {} }
+  const search = buildToolView(part({ toolName: 'tool_search', result: { results: [{ query: '项目工具' }], tools } }), '')
+  expect(search.countLabel).toBe(copy.resultCount(Object.keys(tools).length))
 })
 
 describe('buildToolView image handling', () => {

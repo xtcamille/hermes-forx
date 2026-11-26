@@ -704,14 +704,16 @@ function EditSoulDialog({
 function AddProfileButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <Tip label={label}>
-      <button
+      <Button
         aria-label={label}
-        className="grid size-5 shrink-0 place-items-center rounded-sm text-(--ui-text-tertiary) opacity-55 transition hover:bg-(--ui-control-hover-background) hover:text-foreground hover:opacity-100"
+        className="text-(--ui-text-tertiary)"
         onClick={onClick}
+        size="icon-xs"
         type="button"
+        variant="ghost"
       >
-        <Codicon name="add" size="0.75rem" />
-      </button>
+        <Codicon name="add" size="var(--chrome-icon-size)" />
+      </Button>
     </Tip>
   )
 }
@@ -722,14 +724,16 @@ function AddProfileButton({ label, onClick }: { label: string; onClick: () => vo
 function ImportProfileButton({ label }: { label: string }) {
   return (
     <Tip label={label}>
-      <button
+      <Button
         aria-label={label}
-        className="grid size-5 shrink-0 place-items-center rounded-sm text-(--ui-text-tertiary) opacity-55 transition hover:bg-(--ui-control-hover-background) hover:text-foreground hover:opacity-100"
+        className="text-(--ui-text-tertiary)"
         onClick={() => void runImportProfileFlow()}
+        size="icon-xs"
         type="button"
+        variant="ghost"
       >
-        <Codicon name="cloud-download" size="0.75rem" />
-      </button>
+        <Codicon name="cloud-download" size="var(--chrome-icon-size)" />
+      </Button>
     </Tip>
   )
 }
@@ -770,7 +774,7 @@ function ProfileDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={p.title}
-          className="min-w-0 flex-1 justify-between overflow-hidden px-1 text-(--ui-text-secondary) data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground"
+          className="min-w-0 flex-1 justify-between overflow-hidden px-1 text-sm text-(--ui-text-secondary) data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground"
           data-slot="profile-dropdown"
           size="xs"
           type="button"
@@ -791,7 +795,12 @@ function ProfileDropdown({
               <span className="truncate">{p.title}</span>
             )}
           </span>
-          <Codicon aria-hidden="true" className="shrink-0 opacity-60" name="chevron-down" size="0.875rem" />
+          <Codicon
+            aria-hidden="true"
+            className="shrink-0 opacity-60"
+            name="chevron-down"
+            size="var(--chrome-icon-size)"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48 max-w-72" collisionPadding={8} side="top">
@@ -931,9 +940,9 @@ function ProfilePill({
         variant="ghost"
       >
         {pending ? (
-          <Loader2 aria-hidden="true" className="size-3 animate-spin" />
+          <Loader2 aria-hidden="true" className="size-(--chrome-icon-size) animate-spin" />
         ) : (
-          <Codicon name={glyph} size="0.875rem" />
+          <Codicon name={glyph} size="var(--chrome-icon-size)" />
         )}
       </Button>
     </Tip>
@@ -976,7 +985,7 @@ function FleetDivider({
       data-slot="profile-rail-divider"
     >
       {!first && <span className="h-3 w-px bg-(--ui-stroke-tertiary)" />}
-      <ConnectionGlyph connection={connection} />
+      <ConnectionGlyph className="size-(--chrome-icon-size) [&>svg]:size-full" connection={connection} />
       {!reachable && <span className="size-1.5 rounded-full bg-amber-500" data-slot="profile-rail-unreachable" />}
     </span>
   )

@@ -1,9 +1,15 @@
-import { translateNow } from '@/i18n'
-import { summarizeShellCommand } from '@/lib/summarize-command'
+import { TRANSLATIONS } from '@/i18n/catalog'
+import { getRuntimeI18nLocale } from '@/i18n/runtime'
 import { firstStringField } from '@/lib/text'
 import { extractToolErrorMessage } from '@/lib/tool-result-summary'
 
-import { fileEditBasename, isFileEditTool, parseMaybeObject } from './fallback-model'
+import {
+  executionTitleTarget,
+  fileEditBasename,
+  isFileEditTool,
+  parseMaybeObject,
+  type ToolCopy
+} from './fallback-model'
 import { skillActivityTitle } from './skill-activity'
 
 /**
@@ -24,19 +30,18 @@ export function isToolCallPart<T extends { type: string }>(part: T): part is Ext
   return part.type === 'tool-call'
 }
 
-type RunCategory = 'delegate' | 'edit' | 'explore' | 'other' | 'run'
-
 // Clause order is fixed so the same run always reads the same way, whichever
 // category happens to be live.
-const CATEGORY_ORDER: readonly RunCategory[] = ['edit', 'explore', 'run', 'delegate', 'other']
+const CATEGORY_COPY = {
+  edit: { count: 'files', past: 'edited', present: 'editing' },
+  explore: { count: 'files', past: 'explored', present: 'exploring' },
+  run: { count: 'commands', past: 'ran', present: 'running' },
+  delegate: { count: 'tasks', past: 'delegated', present: 'delegating' },
+  other: { count: 'tools', past: 'used', present: 'using' }
+} as const
 
-const CATEGORY_COPY: Record<RunCategory, { noun: [string, string]; past: string; present: string }> = {
-  delegate: { noun: ['task', 'tasks'], past: 'Delegated', present: 'Delegating' },
-  edit: { noun: ['file', 'files'], past: 'Edited', present: 'Editing' },
-  explore: { noun: ['file', 'files'], past: 'Explored', present: 'Exploring' },
-  other: { noun: ['tool', 'tools'], past: 'Used', present: 'Using' },
-  run: { noun: ['command', 'commands'], past: 'Ran', present: 'Running' }
-}
+type RunCategory = keyof typeof CATEGORY_COPY
+const CATEGORY_ORDER = Object.keys(CATEGORY_COPY) as RunCategory[]
 
 const EXPLORE_TOOLS = new Set([
   'list_files',
@@ -77,20 +82,20 @@ function isPending(tool: ToolCallLike): boolean {
  * the status line that covers the gap before a tool starts, so the same run is
  * described in the same words from the moment the model drafts it.
  */
-export function toolPresentVerb(toolName: string): string {
+export function toolPresentVerb(toolName: string, copy: ToolCopy): string {
   if (toolName === 'skill_view') {
-    return translateNow('assistant.tool.skillActivity.loading')
+    return copy.skillActivity.loading
   }
 
-  return CATEGORY_COPY[toolCategory(toolName)].present
+  return copy.actions[CATEGORY_COPY[toolCategory(toolName)].present]
 }
 
 /** The thing a tool acted on, as the header should name it. */
-function toolTarget(tool: ToolCallLike): string {
+function toolTarget(tool: ToolCallLike, copy: ToolCopy): string {
   const args = parseMaybeObject(tool.args)
 
   if (toolCategory(tool.toolName) === 'run') {
-    return summarizeShellCommand(firstStringField(args, ['command', 'code']))
+    return executionTitleTarget(tool.toolName, args, copy)
   }
 
   const path = firstStringField(args, ['path', 'file', 'filepath'])
@@ -104,20 +109,12 @@ function toolTarget(tool: ToolCallLike): string {
  * command is the exception — "ran 5 commands" is the useful reading, and a
  * command line only earns its space while it's the thing you're waiting on.
  */
-function clause(category: RunCategory, tools: ToolCallLike[], live: boolean): string {
-  const copy = CATEGORY_COPY[category]
-  const verb = live ? copy.present : copy.past
-  const target = tools.length === 1 ? toolTarget(tools[0]) : ''
+function clause(category: RunCategory, tools: ToolCallLike[], live: boolean, copy: ToolCopy): string {
+  const { count, past, present } = CATEGORY_COPY[category]
+  const verb = copy.actions[live ? present : past]
+  const target = tools.length === 1 && (live || category !== 'run') ? toolTarget(tools[0], copy) : ''
 
-  if (target && (live || category !== 'run')) {
-    return `${verb} ${target}`
-  }
-
-  return `${verb} ${tools.length} ${copy.noun[tools.length === 1 ? 0 : 1]}`
-}
-
-function lowerFirst(text: string): string {
-  return text.charAt(0).toLowerCase() + text.slice(1)
+  return copy.titleTemplates.actionTarget(verb, target || copy.runSummary[count](tools.length))
 }
 
 /**
@@ -135,7 +132,11 @@ function lowerFirst(text: string): string {
  * split out before this sees them (`splitRunItems`), so there is no aggregate
  * diff to report here; each edit carries its own +N/−M on its card.
  */
-export function summarizeToolRun(tools: readonly ToolCallLike[], live: boolean): string {
+export function summarizeToolRun(
+  tools: readonly ToolCallLike[],
+  live: boolean,
+  copy = TRANSLATIONS[getRuntimeI18nLocale()].assistant.tool
+): string {
   // Which clause narrates in the present tense: normally the outstanding call,
   // but sequential calls leave gaps where the run is still going and nothing is
   // pending. The most recent call covers those, and it's the one the ticker is
@@ -147,7 +148,7 @@ export function summarizeToolRun(tools: readonly ToolCallLike[], live: boolean):
   const skillClauses: string[] = []
 
   for (const tool of tools) {
-    const skill = skillActivityTitle(tool, live)
+    const skill = skillActivityTitle(tool, live, copy.skillActivity)
 
     if (skill) {
       skillClauses.push(skill)
@@ -168,7 +169,7 @@ export function summarizeToolRun(tools: readonly ToolCallLike[], live: boolean):
   const clauses = CATEGORY_ORDER.flatMap(category => {
     const group = byCategory.get(category)
 
-    return group ? [clause(category, group, category === liveCategory)] : []
+    return group ? [clause(category, group, category === liveCategory, copy)] : []
   })
 
   const failed = tools.filter(tool => {
@@ -183,8 +184,8 @@ export function summarizeToolRun(tools: readonly ToolCallLike[], live: boolean):
   }).length
 
   if (failed) {
-    clauses.push(translateNow('assistant.tool.failedCalls', failed))
+    clauses.push(copy.failedCalls(failed))
   }
 
-  return [...skillClauses, ...clauses].map((text, index) => (index === 0 ? text : lowerFirst(text))).join(', ')
+  return copy.runSummary.join([...skillClauses, ...clauses])
 }

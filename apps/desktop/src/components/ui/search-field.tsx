@@ -66,7 +66,7 @@ export function SearchField({
         containerClassName
       )}
     >
-      <Search className="pointer-events-none size-3.5 shrink-0 text-muted-foreground/70" />
+      <Search className="pointer-events-none size-4 shrink-0 text-muted-foreground/70" />
       <input
         aria-label={ariaLabel ?? placeholder}
         className={cn(
@@ -85,7 +85,7 @@ export function SearchField({
       />
       {trailingAction}
       {loading ? (
-        <Loader2 className="pointer-events-none size-3.5 shrink-0 animate-spin text-muted-foreground/70" />
+        <Loader2 className="pointer-events-none size-4 shrink-0 animate-spin text-muted-foreground/70" />
       ) : value ? (
         <Tip label={t.ui.search.clear}>
           <Button
@@ -95,7 +95,7 @@ export function SearchField({
             size="icon-xs"
             variant="ghost"
           >
-            <Codicon name="close" size="0.875rem" />
+            <Codicon name="close" size="1rem" />
           </Button>
         </Tip>
       ) : null}

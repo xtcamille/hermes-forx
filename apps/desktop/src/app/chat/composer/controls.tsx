@@ -153,7 +153,7 @@ export function ComposerControls({
             type="button"
             variant="ghost"
           >
-            <Layers3 className={iconSize.sm} />
+            <Layers3 className={iconSize.md} />
           </Button>
         </Tip>
       ) : null}
@@ -179,7 +179,7 @@ export function ComposerControls({
             {showStop ? (
               <span className="block size-2.5 rounded-[0.1875rem] bg-current" />
             ) : (
-              <Codicon name="arrow-up" size="0.875rem" />
+              <Codicon name="arrow-up" size="1rem" />
             )}
           </Button>
         </Tip>
@@ -214,7 +214,7 @@ function HudWindowButtons() {
           type="button"
           variant="ghost"
         >
-          <Codicon name="discard" size="0.875rem" />
+          <Codicon name="discard" size="1rem" />
         </Button>
       </Tip>
       <Tip label={t.titlebar.exitHud} placement="toolbar">
@@ -226,7 +226,7 @@ function HudWindowButtons() {
           type="button"
           variant="ghost"
         >
-          <Codicon name="screen-normal" size="0.875rem" />
+          <Codicon name="screen-normal" size="1rem" />
         </Button>
       </Tip>
     </>
@@ -382,7 +382,7 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
         type="button"
         variant="ghost"
       >
-        {wake.listening && !pausedForVoice ? <Ear className={iconSize.sm} /> : <EarOff className={iconSize.sm} />}
+        {wake.listening && !pausedForVoice ? <Ear className={iconSize.md} /> : <EarOff className={iconSize.md} />}
       </Button>
     </Tip>
   )

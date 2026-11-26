@@ -266,7 +266,7 @@ function ConnectionSwitcherTrigger({
       aria-label={activeConnection ? `${title}: ${activeConnection.label}` : title}
       className={cn(
         'w-full min-w-0 justify-between overflow-hidden px-1 text-(--ui-text-secondary) data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground',
-        compact && 'h-full min-h-0 rounded-none px-1.5 text-[0.6875rem] font-normal',
+        compact && 'h-full min-h-0 px-1.5 text-sm font-normal',
         triggerProps.className
       )}
       size="xs"
@@ -274,14 +274,27 @@ function ConnectionSwitcherTrigger({
       variant="ghost"
     >
       <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-        {pending && <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin" />}
+        {pending && (
+          <Loader2
+            aria-hidden="true"
+            className={cn('shrink-0 animate-spin', compact ? 'size-(--chrome-icon-size)' : 'size-4')}
+          />
+        )}
         {activeConnection ? (
-          <ConnectionLabel connection={activeConnection} />
+          <ConnectionLabel
+            connection={activeConnection}
+            glyphClassName={compact ? 'size-(--chrome-icon-size) [&>svg]:size-full' : undefined}
+          />
         ) : (
           <span className="truncate">{title}</span>
         )}
       </span>
-      <Codicon aria-hidden="true" className="shrink-0 opacity-60" name="chevron-down" size="0.875rem" />
+      <Codicon
+        aria-hidden="true"
+        className="shrink-0 opacity-60"
+        name="chevron-down"
+        size={compact ? 'var(--chrome-icon-size)' : '0.875rem'}
+      />
     </Button>
   )
 }
@@ -289,16 +302,22 @@ function ConnectionSwitcherTrigger({
 function ManageGatewaysLabel({ label }: { label: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5 text-(--ui-text-secondary)">
-      <Codicon aria-hidden="true" name="settings-gear" size="0.875rem" />
+      <Codicon aria-hidden="true" name="settings-gear" size="1rem" />
       <span className="truncate">{label}</span>
     </span>
   )
 }
 
-function ConnectionLabel({ connection }: { connection: DesktopRegistryConnection }) {
+function ConnectionLabel({
+  connection,
+  glyphClassName
+}: {
+  connection: DesktopRegistryConnection
+  glyphClassName?: string
+}) {
   return (
     <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden" title={connectionTooltip(connection)}>
-      <ConnectionGlyph connection={connection} />
+      <ConnectionGlyph className={glyphClassName} connection={connection} />
       <span className="truncate">{connection.label}</span>
     </span>
   )

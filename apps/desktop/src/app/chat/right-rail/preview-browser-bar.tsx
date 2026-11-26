@@ -149,18 +149,18 @@ export function PreviewBrowserBar({
     <div className="flex min-h-(--titlebar-height) shrink-0 items-center gap-1 border-b border-border/60 bg-background px-1.5 py-1">
       <PaneStripGlyph
         disabled={!canGoBack}
-        icon={<Codicon name="arrow-left" size="0.8125rem" />}
+        icon={<Codicon name="arrow-left" size="1rem" />}
         label={copy.goBack}
         onSelect={onBack}
       />
       <PaneStripGlyph
         disabled={!canGoForward}
-        icon={<Codicon name="arrow-right" size="0.8125rem" />}
+        icon={<Codicon name="arrow-right" size="1rem" />}
         label={copy.goForward}
         onSelect={onForward}
       />
       <PaneStripGlyph
-        icon={<Codicon name="refresh" size="0.8125rem" spinning={loading} />}
+        icon={<Codicon name="refresh" size="1rem" spinning={loading} />}
         label={copy.reload}
         onSelect={onReload}
       />
@@ -219,7 +219,7 @@ export function PreviewBrowserBar({
       {onToggleAnnotate ? (
         <PaneStripGlyph
           active={annotateMode}
-          icon={<Codicon name="comment" size="0.8125rem" />}
+          icon={<Codicon name="comment" size="1rem" />}
           label={annotateMode ? copy.annotateOn : copy.annotate}
           onSelect={onToggleAnnotate}
         />
@@ -245,32 +245,32 @@ export function PreviewBrowserBar({
       ) : null}
       {onPopIn ? (
         <PaneStripGlyph
-          icon={<Codicon name="screen-normal" size="0.8125rem" />}
+          icon={<Codicon name="screen-normal" size="1rem" />}
           label={t.preview.popIn}
           onSelect={onPopIn}
         />
       ) : onPopOut ? (
         <PaneStripGlyph
-          icon={<Codicon name="empty-window" size="0.8125rem" />}
+          icon={<Codicon name="empty-window" size="1rem" />}
           label={t.preview.popOut}
           onSelect={onPopOut}
         />
       ) : onOpenExternal ? (
         <PaneStripGlyph
-          icon={<Codicon name="link-external" size="0.8125rem" />}
+          icon={<Codicon name="link-external" size="1rem" />}
           label={t.preview.openInBrowser}
           onSelect={onOpenExternal}
         />
       ) : null}
       <PaneStripGlyph
         active={consoleOpen}
-        icon={<Codicon name="terminal" size="0.8125rem" />}
+        icon={<Codicon name="terminal" size="1rem" />}
         label={consoleOpen ? copy.hideConsole : copy.showConsole}
         onSelect={onToggleConsole}
       />
       <PaneStripGlyph
         active={devToolsOpen}
-        icon={<Codicon name="bug" size="0.8125rem" />}
+        icon={<Codicon name="bug" size="1rem" />}
         label={devToolsOpen ? copy.hideDevTools : copy.openDevTools}
         onSelect={onToggleDevTools}
       />

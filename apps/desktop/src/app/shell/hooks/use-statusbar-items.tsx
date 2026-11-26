@@ -385,7 +385,7 @@ export function useStatusbarItems({
       className: status.hasUpdate ? 'text-primary hover:text-primary' : undefined,
       detail: status.detail,
       hidden: status.unknown,
-      icon: applying ? <Loader2 className="size-3 animate-spin" /> : <Hash className="size-3" />,
+      icon: applying ? <Loader2 className="animate-spin" /> : <Hash />,
       id: 'version-client',
       label: status.label,
       // Update state is not a preference: hiding it is how a user misses that
@@ -431,7 +431,7 @@ export function useStatusbarItems({
     return {
       className: status.hasUpdate ? 'text-primary hover:text-primary' : undefined,
       hidden: status.unknown,
-      icon: applying ? <Loader2 className="size-3 animate-spin" /> : <Hash className="size-3" />,
+      icon: applying ? <Loader2 className="animate-spin" /> : <Hash />,
       id: 'version-backend',
       label: status.label,
       lockedVisible: true,
@@ -455,7 +455,7 @@ export function useStatusbarItems({
     () => [
       {
         className: `w-7 justify-center px-0${commandCenterOpen ? ' bg-accent/55 text-foreground' : ''}`,
-        icon: <Command className="size-3.5" />,
+        icon: <Command />,
         id: 'command-center',
         // The system icon: the way into every other surface, including the
         // settings that would bring a hidden item back. Never hideable.
@@ -484,11 +484,14 @@ export function useStatusbarItems({
         detail: gatewayRestarting ? copy.gatewayRestarting : gatewayDetail,
         hidden: botsShowing,
         icon: gatewayRestarting ? (
-          <GlyphSpinner ariaLabel={copy.gatewayRestarting} className="size-3" />
+          <GlyphSpinner
+            ariaLabel={copy.gatewayRestarting}
+            className="size-(--chrome-icon-size) shrink-0 text-[length:var(--chrome-icon-size)]"
+          />
         ) : inferenceReady ? (
-          <Activity className="size-3" />
+          <Activity />
         ) : (
-          <AlertCircle className="size-3" />
+          <AlertCircle />
         ),
         id: 'gateway-health',
         label: copy.gateway,
@@ -504,7 +507,7 @@ export function useStatusbarItems({
         // solid and set off by a gap instead of touching the label.
         detail: (
           <span className="inline-flex items-center gap-2">
-            <span className="font-mono text-[0.625rem] text-muted-foreground/70">
+            <span className="font-mono text-2xs text-muted-foreground/70">
               {freeTier?.model ?? FREE_TIER_MODEL}
             </span>
             {/* The class merger drops Badge's own leading-none behind the size's
@@ -519,7 +522,7 @@ export function useStatusbarItems({
         // identity that carries the connectors (and inference when nothing else
         // does), and it is the persistent way in to the sign-in.
         hidden: !freeTier?.available || guideOwnsSignIn,
-        icon: <Codicon name="account" size="0.75rem" />,
+        icon: <Codicon name="account" size="var(--chrome-icon-size)" />,
         id: 'free-tier',
         label: freeTierCopy.providerName,
         onSelect: () => openFreeTierSignIn(),
@@ -529,7 +532,7 @@ export function useStatusbarItems({
       },
       {
         hidden: !currentCwd,
-        icon: <FolderOpen className="size-3" />,
+        icon: <FolderOpen />,
         id: 'workspace-cwd',
         // Prefer the named project; fall back to the cwd leaf. Hover tip uses
         // the shared display formatter (home → ~) so statusbar and branch bar
@@ -582,11 +585,11 @@ export function useStatusbarItems({
               : undefined,
         icon:
           subagentsFailed > 0 ? (
-            <AlertCircle className="size-3" />
+            <AlertCircle />
           ) : subagentsRunning > 0 ? (
-            <Loader2 className="size-3 animate-spin" />
+            <Loader2 className="animate-spin" />
           ) : (
-            <Codicon name="hubot" size="0.75rem" />
+            <Codicon name="hubot" size="var(--chrome-icon-size)" />
           ),
         id: 'agents',
         label: copy.agents,
@@ -596,7 +599,7 @@ export function useStatusbarItems({
         variant: 'action'
       },
       {
-        icon: <Clock className="size-3" />,
+        icon: <Clock />,
         id: 'cron',
         label: copy.cron,
         to: CRON_ROUTE,
@@ -604,7 +607,7 @@ export function useStatusbarItems({
         variant: 'action'
       },
       {
-        icon: <Globe className="size-3" />,
+        icon: <Globe />,
         id: 'webhooks',
         label: copy.webhooks,
         to: WEBHOOKS_ROUTE,
@@ -648,7 +651,7 @@ export function useStatusbarItems({
       {
         detail: <LiveDuration since={turnStartedAt} />,
         hidden: !busy || !turnStartedAt,
-        icon: <Loader2 className="size-3 animate-spin" />,
+        icon: <Loader2 className="animate-spin" />,
         id: 'running-timer',
         label: copy.turnRunning,
         toggleLabel: copy.toggleRunningTimer,
@@ -671,7 +674,7 @@ export function useStatusbarItems({
         variant: 'menu'
       },
       {
-        icon: <Layers3 className="size-3" />,
+        icon: <Layers3 />,
         id: 'cache-hit-rate',
         // Same never-self-hide rule as the context meter: opted in means a
         // placeholder until the first cached turn reports, not a vanished item.
@@ -681,7 +684,7 @@ export function useStatusbarItems({
         variant: 'text'
       },
       {
-        icon: <Zap className="size-3" />,
+        icon: <Zap />,
         id: 'tokens-per-second',
         label: tokensPerSecond || '—',
         title: copy.tokensPerSecondTitle,
@@ -706,7 +709,7 @@ export function useStatusbarItems({
         actionId: 'view.showTerminal',
         className: `w-7 justify-center px-0${terminalShowing ? ' bg-accent/55 text-foreground' : ''}`,
         hidden: !chatOpen,
-        icon: <Terminal className="size-3.5" />,
+        icon: <Terminal />,
         id: 'terminal',
         onSelect: () => togglePaneVisible('terminal'),
         title: terminalShowing ? copy.hideTerminal : copy.showTerminal,

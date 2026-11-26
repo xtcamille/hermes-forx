@@ -45,7 +45,7 @@ export function StartVoiceButton({
           size="icon"
           type="button"
         >
-          <AudioLines className={iconSize.sm} />
+          <AudioLines className={iconSize.md} />
         </Button>
       </Tip>
       {engine ? (

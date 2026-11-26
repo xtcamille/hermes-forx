@@ -77,7 +77,7 @@ export function ReasoningPill({ disabled, model }: { disabled: boolean; model: C
             variant="ghost"
           >
             <span>{label}</span>
-            <ChevronDown className="size-2.5 shrink-0 opacity-50" />
+            <ChevronDown className="size-3 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
       </Tip>

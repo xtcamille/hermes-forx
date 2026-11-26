@@ -4,10 +4,14 @@
 @import 'katex/dist/katex.min.css';
 @import '@vscode/codicons/dist/codicon.css';
 
-/* Titlebar clusters: 24×24 hit targets, 13.9px glyphs. codicon.css is
-   unlayered (`font: 16px/1`); Tailwind utilities in @layer lose that fight. */
+/* codicon.css sets an unlayered font shorthand. Match it outside Tailwind's
+   layers so the glyph itself scales along with the control's icon box. */
 .titlebar-icon-button .codicon[class*='codicon-'] {
   font-size: var(--titlebar-icon-size);
+}
+
+[data-sidebar='menu-button'] > .codicon[class*='codicon-'] {
+  font-size: var(--chrome-icon-size);
 }
 
 /* v4 gates hover: on @media (hover: hover). Some Windows hosts with a
@@ -90,6 +94,13 @@
   font-weight: 400;
   font-display: swap;
   src: url('./fonts/JetBrainsMono-Italic.woff2') format('woff2');
+}
+
+@theme {
+  --text-2xs: 0.75rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
 }
 
 @theme inline {
@@ -478,7 +489,7 @@
 
     --radius: 0.75rem;
     /* Global radius scale for refined, rounded modern desktop surfaces. */
-    --radius-scalar: 0.9;
+    --radius-scalar: 1;
 
     /* Space under last message vs overlay composer — driven by the measured composer DOCK height (see
        composer/index.tsx), which covers the micro-action strip, the status stack, the composer, and the
@@ -489,10 +500,10 @@
     --composer-shell-pad-block-end: 0.625rem;
     --message-text-indent: 0.75rem;
     --conversation-text-font-size: 0.8125rem;
-    --conversation-tool-font-size: 0.6875rem;
-    --conversation-caption-font-size: 0.75rem;
+    --conversation-tool-font-size: var(--text-xs);
+    --conversation-caption-font-size: var(--text-xs);
     --conversation-line-height: 1.125rem;
-    --conversation-caption-line-height: 1rem;
+    --conversation-caption-line-height: var(--text-xs--line-height);
     --conversation-turn-gap: 0.375rem;
     /* Gap between top-level turn blocks (prose ↔ tools ↔ thinking) — enough air
        that scaffolding reads as separate from the reply, not crammed into it. */
@@ -538,9 +549,10 @@
 
     --sidebar-width: 14.8125rem;
     --chat-min-width: 28rem;
+    --chrome-icon-size: 1rem;
     --titlebar-control-size: 24px;
     --titlebar-control-height: 24px;
-    --titlebar-icon-size: 13.9px;
+    --titlebar-icon-size: var(--chrome-icon-size);
     --sidebar-content-inline-padding: 1rem;
 
     --sidebar: var(--dt-sidebar-bg);
@@ -606,9 +618,9 @@
      composites BELOW the web contents; the page normally buries it under
      fully opaque surfaces.
 
-     ONE PAINTER: <body> paints the glass tint exactly once, at
-     `--translucency-glass-keep` (set inline from the Tint slider, linear to
-     zero — the top of the lever is bare material), and the field tokens
+     ONE PAINTER: <body> paints the glass tint exactly once. Its color mixes
+     use `--translucency-glass-keep` (set inline from the Tint slider, linear
+     to zero — the top of the lever is bare material), and the field tokens
      (chat / sidebar / editor surface) go fully transparent. The field
      surfaces NEST — body > pane container > chat section > transcript
      wrapper all wear these tokens — so thinning the tokens themselves stacks
@@ -636,33 +648,39 @@
   }
 
   :root[data-hermes-glass] body {
-    background: color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent);
+    --glass-window-tint: color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent);
+    background: var(--glass-window-tint);
   }
 
   /* Sidebar scope (the Finder shape): glass rail, opaque content column.
      <body> stays the one painter but splits at the rail's visual edge — the
      store publishes it as --glass-rail-edge (live-tracked through collapse
-     animation and pane resizes). Left of the seam: the normal glass mix.
-     Right of it: the full opaque chrome. A hard gradient stop, so there is
-     no smear across the seam; RTL mirrors via html[dir='rtl']. The content
+     animation and pane resizes). The rail blends into the opaque canvas over
+     its last corner radius. The transition ends at the divider and mirrors in RTL. The content
      column's own surfaces stay transparent (they'd double-paint the tint
      otherwise) — the body backdrop alone restores the opaque look. */
   :root[data-hermes-glass][data-hermes-glass-scope='sidebar'] body {
+    --glass-rail-tint: var(--glass-window-tint);
     background: linear-gradient(
-      to right,
-      color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent)
-        var(--glass-rail-edge, 0px),
+      var(--glass-rail-direction, to right),
+      var(--glass-rail-tint) max(0px, calc(var(--glass-rail-edge, 0px) - var(--radius-lg))),
       var(--ui-bg-chrome) var(--glass-rail-edge, 0px)
     );
   }
 
-  :root[data-hermes-glass][data-hermes-glass-scope='sidebar'][dir='rtl'] body {
-    background: linear-gradient(
-      to left,
-      color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent)
-        var(--glass-rail-edge, 0px),
-      var(--ui-bg-chrome) var(--glass-rail-edge, 0px)
+  /* Bright native material can wash a dark rail gray beside the opaque chat.
+     Tint the field with the skin's sidebar color in the same paint. Both
+     colors fade to bare material at the clear end of the slider. */
+  :root.dark[data-hermes-glass][data-hermes-glass-scope='sidebar'] body {
+    --glass-rail-tint: color-mix(
+      in srgb,
+      var(--ui-bg-sidebar) var(--translucency-glass-keep, 100%),
+      var(--glass-window-tint)
     );
+  }
+
+  :root[data-hermes-glass][data-hermes-glass-scope='sidebar'][dir='rtl'] body {
+    --glass-rail-direction: to left;
   }
 
   /* The app shell's two full-window opaque painters (the contrib controller
@@ -707,7 +725,7 @@
   }
 
   /* The status bar spans the rail AND the content column. Transparent, it
-     showed the body's hard stop through itself, and the seam cut whichever
+     showed the body's rail edge through itself, and the seam cut whichever
      item sat on it (the free-tier chip, in the guided window). Finder's
      shape: the bar belongs to the opaque content column across the full
      width, and the rail's glass ends at its top edge. Window scope has no
@@ -1624,20 +1642,6 @@ body.guest-pointer-lock :is(webview, iframe) {
   width: 100%;
 }
 
-/* Remove label pixels under the hover close button; translucent paint would
-   stack the glass tint and still let the label bleed through. */
-[data-slot='pane-tab'][data-closeable] {
-  --pane-tab-close-width: 1.5rem;
-}
-
-[data-slot='pane-tab'][data-closeable]:hover > .pane-tab-content {
-  mask-image: linear-gradient(
-    to right,
-    #000 calc(100% - var(--pane-tab-close-width) - 1rem),
-    transparent calc(100% - var(--pane-tab-close-width))
-  );
-}
-
 [data-slot='aui_assistant-message-content'] .aui-md,
 [data-slot='aui_assistant-message-content'] .aui-md :where(p, li, blockquote, table, pre) {
   font-size: inherit;
@@ -1714,12 +1718,6 @@ body.guest-pointer-lock :is(webview, iframe) {
 [data-slot='aui_user-message-root'] {
   --sticky-human-offset: calc(var(--sticky-human-top) + 1px);
   top: var(--sticky-human-offset);
-}
-
-[data-slot='aui_user-message-root'] > * {
-  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem !important;
-  box-shadow: var(--shadow-apple-ambient);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 button:not(:disabled):active,
@@ -1998,28 +1996,30 @@ button:not(:disabled):active,
   --composer-fill: color-mix(in srgb, var(--dt-card) 80%, transparent);
 }
 
-/* Top-level tool blocks align with the model's text. */
-[data-slot='aui_assistant-message-content'] > [data-slot='tool-block'] {
-  width: 100%;
-  max-width: 100%;
-  border-radius: 1.125rem !important;
-  border: 1px solid color-mix(in srgb, var(--dt-border) 70%, transparent) !important;
-  background: color-mix(in srgb, var(--dt-card) 75%, transparent) !important;
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  box-shadow: var(--shadow-apple-ambient) !important;
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+/* A tool group reserves the reading width for output. Its disclosure paints
+   only the compact action the reader can interact with. */
+[data-tool-header] {
+  --disclosure-caret-rest: 0.55;
+  --conversation-scaffold-text: var(--ui-text-secondary);
+  --conversation-scaffold-meta: var(--ui-text-tertiary);
+  --shimmer-color: var(--ui-text-primary);
 }
 
-[data-slot='tool-block'][data-status='running'] {
-  border-color: color-mix(in srgb, var(--dt-primary) 50%, transparent) !important;
-  box-shadow: var(--shadow-apple-ambient), 0 0 16px -2px color-mix(in srgb, var(--dt-primary) 22%, transparent) !important;
+[data-tool-header] [data-slot='disclosure-trigger'] {
+  border-radius: var(--radius-md);
+  padding-inline: 0.375rem;
 }
 
-/* A delegation is a list of short rows — goal, model, timer — not prose, so it
-   reads better narrow than stretched across the full reading column. Scoped
-   here rather than as a utility on the element: the rule above sets width on
-   every tool block and would win over it. */
+[data-tool-header] [data-slot='disclosure-trigger']:enabled:is(:hover, :focus-visible) {
+  background-color: var(--chrome-action-hover);
+}
+
+[data-tool-header] [data-slot='disclosure-trigger']:focus-visible {
+  outline: 1px solid var(--ui-accent);
+  outline-offset: -1px;
+}
+
+/* Delegation rows carry short goals, model names and timers. */
 [data-slot='aui_assistant-message-content'] [data-slot='tool-block'][data-delegate-card] {
   max-width: 75%;
 }
@@ -2126,11 +2126,6 @@ button:not(:disabled):active,
   border-bottom-color: var(--ui-stroke-tertiary) !important;
 }
 
-/* Nested tool rows share the outer tool block's surface. */
-[data-slot='tool-block'] {
-  background: transparent !important;
-}
-
 /* Fade scaffolding so the prose reading column stays primary. Each surface
    opts in with `data-conversation-scaffold` — thinking header, tool row, run
    summary, live status line — instead of being named by its own selector here.
@@ -2208,12 +2203,9 @@ button:not(:disabled):active,
   filter: saturate(0.82) brightness(0.92);
 }
 
-/* File edits (write_file / edit_file / patch) are the deliverable, not
-   scaffolding — the diff is what the user reviews, like a PR. An *expanded*
-   edit stays at full strength; collapsed it fades like any other row. The
-   `data-file-edit` marker sits on the same row element and is only present
-   while the row is open. */
-[data-slot='aui_assistant-message-content'] [data-slot='tool-block'][data-tool-row][data-file-edit] {
+/* Tool headers already use secondary ink. Keep their action, error glyph and
+   expanded output legible at rest on either appearance. */
+[data-slot='aui_assistant-message-content'] [data-conversation-scaffold]:is([data-tool-row], [data-tool-summary]) {
   opacity: 1;
 }
 

@@ -1254,7 +1254,8 @@ function ContextStatusbarChip({ ctx }) {
 
   return jsxs('button', {
     type: 'button',
-    className: 'flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono rounded hover:bg-neutral-200/50 dark:hover:bg-white/10 transition-colors',
+    className: 'flex items-center py-0.5 text-sm font-mono rounded hover:bg-neutral-200/50 dark:hover:bg-white/10 transition-colors',
+    style: { gap: 'var(--statusbar-item-gap, 0.375rem)', paddingInline: 'var(--statusbar-item-padding, 0.5rem)' },
     onClick: () => {
       haptic('tap')
       host.navigate('/context')
@@ -1262,10 +1263,14 @@ function ContextStatusbarChip({ ctx }) {
     title: `Context 容量: ${fmtTokens(data.capacity.active_tokens)} / ${fmtTokens(data.capacity.context_limit)} (${pct}%) - 点击查看全景`,
     children: [
       jsx('span', {
-        className: 'w-1.5 h-1.5 rounded-full animate-pulse',
+        className: 'size-2 shrink-0 rounded-full animate-pulse',
         style: { backgroundColor: b.color },
       }),
-      jsx('span', { className: 'text-[var(--ui-text-secondary,#64748b)] dark:text-[var(--ui-text-secondary,#cbd5e1)]', children: '⚡' }),
+      jsx('span', {
+        className: 'leading-none text-[var(--ui-text-secondary,#64748b)] dark:text-[var(--ui-text-secondary,#cbd5e1)]',
+        style: { fontSize: 'var(--chrome-icon-size, 1rem)' },
+        children: '⚡',
+      }),
       jsx('span', { className: 'font-medium', style: { color: b.color }, children: `${pct}%` }),
     ],
   })

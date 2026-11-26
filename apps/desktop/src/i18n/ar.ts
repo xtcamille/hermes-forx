@@ -3003,6 +3003,14 @@ export const ar = defineLocale({
       copyFile: 'نسخ الملف',
       copyPath: 'نسخ المسار',
       failedCalls: (count: number) => `عدد استدعاءات الأدوات الفاشلة: ${count}`,
+      resultCount: (count: number) => `النتائج (${count})`,
+      runSummary: {
+        commands: count => `الأوامر (${count})`,
+        files: count => `الملفات (${count})`,
+        tasks: count => `المهام (${count})`,
+        tools: count => `الأدوات (${count})`,
+        join: clauses => clauses.join('، ')
+      },
       skillActivity: {
         loading: 'جارٍ تحميل المهارة',
         loaded: 'تم تحميل المهارة',
@@ -3038,6 +3046,14 @@ export const ar = defineLocale({
         searching: 'جار البحث',
         ran: 'تم التشغيل',
         running: 'جار التشغيل',
+        delegated: 'تم تفويض',
+        delegating: 'جارٍ تفويض',
+        edited: 'تم تعديل',
+        editing: 'جارٍ تعديل',
+        explored: 'تم فحص',
+        exploring: 'جارٍ فحص',
+        used: 'تم استخدام',
+        using: 'جارٍ استخدام',
         ranCode: 'تم تشغيل الكود',
         runningCode: 'جار البرمجة'
       },
@@ -3149,6 +3165,9 @@ export const ar = defineLocale({
           pending: 'جار تحديث المهام',
           pendingAction: 'جار التحديث'
         },
+        tool_call: { done: 'استدعاء أداة', pending: 'جارٍ استدعاء أداة', pendingAction: 'جارٍ استدعاء' },
+        tool_describe: { done: 'وصف الأدوات', pending: 'جارٍ قراءة وصف الأدوات', pendingAction: 'جارٍ قراءة' },
+        tool_search: { done: 'البحث عن أدوات', pending: 'جارٍ البحث عن أدوات', pendingAction: 'جارٍ البحث' },
         vision_analyze: {
           done: 'تم تحليل الصورة',
           pending: 'جار تحليل الصورة',

@@ -3780,6 +3780,15 @@ export const ru = defineLocale({
       copyFile: 'Копировать файл',
       copyPath: 'Копировать путь',
       failedCalls: (count: number) => `Вызовов с ошибкой: ${count}`,
+      resultCount: (count: number) => `${count} ${RU_PLURAL(count, 'результат', 'результата', 'результатов')}`,
+      runSummary: {
+        commands: count => `${count} ${RU_PLURAL(count, 'команда', 'команды', 'команд')}`,
+        files: count => `${count} ${RU_PLURAL(count, 'файл', 'файла', 'файлов')}`,
+        tasks: count => `${count} ${RU_PLURAL(count, 'задача', 'задачи', 'задач')}`,
+        tools: count => `${count} ${RU_PLURAL(count, 'инструмент', 'инструмента', 'инструментов')}`,
+        join: clauses =>
+          clauses.map((clause, i) => (i ? clause.charAt(0).toLowerCase() + clause.slice(1) : clause)).join(', ')
+      },
       skillActivity: {
         loading: 'Загружается скилл',
         loaded: 'Загружен скилл',
@@ -3817,6 +3826,14 @@ export const ru = defineLocale({
         searching: 'Ищет',
         ran: 'Выполнено',
         running: 'Выполняется',
+        delegated: 'Делегировано',
+        delegating: 'Делегируется',
+        edited: 'Изменено',
+        editing: 'Редактируется',
+        explored: 'Просмотрено',
+        exploring: 'Просматривается',
+        used: 'Использовано',
+        using: 'Используется',
         ranCode: 'Код выполнен',
         runningCode: 'Скриптинг'
       },
@@ -3872,6 +3889,13 @@ export const ru = defineLocale({
         },
         terminal: { done: 'Команда выполнена', pending: 'Выполняю команду', pendingAction: 'Выполняю' },
         todo: { done: 'Todo обновлены', pending: 'Обновляю todo', pendingAction: 'Обновляю' },
+        tool_call: { done: 'Вызов инструмента', pending: 'Вызываю инструмент', pendingAction: 'Вызываю' },
+        tool_describe: {
+          done: 'Описание инструментов',
+          pending: 'Читаю описание инструментов',
+          pendingAction: 'Читаю'
+        },
+        tool_search: { done: 'Поиск инструментов', pending: 'Ищу инструменты', pendingAction: 'Ищу' },
         vision_analyze: {
           done: 'Изображение проанализировано',
           pending: 'Анализирую изображение',

@@ -82,7 +82,7 @@ function SelectGroup({ ...props }: React.ComponentProps<typeof SelectPrimitive.G
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
     <SelectPrimitive.Label
-      className={cn('px-2.5 py-1.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground', className)}
+      className={cn('px-2.5 py-1.5 text-2xs font-medium uppercase tracking-wide text-muted-foreground', className)}
       data-slot="select-label"
       {...props}
     />
@@ -99,7 +99,7 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
       data-slot="select-item"
       {...props}
     >
-      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+      <span className="absolute right-2 flex size-4 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <Codicon name="check" size="1rem" />
         </SelectPrimitive.ItemIndicator>

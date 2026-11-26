@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { atom } from 'nanostores'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -203,22 +203,17 @@ describe('ConnectionSwitcher', () => {
     expect(selectConnection).toHaveBeenCalledTimes(1)
   })
 
-  it('fits the shared statusbar slot without changing its gateway identity', () => {
+  it('switches gateways from the compact statusbar slot', () => {
     $connectionsRegistry.set(registry([connection('local', 'This device', 'local'), connection('homelab', 'Homelab')]))
     render(<ConnectionSwitcher compact onConnect={onConnect} />)
 
     const group = screen.getByRole('group', { name: 'Registered gateways' })
-    const trigger = screen.getByRole('button', { name: 'Registered gateways: This device' })
+    const trigger = within(group).getByRole('button', { name: 'Registered gateways: This device' })
 
-    expect(group.className).toContain('h-full')
-    expect(group.className).toContain('min-w-20')
-    expect(group.className).toContain('max-w-40')
-    expect(group.className).toContain('shrink')
-    expect(group.className).toContain('overflow-hidden')
-    expect(trigger.className).toContain('text-[0.6875rem]')
-    expect(trigger.className).toContain('min-w-0')
-    expect(trigger.className).toContain('overflow-hidden')
     expect(trigger.textContent).toContain('This device')
+    fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' })
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Homelab' }))
+    expect(selectConnection).toHaveBeenCalledWith('homelab')
   })
 
   it('keeps source controls stable while a remote is opening', () => {

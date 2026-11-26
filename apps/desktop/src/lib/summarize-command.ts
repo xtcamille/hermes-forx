@@ -1,3 +1,5 @@
+import { translateNow } from '@/i18n/runtime'
+
 // Adapted from condensed-milk-pi's command dispatcher: split compounds first,
 // strip pipe tails (`| head`, `| tail`, ...), then clean redirects/env prefixes
 // before deciding which segment is meaningful. This is display-only; the full
@@ -185,7 +187,10 @@ function isBoundaryEcho(segment: string): boolean {
  * show a short `first command + N commands` label instead of flooding the row
  * with every probe. The full command is always still available via Copy/detail.
  */
-export function summarizeShellCommand(raw: string): string {
+export function summarizeShellCommand(
+  raw: string,
+  commandCount = (count: number) => translateNow('assistant.tool.runSummary.commands', count)
+): string {
   const original = (raw ?? '').trim()
 
   if (!original) {
@@ -212,5 +217,5 @@ export function summarizeShellCommand(raw: string): string {
     return core[0]!
   }
 
-  return `${core[0]} + ${core.length - 1} ${core.length === 2 ? 'command' : 'commands'}`
+  return `${core[0]} + ${commandCount(core.length - 1)}`
 }

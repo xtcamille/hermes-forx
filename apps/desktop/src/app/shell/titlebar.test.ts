@@ -6,20 +6,17 @@ import {
   TITLEBAR_CONTROL_SIZE,
   TITLEBAR_EDGE_INSET,
   TITLEBAR_FALLBACK_WINDOW_BUTTON_X,
-  TITLEBAR_ICON_SIZE,
+  TITLEBAR_HEIGHT,
   TITLEBAR_MAC_TRAFFIC_LIGHTS_Y_NUDGE,
   titlebarControlsPosition,
   titlebarControlsYNudge,
-  titlebarIconSizeCss,
   titlebarToolsRightCss,
   titlebarToolsWidthCss
 } from './titlebar'
 
 describe('titlebar sizing', () => {
-  it('uses 24×24 hit targets and 13.9px glyphs', () => {
-    expect(TITLEBAR_CONTROL_SIZE).toBe(24)
-    expect(TITLEBAR_ICON_SIZE).toBe(13.9)
-    expect(titlebarIconSizeCss()).toBe('13.9px')
+  it('centers the tool hit target inside the titlebar band', () => {
+    expect(2 * titlebarControlsPosition(null).top + TITLEBAR_CONTROL_SIZE).toBe(TITLEBAR_HEIGHT)
   })
 
   it('reserves width from abutting hit targets only', () => {

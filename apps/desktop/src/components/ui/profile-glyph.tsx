@@ -10,18 +10,20 @@ import { Codicon } from './codicon'
 export function ProfileGlyph({
   className,
   color,
+  iconSize = '0.75rem',
   isDefault,
   name,
   ...props
 }: Omit<React.ComponentProps<'span'>, 'color'> & {
   color: null | string
+  iconSize?: string
   isDefault: boolean
   name: string
 }) {
   if (isDefault) {
     return (
       <span className={cn('grid size-4 shrink-0 place-items-center', className)} {...props}>
-        <Codicon className="text-(--ui-text-quaternary)" name="home" size="0.75rem" />
+        <Codicon className="text-(--ui-text-quaternary)" name="home" size={iconSize} />
       </span>
     )
   }

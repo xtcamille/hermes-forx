@@ -43,7 +43,7 @@ export function SegmentedControl<T extends string>({
           <button
             aria-pressed={active}
             className={cn(
-              'flex items-center justify-center gap-1 rounded-md px-2.5 py-1 text-[0.6875rem] font-medium transition-all duration-150 disabled:cursor-default',
+              'flex items-center justify-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 disabled:cursor-default',
               active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             )}
             disabled={disabled}
@@ -51,7 +51,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(id)}
             type="button"
           >
-            {Icon && <Icon className="size-3" />}
+            {Icon && <Icon className="size-4 shrink-0" />}
             {label}
           </button>
         )

@@ -3482,6 +3482,14 @@ export const ja = defineLocale({
       copyFile: 'ファイルをコピー',
       copyPath: 'パスをコピー',
       failedCalls: (count: number) => `失敗したツール呼び出し: ${count}`,
+      resultCount: (count: number) => `${count} 件の結果`,
+      runSummary: {
+        commands: count => `${count} 件のコマンド`,
+        files: count => `${count} 個のファイル`,
+        tasks: count => `${count} 件のタスク`,
+        tools: count => `${count} 個のツール`,
+        join: clauses => clauses.join('、')
+      },
       skillActivity: {
         loading: 'スキルを読み込み中',
         loaded: 'スキルを読み込みました',
@@ -3518,6 +3526,14 @@ export const ja = defineLocale({
         searching: '検索中',
         ran: '実行完了',
         running: '実行中',
+        delegated: '委任済み',
+        delegating: '委任中',
+        edited: '編集済み',
+        editing: '編集中',
+        explored: '確認済み',
+        exploring: '確認中',
+        used: '使用済み',
+        using: '使用中',
         ranCode: 'コード実行完了',
         runningCode: 'スクリプト作成中'
       },
@@ -3581,6 +3597,9 @@ export const ja = defineLocale({
         },
         terminal: { done: 'コマンドを実行しました', pending: 'コマンドを実行中', pendingAction: '実行中' },
         todo: { done: 'Todo を更新しました', pending: 'Todo を更新中', pendingAction: '更新中' },
+        tool_call: { done: 'ツール呼び出し', pending: 'ツールを呼び出し中', pendingAction: '呼び出し中' },
+        tool_describe: { done: 'ツールの説明', pending: 'ツールの説明を確認中', pendingAction: '確認中' },
+        tool_search: { done: 'ツール検索', pending: 'ツールを検索中', pendingAction: '検索中' },
         vision_analyze: { done: '画像を分析しました', pending: '画像を分析中', pendingAction: '分析中' },
         web_extract: {
           done: 'Web ページを読み取りました',

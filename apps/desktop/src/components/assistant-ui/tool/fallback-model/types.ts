@@ -46,6 +46,8 @@ export interface ToolView {
    *  (terminal/execute_code) so the renderer knows to run them through
    *  the ANSI parser instead of printing them as literals. */
   rendersAnsi?: boolean
+  /** Python source as submitted, shown when the reader expands an execution. */
+  scriptCode?: string
   /** Original query, shown above structured web-search results. */
   searchQuery?: string
   searchHits?: SearchResultRow[]
@@ -67,16 +69,15 @@ export interface ToolView {
   tone: ToolTone
 }
 
-export interface ToolMeta {
+export interface ToolMeta extends ToolMetaSpec {
   done: string
-  icon?: string
   pending: string
   pendingAction: string
-  tone: ToolTone
 }
 
 export interface ToolMetaSpec {
   icon?: string
+  subject?: (args: Record<string, unknown>) => string
   tone: ToolTone
 }
 

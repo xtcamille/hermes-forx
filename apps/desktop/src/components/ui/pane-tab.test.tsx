@@ -128,7 +128,7 @@ describe('PaneTab hover close button', () => {
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
   })
 
-  it('floors a closeable horizontal tab instead of padding a runway onto it', () => {
+  it('keeps a minimum width for short closeable horizontal tabs', () => {
     const onClose = vi.fn()
 
     const closeable = render(
@@ -147,12 +147,8 @@ describe('PaneTab hover close button', () => {
     )
     const withoutClose = classesOf('BROWSER')
 
-    // The ✕ is paid for with a min-width FLOOR, not right padding: a short
-    // label can't be swallowed by its own chip, and a tab whose label already
-    // clears the floor pays nothing — so no tab carries dead runway at rest.
     const added = withClose.filter(cls => !withoutClose.includes(cls))
     expect(added.some(cls => /^min-w-/.test(cls))).toBe(true)
-    expect(withClose.some(cls => /^pr-/.test(cls))).toBe(false)
   })
 
   it('a vertical rail tab gets no floor — it has no ✕ to make room for', () => {

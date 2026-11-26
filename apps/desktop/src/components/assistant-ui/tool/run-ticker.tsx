@@ -18,7 +18,11 @@ export function ToolRunTicker({ children }: { children: ReactNode }) {
     <div className="tool-ticker" data-tool-ticker="">
       <div className="tool-ticker__reel" style={{ '--tool-ticker-index': rows.length - 1 } as CSSProperties}>
         {rows.map((row, index) => (
-          <div className="tool-ticker__row" key={isValidElement(row) ? (row.key ?? index) : index}>
+          <div
+            className="tool-ticker__row"
+            inert={index !== rows.length - 1}
+            key={isValidElement(row) ? (row.key ?? index) : index}
+          >
             {row}
           </div>
         ))}

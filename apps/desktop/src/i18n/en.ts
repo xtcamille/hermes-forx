@@ -4441,6 +4441,15 @@ export const en: Translations = {
       copyFile: 'Copy file',
       copyPath: 'Copy path',
       failedCalls: (count: number) => `${count} tool call${count === 1 ? '' : 's'} failed`,
+      resultCount: (count: number) => `${count} result${count === 1 ? '' : 's'}`,
+      runSummary: {
+        commands: count => `${count} command${count === 1 ? '' : 's'}`,
+        files: count => `${count} file${count === 1 ? '' : 's'}`,
+        tasks: count => `${count} task${count === 1 ? '' : 's'}`,
+        tools: count => `${count} tool${count === 1 ? '' : 's'}`,
+        join: clauses =>
+          clauses.map((clause, i) => (i ? clause.charAt(0).toLowerCase() + clause.slice(1) : clause)).join(', ')
+      },
       skillActivity: {
         loading: 'Loading skill',
         loaded: 'Loaded skill',
@@ -4477,6 +4486,14 @@ export const en: Translations = {
         searching: 'Searching',
         ran: 'Ran',
         running: 'Running',
+        delegated: 'Delegated',
+        delegating: 'Delegating',
+        edited: 'Edited',
+        editing: 'Editing',
+        explored: 'Explored',
+        exploring: 'Exploring',
+        used: 'Used',
+        using: 'Using',
         ranCode: 'Ran code',
         runningCode: 'Scripting'
       },
@@ -4524,6 +4541,9 @@ export const en: Translations = {
         },
         terminal: { done: 'Ran command', pending: 'Running command', pendingAction: 'Running' },
         todo: { done: 'Updated todos', pending: 'Updating todos', pendingAction: 'Updating' },
+        tool_call: { done: 'Tool call', pending: 'Calling tool', pendingAction: 'Calling' },
+        tool_describe: { done: 'Tool details', pending: 'Reading tool details', pendingAction: 'Reading' },
+        tool_search: { done: 'Tool search', pending: 'Searching tools', pendingAction: 'Searching' },
         vision_analyze: { done: 'Analyzed image', pending: 'Analyzing image', pendingAction: 'Analyzing' },
         web_extract: { done: 'Read webpage', pending: 'Reading webpage', pendingAction: 'Reading' },
         web_search: { done: 'Searched web', pending: 'Searching web', pendingAction: 'Searching' },

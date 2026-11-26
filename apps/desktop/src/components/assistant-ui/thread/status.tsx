@@ -193,6 +193,7 @@ const DRAFTING_REVEAL_MS = 200
  * it's rarer, slower, and explains a transcript that looks like it reset.
  */
 function useStatusHint(compacting: boolean, drafting: DraftingTool | null, providerWait: string): string {
+  const { t } = useI18n()
   const [revealed, setRevealed] = useState(false)
   const name = drafting?.name ?? ''
 
@@ -216,7 +217,7 @@ function useStatusHint(compacting: boolean, drafting: DraftingTool | null, provi
     return providerWait
   }
 
-  return revealed && name ? toolPresentVerb(name) : ''
+  return revealed && name ? toolPresentVerb(name, t.assistant.tool) : ''
 }
 
 export const CenteredThreadSpinner: FC = () => {

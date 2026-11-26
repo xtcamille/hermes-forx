@@ -8,12 +8,10 @@ import { cn } from '@/lib/utils'
 // uses to escape the message padding) and its own expanded body.
 //
 // Affordance:
-//   - No leading chevron; a caret appears to the RIGHT of the text on hover
-//     (and stays visible when the row is open).
-//   - The hover background is a tight content-shaped pill — sized to the
-//     title text, NOT the full row — and reaches just past the chevron with
-//     `-mx-1.5 px-1.5` so it reads as a soft hit-target rather than a slab
-//     stretching to the message edge.
+//   - A trailing caret shows which rows open. Each surface can choose its
+//     resting visibility with `--disclosure-caret-rest`.
+//   - The trigger hugs the label and caret. Tool headers use that hit area
+//     for their hover fill and keyboard focus ring.
 //   - `trailing` stays in flow (e.g. a duration timer), so the title always
 //     reserves space for it instead of painting underneath it. Interactive
 //     controls go in `action`, which lays out *in flow* at the far right so it
@@ -41,6 +39,7 @@ export function DisclosureRow({
           'flex min-w-0 max-w-fit items-start gap-1.5 text-left transition-colors',
           onToggle ? 'hover:text-foreground focus-visible:text-foreground focus-visible:outline-none' : 'cursor-default'
         )}
+        data-slot="disclosure-trigger"
         disabled={!onToggle}
         onClick={onToggle}
         type="button"

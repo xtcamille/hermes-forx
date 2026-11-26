@@ -1,6 +1,7 @@
 import { stripAnsi } from '@hermes/shared/ansi'
 
-import { type ToolTitleKey, translateNow } from '@/i18n'
+import { type ToolTitleKey, translateNow, TRANSLATIONS, type Translations } from '@/i18n'
+import { getRuntimeI18nLocale } from '@/i18n/runtime'
 import { normalizeExternalUrl } from '@/lib/external-link'
 import { isFileMediaPath, mediaKind } from '@/lib/media'
 import { summarizeShellCommand } from '@/lib/summarize-command'
@@ -146,6 +147,42 @@ function shellCommand(args: Record<string, unknown>): string {
   )
 }
 
+export type ToolCopy = Translations['assistant']['tool']
+
+export function executionTitleTarget(toolName: string, args: Record<string, unknown>, copy: ToolCopy): string {
+  if (toolName === 'execute_code') {
+    // A Python script is one invocation. Its statements belong in the expanded result.
+    const code = firstStringField(args, ['code'])
+
+    return /[\r\n]/.test(code) ? '' : compactPreview(code, 160)
+  }
+
+  return compactPreview(summarizeShellCommand(shellCommand(args), copy.runSummary.commands), 160)
+}
+
+function subjectList(value: unknown): string {
+  const values = Array.isArray(value) ? value : [value]
+
+  return compactPreview(values.filter(entry => typeof entry === 'string' && entry.trim()).join(', '))
+}
+
+/** The bridge accepts both a batch envelope and the older single invocation. */
+function calledToolNames(args: Record<string, unknown>): string {
+  let calls = args.calls ?? args
+
+  if (typeof calls === 'string') {
+    try {
+      calls = JSON.parse(calls)
+    } catch {
+      return ''
+    }
+  }
+
+  const entries = Array.isArray(calls) ? calls : [calls]
+
+  return subjectList(entries.map(entry => isRecord(entry) && entry.name))
+}
+
 const TOOL_META: Record<ToolTitleKey, ToolMetaSpec> = {
   browser_click: {
     icon: 'globe',
@@ -211,6 +248,9 @@ const TOOL_META: Record<ToolTitleKey, ToolMetaSpec> = {
     tone: 'terminal'
   },
   todo: { icon: 'tools', tone: 'agent' },
+  tool_call: { icon: 'tools', subject: calledToolNames, tone: 'agent' },
+  tool_describe: { icon: 'book', subject: args => subjectList(args.names), tone: 'agent' },
+  tool_search: { icon: 'search', subject: args => subjectList(args.queries), tone: 'agent' },
   vision_analyze: {
     icon: 'eye',
     tone: 'image'
@@ -221,7 +261,7 @@ const TOOL_META: Record<ToolTitleKey, ToolMetaSpec> = {
 }
 
 function isToolTitleKey(name: string): name is ToolTitleKey {
-  return name in TOOL_META
+  return Object.hasOwn(TOOL_META, name)
 }
 
 const INLINE_CODE_SPLIT_RE = /(`[^`\n]+`)/g
@@ -237,34 +277,26 @@ function titleForTool(name: string): string {
   return normalized.split('_').filter(Boolean).map(capitalize).join(' ') || name
 }
 
-const PREFIX_META: { icon?: string; labelKey: string; prefix: string; tone: ToolTone }[] = [
+const PREFIX_META: { icon?: string; labelKey: keyof ToolCopy['prefixes']; prefix: string; tone: ToolTone }[] = [
   { prefix: 'browser_', labelKey: 'browser', icon: 'globe', tone: 'browser' },
   { prefix: 'web_', labelKey: 'web', icon: 'globe', tone: 'web' }
 ]
 
-function toolMeta(name: string): ToolMeta {
+function toolMeta(name: string, copy: ToolCopy): ToolMeta {
   if (isToolTitleKey(name)) {
-    const meta = TOOL_META[name]
-
-    return {
-      done: translateNow(`assistant.tool.titles.${name}.done`),
-      pending: translateNow(`assistant.tool.titles.${name}.pending`),
-      pendingAction: translateNow(`assistant.tool.titles.${name}.pendingAction`),
-      icon: meta.icon,
-      tone: meta.tone
-    }
+    return { ...TOOL_META[name], ...copy.titles[name] }
   }
 
   const action = titleForTool(name)
   const prefix = PREFIX_META.find(p => name.startsWith(p.prefix))
 
   if (prefix) {
-    const prefixLabel = translateNow(`assistant.tool.prefixes.${prefix.labelKey}`)
+    const prefixLabel = copy.prefixes[prefix.labelKey]
 
     return {
-      done: translateNow('assistant.tool.titleTemplates.prefixedDone', prefixLabel, action),
-      pending: translateNow('assistant.tool.titleTemplates.runningPrefixedTool', prefixLabel, action),
-      pendingAction: translateNow('assistant.tool.actions.running'),
+      done: copy.titleTemplates.prefixedDone(prefixLabel, action),
+      pending: copy.titleTemplates.runningPrefixedTool(prefixLabel, action),
+      pendingAction: copy.actions.running,
       icon: prefix.icon,
       tone: prefix.tone
     }
@@ -272,8 +304,9 @@ function toolMeta(name: string): ToolMeta {
 
   return {
     done: action,
-    pending: translateNow('assistant.tool.titleTemplates.runningTool', action),
-    pendingAction: translateNow('assistant.tool.actions.running'),
+    icon: 'tools',
+    pending: copy.titleTemplates.runningTool(action),
+    pendingAction: copy.actions.running,
     tone: 'default'
   }
 }
@@ -308,7 +341,7 @@ const COUNT_FIELD_KEYS = [
 
 const COUNT_ARRAY_KEYS = ['results', 'items', 'matches', 'files', 'documents', 'sources', 'rows'] as const
 
-const COUNT_EXCLUDED_KEYS = new Set(['duration_s', 'exit_code', 'status_code'])
+const COUNT_EXCLUDED_KEYS = new Set(['duration_s', 'exit_code', 'status_code', 'stdout_bytes_total'])
 
 const COUNT_NOUN_BY_FIELD: Partial<Record<(typeof COUNT_FIELD_KEYS)[number], string>> = {
   count: '',
@@ -414,8 +447,10 @@ function pluralizeNoun(noun: string, count: number): string {
   return `${noun}s`
 }
 
-function formatCountLabel(metric: CountMetric): string {
-  return `${metric.count} ${pluralizeNoun(metric.noun, metric.count)}`
+function formatCountLabel(metric: CountMetric, copy: ToolCopy): string {
+  return metric.noun === 'result'
+    ? copy.resultCount(metric.count)
+    : `${metric.count} ${pluralizeNoun(metric.noun, metric.count)}`
 }
 
 function countMetric(count: number, noun: string): CountMetric {
@@ -515,6 +550,11 @@ function toolResultCount(
   }
 
   const fallbackNounByTool = fallbackCountNoun(part.toolName)
+
+  // The bridge groups results by query; the shared tool catalog holds the distinct matches.
+  if (part.toolName === 'tool_search' && isRecord(resultRecord.tools)) {
+    return countMetric(Object.keys(resultRecord.tools).length, 'result')
+  }
 
   if (part.toolName === 'web_search') {
     const hits = collectResultItems(part.result)
@@ -1117,11 +1157,16 @@ function toolDetailText(
       return [output, lines].filter(Boolean).join('\n')
     }
 
-    // A terminal row with no output already shows its command in the `$`
-    // transcript above; the generic fallback would print the same string a
-    // second time. `execute_code` has no transcript, so it keeps the fallback.
+    // The expanded row already shows the original command or script.
     if (part.toolName === 'terminal') {
       return ''
+    }
+
+    if (typeof argsRecord.code === 'string') {
+      const summary = firstStringField(resultRecord, ['message', 'summary', 'context', 'preview'])
+      const hasStream = ['output', 'stdout', 'stderr', 'lines'].some(key => key in resultRecord)
+
+      return summary || (hasStream ? '' : fallbackDetailText(undefined, part.result))
     }
   }
 
@@ -1326,9 +1371,10 @@ function dynamicTitle(
   part: ToolPart,
   args: Record<string, unknown>,
   result: Record<string, unknown>,
+  copy: ToolCopy,
   fallback: ToolTitleParts
 ): ToolTitleParts {
-  const skillTitle = skillActivityTitle(part)
+  const skillTitle = skillActivityTitle(part, true, copy.skillActivity)
 
   if (skillTitle) {
     return { title: skillTitle }
@@ -1341,11 +1387,9 @@ function dynamicTitle(
 
   if (part.toolName === 'web_extract') {
     const url = findFirstUrl(args, result)
-    const action = verb(translateNow('assistant.tool.actions.reading'), translateNow('assistant.tool.actions.read'))
+    const action = verb(copy.actions.reading, copy.actions.read)
 
-    return url
-      ? titledAction(action, translateNow('assistant.tool.titleTemplates.actionTarget', action, hostnameOf(url)))
-      : fallback
+    return url ? titledAction(action, copy.titleTemplates.actionTarget(action, hostnameOf(url))) : fallback
   }
 
   if (part.toolName === 'browser_navigate') {
@@ -1359,61 +1403,41 @@ function dynamicTitle(
       part.isError || result.success === false || result.ok === false || Boolean(firstStringField(result, ['error']))
 
     if (failed) {
-      const failAction = translateNow('assistant.tool.actions.failedToOpen')
+      const failAction = copy.actions.failedToOpen
 
-      return titledAction(
-        failAction,
-        translateNow('assistant.tool.titleTemplates.actionTarget', failAction, hostnameOf(url))
-      )
+      return titledAction(failAction, copy.titleTemplates.actionTarget(failAction, hostnameOf(url)))
     }
 
-    const action = verb(translateNow('assistant.tool.actions.opening'), translateNow('assistant.tool.actions.opened'))
+    const action = verb(copy.actions.opening, copy.actions.opened)
 
-    return titledAction(action, translateNow('assistant.tool.titleTemplates.actionTarget', action, hostnameOf(url)))
+    return titledAction(action, copy.titleTemplates.actionTarget(action, hostnameOf(url)))
   }
 
   if (part.toolName === 'web_search') {
     const query = firstStringField(args, ['search_term', 'query']) || contextValue(args)
 
-    const action = verb(
-      translateNow('assistant.tool.actions.searching'),
-      translateNow('assistant.tool.actions.searched')
-    )
+    const action = verb(copy.actions.searching, copy.actions.searched)
 
-    return query
-      ? titledAction(
-          action,
-          translateNow('assistant.tool.titleTemplates.actionQuoted', action, compactPreview(query, 48))
-        )
-      : fallback
+    return query ? titledAction(action, copy.titleTemplates.actionQuoted(action, compactPreview(query, 48))) : fallback
   }
 
   if (part.toolName === 'read_file') {
     const target = readFileDisplayTarget(args, result)
-    const action = verb(translateNow('assistant.tool.actions.reading'), translateNow('assistant.tool.actions.read'))
+    const action = verb(copy.actions.reading, copy.actions.read)
 
-    return target
-      ? titledAction(action, translateNow('assistant.tool.titleTemplates.actionTarget', action, target))
-      : fallback
+    return target ? titledAction(action, copy.titleTemplates.actionTarget(action, target)) : fallback
   }
 
   if (part.toolName === 'terminal' || part.toolName === 'execute_code') {
-    const command = shellCommand(args)
+    const target = executionTitleTarget(part.toolName, args, copy)
 
-    if (command) {
+    if (target) {
       const action =
         part.toolName === 'execute_code'
-          ? verb(translateNow('assistant.tool.actions.runningCode'), translateNow('assistant.tool.actions.ranCode'))
-          : verb(translateNow('assistant.tool.actions.running'), translateNow('assistant.tool.actions.ran'))
+          ? verb(copy.actions.runningCode, copy.actions.ranCode)
+          : verb(copy.actions.running, copy.actions.ran)
 
-      return titledAction(
-        action,
-        translateNow(
-          'assistant.tool.titleTemplates.actionCommand',
-          action,
-          compactPreview(summarizeShellCommand(command), 160)
-        )
-      )
+      return titledAction(action, copy.titleTemplates.actionCommand(action, target))
     }
   }
 
@@ -1452,10 +1476,14 @@ export function toolPreviewOutcome(part: ToolPart): { previewTarget: string; sta
   }
 }
 
-export function buildToolView(part: ToolPart, inlineDiff: string): ToolView {
+export function buildToolView(
+  part: ToolPart,
+  inlineDiff: string,
+  copy: ToolCopy = TRANSLATIONS[getRuntimeI18nLocale()].assistant.tool
+): ToolView {
   const argsRecord = parseMaybeObject(part.args)
   const resultRecord = toolResultRecord(part)
-  const meta = toolMeta(part.toolName)
+  const meta = toolMeta(part.toolName, copy)
   const status = toolStatus(part, resultRecord)
   // Skip residual error-heuristic text once status is success (stale isError
   // envelope over a landed memory write would otherwise foul the subtitle).
@@ -1467,21 +1495,25 @@ export function buildToolView(part: ToolPart, inlineDiff: string): ToolView {
     part.result === undefined
       ? meta.pending
       : memoryMissed
-        ? translateNow('assistant.tool.memoryWriteNoted')
+        ? copy.memoryWriteNoted
         : meta.done
+
+  const subject = meta.subject?.(argsRecord)
 
   const titleParts = dynamicTitle(
     part,
     argsRecord,
     resultRecord,
-    titlePartsFromAction(baseTitle, part.result === undefined ? meta.pendingAction : undefined)
+    copy,
+    titlePartsFromAction(
+      subject ? `${baseTitle} · ${subject}` : baseTitle,
+      part.result === undefined ? meta.pendingAction : undefined
+    )
   )
 
   const unavailable = part.result === undefined && part.completedAt !== undefined
 
-  const title = unavailable
-    ? translateNow(part.interrupted ? 'assistant.tool.resultInterrupted' : 'assistant.tool.resultUnavailable')
-    : titleParts.title
+  const title = unavailable ? copy[part.interrupted ? 'resultInterrupted' : 'resultUnavailable'] : titleParts.title
 
   const titleEnriched = title !== baseTitle
   const baseSubtitle = error || toolSubtitle(part, argsRecord, resultRecord)
@@ -1525,16 +1557,20 @@ export function buildToolView(part: ToolPart, inlineDiff: string): ToolView {
   const terminalCommand = part.toolName === 'terminal' ? shellCommand(argsRecord) : undefined
   const terminalExitCode = part.toolName === 'terminal' ? numericField(resultRecord, 'exit_code') : undefined
 
+  const scriptCode =
+    part.toolName === 'execute_code' && typeof argsRecord.code === 'string' ? argsRecord.code : undefined
+
   return {
-    countLabel: resultCount ? formatCountLabel(resultCount) : undefined,
+    countLabel: resultCount ? formatCountLabel(resultCount, copy) : undefined,
     detail,
-    detailLabel: error ? 'Error details' : toolDetailLabel(part.toolName),
+    detailLabel: error ? 'Error details' : scriptCode ? copy.outputAlt : toolDetailLabel(part.toolName),
     durationLabel: durationLabel(resultRecord),
     icon: meta.icon,
     imageUrl: toolImageUrl(argsRecord, resultRecord),
     inlineDiff,
     previewTarget: toolPreviewTarget(part.toolName, argsRecord, resultRecord),
     rendersAnsi: rendersAnsi || undefined,
+    scriptCode,
     searchQuery: searchQuery || undefined,
     searchHits: searchHits?.length ? searchHits : undefined,
     stderr: hasSplitStreams ? stderrRaw || undefined : undefined,

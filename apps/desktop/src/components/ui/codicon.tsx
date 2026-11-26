@@ -22,8 +22,8 @@ export function Codicon({ className, name, size, spinning, style, ...props }: Co
 
 /** Wrap a codicon as a Tabler-shaped icon for nav rows that expect `IconComponent`. */
 export function codiconIcon(name: string): Icon {
-  function CodiconIcon({ className }: { className?: string }) {
-    return <Codicon aria-hidden className={cn('leading-none', className)} name={name} size="1em" />
+  function CodiconIcon({ className, size = '1em' }: Pick<CodiconProps, 'className' | 'size'>) {
+    return <Codicon aria-hidden className={cn('leading-none', className)} name={name} size={size} />
   }
 
   CodiconIcon.displayName = `Codicon(${name})`

@@ -127,6 +127,12 @@ changing defaults must not overwrite a user's existing choices. The shared
 `apps/shared/src/translucency.ts` resolver owns these defaults for both the
 renderer and Electron's first window paint.
 
+In dark Sidebar only mode, the body blends the skin's sidebar color into the
+glass tint so the rail stays close in tone to the chat canvas over a bright
+desktop. At maximum Tint the native material shows through the rail interior.
+In either appearance the glass blends into the canvas over the last `--radius-lg`
+inside the rail, ending at the draggable divider.
+
 ## Stroke & color tokens
 
 | Token | Use |
@@ -205,7 +211,9 @@ context-dependent (e.g. "Show" / "Hide"). Never hardcode combos; always use
 Notes:
 - Text buttons are square (no radius) and sized by padding + line-height (no
   fixed heights). Boxed and icon buttons use the shared `rounded-md` / `rounded-lg` / `rounded-xl` token scale.
-- SVGs inherit `size-3.5` (`size-3` at `xs`). Don't re-set icon size.
+- Standard buttons use `text-xs` (13px at actual size) with `size-4` (16px)
+  action glyphs. Compact variants reduce padding.
+  Secondary figures and small keycaps use `text-2xs` (12px).
 - Polymorph with `asChild` when the button must render as a link/Slot.
 
 ## Badges — one component
@@ -275,19 +283,31 @@ Lower panels keep local headers. Empty header space moves the window;
 tabs and actions remain no-drag, with native-control space reserved from the
 existing traffic-light and Window Controls Overlay measurements.
 
+Adjacent panes share one `--ui-stroke-secondary` hairline through the titlebar
+and pane body. Its ends and the wider hover highlight are rounded. Pane tabs
+use the same corner radius as sidebar navigation rows.
+
+Sidebar and overlay navigation, page and pane tabs, sidebar section and date
+labels, and the status bar use `text-sm` (14px at actual size). Navigation,
+titlebar, profile rail and status bar glyphs share `--chrome-icon-size`
+(16px at actual size). Narrow navigation dropdowns keep the same sizes.
+
 The left cluster shows sidebar, settings, layout editor, and HUD controls. Flip
 and the right-sidebar toggle sit on the right; haptics remain in settings.
 Holding Cmd (Ctrl off macOS) reveals small slot numbers over the target strip's
 status dots after 400ms, without changing tab widths. Hints follow the same
 binding and hovered/focused-zone resolver as the number shortcuts.
 
-Tab close buttons fade the label with a content mask, not a painted gradient.
-The tab reads its surface token directly so glass tint is painted only once.
+Horizontal pane tabs reserve space for the close button and dirty indicator.
+Long titles truncate with an ellipsis, and showing the close button leaves
+the tab width fixed. The tab reads its surface token directly so glass tint
+is painted only once.
 
 Sticky user messages clip covered scrolling content, including the gap above
-them. Their wrappers stay unpainted; only the rounded user bubble owns a fill.
-Clipping follows the pinned prompt and its live height without changing layout,
-so glass and message-bubble transparency do not reveal scrolling text.
+them. The sent bubble owns its border, fill, and shadow. The inline editor's
+backing uses the same radius as its bubble. Clipping follows the pinned prompt
+and its live height without changing layout, so glass and message-bubble
+transparency do not reveal scrolling text.
 
 ## Feedback & empty/error/loading states
 
@@ -332,6 +352,14 @@ so glass and message-bubble transparency do not reveal scrolling text.
   from the chip to the floating pill; leaving both dismisses it.
 - A tool result may expose an inline action that opens a preview. It must not
   open the rail automatically.
+- Collapsed tool calls and run summaries use content-width activity rows with
+  a visible disclosure caret when details are available. The hover fill and
+  keyboard focus ring follow the trigger. An expanded result uses the reading
+  column and a single `--ui-stroke-tertiary` border. Discovery and invocation
+  rows identify the requested tools or query in the active language.
+- Command groups use the active language for both live and completed summaries.
+  The live ticker keeps keyboard focus on its visible row. A multiline script
+  occupies one activity row, with its source and output available on expansion.
 - Tool rows reserve destructive red for explicit failures. Missing read paths and
   ambiguous exit-1 results use neutral notices, with details still available.
   Errors described inside returned data are not tool failures. Expanded failures

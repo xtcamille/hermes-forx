@@ -94,7 +94,8 @@ function ApprovalActivity({ floating, visible }: { floating: boolean; visible: b
     return tools.length
       ? summarizeToolRun(
           tools,
-          tools.some(tool => tool.result === undefined)
+          tools.some(tool => tool.result === undefined),
+          t.assistant.tool
         )
       : ''
   })

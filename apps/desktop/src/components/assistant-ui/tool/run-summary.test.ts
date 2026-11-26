@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { TRANSLATIONS } from '@/i18n/catalog'
+
 import { summarizeToolRun, type ToolCallLike } from './run-summary'
 
 function tool(toolName: string, args: Record<string, unknown> = {}, result?: unknown): ToolCallLike {
@@ -38,6 +40,14 @@ describe('summarizeToolRun', () => {
     expect(running([read('a.ts'), tool('read_file', { path: 'b.ts' }), ran('x'), ran('y')])).toBe(
       'Exploring 2 files, ran 2 commands'
     )
+  })
+
+  it('uses the transcript language for mixed runs and compound command counts', () => {
+    const calls = [read('README.md'), tool('terminal', { command: 'git status && git log -1' })]
+    const copy = TRANSLATIONS.zh.assistant.tool
+
+    expect(summarizeToolRun(calls, true, copy)).toBe('已查看 README.md，正在运行 git status + 1 条命令')
+    expect(summarizeToolRun(calls, false, copy)).toBe('已查看 README.md，已运行 1 条命令')
   })
 
   it('names the command that is still running', () => {

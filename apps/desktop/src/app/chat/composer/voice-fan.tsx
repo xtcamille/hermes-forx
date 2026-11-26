@@ -68,9 +68,9 @@ export function VoiceFan({ autoSpeak, disabled, state, voiceStatus, onDictate, o
         voiceStatus === 'recording' ? (
           <Square className={cn('fill-current', iconSize.xs)} />
         ) : voiceStatus === 'transcribing' ? (
-          <Loader2 className={cn('animate-spin', iconSize.sm)} />
+          <Loader2 className={cn('animate-spin', iconSize.md)} />
         ) : (
-          <Codicon name="mic" size="0.875rem" />
+          <Codicon name="mic" size="1rem" />
         ),
       label: hubLabel,
       onSelect: dictate
@@ -84,7 +84,7 @@ export function VoiceFan({ autoSpeak, disabled, state, voiceStatus, onDictate, o
         id: 'speak',
         active: autoSpeak,
         disabled,
-        icon: autoSpeak ? <Volume2 className={iconSize.sm} /> : <VolumeX className={iconSize.sm} />,
+        icon: autoSpeak ? <Volume2 className={iconSize.md} /> : <VolumeX className={iconSize.md} />,
         label: autoSpeak ? c.stopSpeakingReplies : c.speakReplies,
         onSelect: () => {
           triggerHaptic(autoSpeak ? 'close' : 'open')
@@ -95,7 +95,7 @@ export function VoiceFan({ autoSpeak, disabled, state, voiceStatus, onDictate, o
         id: 'wake',
         active: wakeListening,
         disabled: disabled || wakePending,
-        icon: wakeListening ? <Ear className={iconSize.sm} /> : <EarOff className={iconSize.sm} />,
+        icon: wakeListening ? <Ear className={iconSize.md} /> : <EarOff className={iconSize.md} />,
         label: c.wakeWord(phrase),
         onSelect: () => {
           triggerHaptic(wakeListening ? 'close' : 'open')

@@ -37,6 +37,9 @@ export type ToolTitleKey =
   | 'session_search_recall'
   | 'terminal'
   | 'todo'
+  | 'tool_call'
+  | 'tool_describe'
+  | 'tool_search'
   | 'vision_analyze'
   | 'web_extract'
   | 'web_search'
@@ -3747,6 +3750,14 @@ export interface Translations {
       copyFile: string
       copyPath: string
       failedCalls: (count: number) => string
+      resultCount: (count: number) => string
+      runSummary: {
+        commands: (count: number) => string
+        files: (count: number) => string
+        tasks: (count: number) => string
+        tools: (count: number) => string
+        join: (clauses: string[]) => string
+      }
       skillActivity: {
         loading: string
         loaded: string
@@ -3786,6 +3797,14 @@ export interface Translations {
         running: string
         ranCode: string
         runningCode: string
+        delegated: string
+        delegating: string
+        edited: string
+        editing: string
+        explored: string
+        exploring: string
+        used: string
+        using: string
       }
       prefixes: {
         browser: string

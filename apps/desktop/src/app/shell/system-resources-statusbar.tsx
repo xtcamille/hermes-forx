@@ -120,7 +120,7 @@ export function useSystemResourcesStatusbarItem(): StatusbarItem {
   return {
     detail: undefined,
     hidden: !enabled,
-    icon: <Activity className="size-3" />,
+    icon: <Activity />,
     id: 'system-resources',
     label,
     menuAlign: 'end',

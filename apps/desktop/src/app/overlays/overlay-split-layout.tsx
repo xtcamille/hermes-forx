@@ -38,8 +38,7 @@ interface OverlayNavItemProps {
   /** Stable identity for the row, used as its `data-tour` handle. */
   id?: string
   label: string
-  // Renders as an indented child of another nav item: smaller icon and a
-  // lighter active state so it never competes with the boxed parent item.
+  // Renders as an indented child with a lighter active state than its parent.
   nested?: boolean
   onClick: () => void
   trailing?: ReactNode
@@ -118,7 +117,7 @@ export const OverlayNavItem = memo(function OverlayNavItem({
     <button
       aria-current={current ? 'page' : undefined}
       className={cn(
-        'flex h-7 w-full items-center justify-start gap-2 rounded-md border px-2 text-left text-[length:var(--conversation-text-font-size)] font-normal transition-colors',
+        'flex h-7 w-full items-center justify-start gap-2 rounded-md border px-2 text-left text-sm font-normal transition-colors',
         nested
           ? active
             ? 'border-transparent bg-(--chrome-action-hover) font-medium text-foreground'
@@ -134,11 +133,8 @@ export const OverlayNavItem = memo(function OverlayNavItem({
       type="button"
     >
       <Icon
-        className={cn(
-          'shrink-0',
-          nested ? 'size-3.5' : 'size-4',
-          active ? 'text-foreground/80' : 'text-muted-foreground/80'
-        )}
+        className={cn('size-(--chrome-icon-size) shrink-0', active ? 'text-foreground/80' : 'text-muted-foreground/80')}
+        size="var(--chrome-icon-size)"
       />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}

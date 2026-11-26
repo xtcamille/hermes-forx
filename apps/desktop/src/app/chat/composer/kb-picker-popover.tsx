@@ -91,7 +91,7 @@ export function KbPickerPopover({
           type="button"
           variant="ghost"
         >
-          <BookOpen className="size-3.5 shrink-0 opacity-70 text-primary" />
+          <BookOpen className="size-4 shrink-0 opacity-70 text-primary" />
           <span className="truncate">知识库</span>
         </Button>
       </Tip>
@@ -103,11 +103,11 @@ export function KbPickerPopover({
       <Tip label="选择本次对话使用的企业知识库" side="top">
         <DropdownMenuTrigger asChild>
           <Button className={PILL} disabled={disabled} size="sm" type="button" variant="ghost">
-            <BookOpen className="size-3.5 shrink-0 text-primary" />
+            <BookOpen className="size-4 shrink-0 text-primary" />
             <span className="truncate">
               知识库 ({selectedIds.length}/{datasets.length})
             </span>
-            <ChevronDown className="size-2.5 shrink-0 opacity-50" />
+            <ChevronDown className="size-3 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
       </Tip>
@@ -115,10 +115,10 @@ export function KbPickerPopover({
       <DropdownMenuContent align="start" className="w-64 p-1.5" side="top">
         <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-foreground">
           <div className="flex items-center gap-1.5 truncate">
-            <BookOpen className="size-3.5 text-primary" />
+            <BookOpen className="size-4 text-primary" />
             <span className="truncate">企业知识库</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+          <div className="flex items-center gap-1 text-2xs font-normal text-muted-foreground">
             <Tip label="刷新知识库">
               <button
                 aria-label="刷新知识库"
@@ -126,19 +126,19 @@ export function KbPickerPopover({
                 onClick={handleRefresh}
                 type="button"
               >
-                <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
+                <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
               </button>
             </Tip>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-2 pb-1.5 text-[11px] text-muted-foreground border-b border-border/50">
+        <div className="flex items-center justify-between px-2 pb-1.5 text-2xs text-muted-foreground border-b border-border/50">
           <div className="flex items-center gap-1 min-w-0 max-w-[130px]">
             <span className="truncate" title={status.username}>
               账号: {status.username}
             </span>
             <button
-              className="text-primary hover:underline cursor-pointer shrink-0 text-[10px]"
+              className="text-primary hover:underline cursor-pointer shrink-0 text-2xs"
               onClick={e => {
                 e.stopPropagation()
                 openKbLoginDialog()
@@ -149,7 +149,7 @@ export function KbPickerPopover({
               [切换]
             </button>
           </div>
-          <div className="flex items-center gap-1 text-[10px]">
+          <div className="flex items-center gap-1 text-2xs">
             <button
               className="text-primary hover:underline cursor-pointer"
               onClick={handleSelectAll}
@@ -189,11 +189,11 @@ export function KbPickerPopover({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs">{d.name}</div>
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-2xs text-muted-foreground">
                       {d.document_count} 篇文档
                     </div>
                   </div>
-                  {selected && <Check className="size-3.5 text-primary shrink-0" />}
+                  {selected && <Check className="size-4 text-primary shrink-0" />}
                 </div>
               )
             })
