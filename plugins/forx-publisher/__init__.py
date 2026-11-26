@@ -124,14 +124,14 @@ PUBLISH_SKILL_TOOL_SCHEMA = {
 }
 
 
-def _tool_check_handler(args: Dict[str, Any]) -> str:
+def _tool_check_handler(args: Dict[str, Any], **_context: Any) -> str:
     path = args.get("path", "")
     target_type = args.get("target_type", "auto")
     res = check_target(path, target_type=target_type)
     return json.dumps(res, ensure_ascii=False, indent=2)
 
 
-def _tool_publish_plugin_handler(args: Dict[str, Any]) -> str:
+def _tool_publish_plugin_handler(args: Dict[str, Any], **_context: Any) -> str:
     res = publish_plugin(
         path=args.get("path", ""),
         repo_url=args.get("repo_url", ""),
@@ -144,7 +144,7 @@ def _tool_publish_plugin_handler(args: Dict[str, Any]) -> str:
     return json.dumps(res, ensure_ascii=False, indent=2)
 
 
-def _tool_publish_skill_handler(args: Dict[str, Any]) -> str:
+def _tool_publish_skill_handler(args: Dict[str, Any], **_context: Any) -> str:
     res = publish_skill(
         path=args.get("path", ""),
         target_repo=args.get("target_repo", DEFAULT_TARGET_REPO),

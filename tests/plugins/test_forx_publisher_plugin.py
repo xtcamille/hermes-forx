@@ -398,6 +398,49 @@ def test_plugin_registration():
     )
 
 
+def test_publisher_tools_accept_runtime_context(tmp_path):
+    from hermes_cli.plugins import discover_plugins
+    from hermes_constants import get_hermes_home
+    from model_tools import handle_function_call
+
+    (get_hermes_home() / "config.yaml").write_text(
+        "plugins:\n  enabled: [forx-publisher]\n", encoding="utf-8"
+    )
+    discover_plugins(force=True)
+    plugin_dir = tmp_path / "sample-plugin"
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.yaml").write_text(
+        "name: sample-plugin\nversion: 1.0.0\ndescription: Test plugin\nauthor: Tester\n",
+        encoding="utf-8",
+    )
+    (plugin_dir / "__init__.py").write_text("def register(ctx):\n    pass\n", encoding="utf-8")
+    skill = tmp_path / "sample-skill"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text(
+        "---\nname: sample-skill\ndescription: A skill used for testing.\n---\n"
+        "Follow these test instructions.\n",
+        encoding="utf-8",
+    )
+
+    def call(name, args):
+        return json.loads(handle_function_call(name, args, task_id="publish-task", session_id="publish-session"))
+
+    check = call("forx_publish_check", {"path": str(skill), "target_type": "skill"})
+    assert check.get("ok"), check
+    assert check["name"] == "sample-skill"
+
+    plugin = call("forx_publish_plugin", {
+        "path": str(plugin_dir), "repo_url": "https://github.com/example/sample-plugin",
+        "commit_sha": "a" * 40, "dry_run": True,
+    })
+    assert plugin.get("dry_run"), plugin
+    assert plugin["name"] == "sample-plugin"
+
+    skill_dry_run = call("forx_publish_skill", {"path": str(skill), "dry_run": True})
+    assert skill_dry_run.get("dry_run"), skill_dry_run
+    assert skill_dry_run["name"] == check["name"]
+
+
 def test_slash_handler_conversational_discovery(publisher_module):
     """Verify /publish with no args returns conversational guide and detects local candidate."""
     slash_fn = publisher_module._slash_handler

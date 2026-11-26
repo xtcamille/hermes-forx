@@ -1377,7 +1377,7 @@ export function PreviewPane({ embedded = false, onRestartServer, reloadRequest =
             (target.kind === 'artifact' ? (
               <ArtifactPreview target={target} />
             ) : (
-              <LocalFilePreview reloadKey={localReloadKey} target={target} />
+              <LocalFilePreview reloadKey={localReloadKey} tabId={tabId} target={target} />
             ))}
           {isBlankPage && (
             <div className="absolute inset-0 grid bg-background">

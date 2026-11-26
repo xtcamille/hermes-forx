@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -971,3 +972,58 @@ def test_toggle_plugin_toolset_rewrites_a_list_literal_string_platform_entry(tmp
     plugins_cmd._toggle_plugin_toolset("my-plugin", enable=False)
     saved = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))["platform_toolsets"]
     assert saved["cli"] == ["web", "terminal"]
+
+
+def test_enabling_first_plugin_preserves_desktop_tool_defaults():
+    from agent.secret_scope import is_multiplex_active, set_multiplex_active
+    from hermes_cli.plugins_cmd import dashboard_set_agent_plugin_enabled
+    from hermes_constants import get_hermes_home
+    from model_tools import get_tool_definitions, handle_function_call
+    from tui_gateway.server import _load_enabled_toolsets, _session_profile_runtime_scope
+
+    profiles = get_hermes_home() / "profiles"
+    home = profiles / "normal"
+    restricted = profiles / "restricted"
+    for profile in (home, restricted):
+        plugin = profile / "plugins" / "test-widget"
+        plugin.mkdir(parents=True)
+        (plugin / "plugin.yaml").write_text("name: test-widget\n", encoding="utf-8")
+        (plugin / "__init__.py").write_text(
+            "import json\n"
+            "async def check(args, *, task_id):\n"
+            "    return json.dumps({'task_id': task_id, 'value': args['value']})\n"
+            "def register(ctx):\n"
+            "    ctx.register_tool('widget_check', 'test-widget', "
+            "{'name': 'widget_check'}, check, is_async=True)\n",
+            encoding="utf-8",
+        )
+    offline = "agent:\n  disabled_toolsets: [enterprise_kb]\n"
+    (home / "config.yaml").write_text(offline, encoding="utf-8")
+    (restricted / "config.yaml").write_text(offline + "platform_toolsets:\n  cli: [memory]\n", encoding="utf-8")
+
+    def desktop_tools():
+        definitions = get_tool_definitions(
+            enabled_toolsets=_load_enabled_toolsets("desktop"),
+            quiet_mode=True,
+            skip_tool_search_assembly=True,
+        )
+        return {tool["function"]["name"] for tool in definitions}
+
+    core_tools = {"terminal", "read_file", "write_file", "execute_code"}
+    previously_multiplexed = is_multiplex_active()
+    set_multiplex_active(True)
+    try:
+        with _session_profile_runtime_scope({"profile_home": home}):
+            assert dashboard_set_agent_plugin_enabled("test-widget", enabled=True)["ok"]
+            assert core_tools | {"widget_check"} <= desktop_tools()
+            result = handle_function_call("widget_check", {"value": "ok"}, task_id="widget-task", session_id="session")
+            assert json.loads(result) == {"task_id": "widget-task", "value": "ok"}
+        with _session_profile_runtime_scope({"profile_home": restricted}):
+            assert dashboard_set_agent_plugin_enabled("test-widget", enabled=True)["ok"]
+            tools = desktop_tools()
+            assert {"memory", "widget_check"} <= tools
+            assert core_tools.isdisjoint(tools)
+        with _session_profile_runtime_scope({"profile_home": home}):
+            assert core_tools | {"widget_check"} <= desktop_tools()
+    finally:
+        set_multiplex_active(previously_multiplexed)

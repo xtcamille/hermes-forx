@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Read the in-app browser / preview pane in the Hermes desktop GUI.
 
-The preview's content lives in the renderer (a sandboxed ``<webview>``), so this
-round-trips through the gateway's blocking-prompt bridge like ``read_terminal``
-(``preview.read.request`` -> ``preview.read.respond``). Registered as action=read of
-`desktop_preview`; the agent dispatches here with the injected callback.
+The renderer supplies the active preview's text over the gateway's ``preview.read``
+request. The agent dispatches `desktop_preview` action=read here with the injected
+callback.
 """
 
 from typing import Callable, Optional

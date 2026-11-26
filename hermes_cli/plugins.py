@@ -55,7 +55,7 @@ from hermes_cli.plugins_dispatch import (  # noqa: F401 — re-exported
     SYSTEM_PROMPT_SECTION_POSITIONS, _EVENT_EMIT_DEPTH_CAP, _EVENT_PENDING_CAP,
     _HOOK_CALLBACK_TIMEOUT_SECS, _HOOK_TIMEOUT_SUPPRESSION_SECONDS, _MAX_HOOK_CALLBACK_TIMEOUT_SECS,
     _PRE_TOOL_CALL_TIMEOUT_BLOCK_MESSAGE, PluginDispatchMixin, PluginSystemPromptSection,
-    RenderedPluginSystemPromptSection, _EventSubscription, format_system_prompt_sections,
+    RenderedPluginSystemPromptSection, _EventSubscription, _callback_keyword_names, format_system_prompt_sections,
     is_valid_system_prompt_section_id,
 )
 from hermes_cli.plugins_ledger import PluginLedgerMixin, PluginRegistration
@@ -470,6 +470,8 @@ class PluginContext:
         ``override=True`` against a built-in tool requires the operator to opt in via
         ``plugins.entries.<plugin_id>.allow_tool_override: true`` in config.yaml — mirrors the trust gate
         pattern used for ``ctx.llm`` provider/model overrides (#23194).
+
+        The handler receives model arguments positionally and the runtime context fields it accepts.
         """
         if override and not self._tool_override_allowed(name):
             raise PluginToolOverrideError(
@@ -487,7 +489,7 @@ class PluginContext:
         registry.register(
             name=name, toolset=toolset, schema=schema, handler=handler, check_fn=check_fn,
             requires_env=requires_env, is_async=is_async, description=description, emoji=emoji,
-            override=override, scope=scope,
+            override=override, scope=scope, context_keywords=_callback_keyword_names(handler, positional_count=1),
         )
         registered = registry.snapshot_registration(name, scope=scope)
         handle = None

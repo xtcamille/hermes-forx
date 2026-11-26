@@ -517,10 +517,12 @@ def unit_convert(args: dict, **kwargs) -> str:
 ```
 
 **Key rules for handlers:**
-1. **Signature:** `def my_handler(args: dict, **kwargs) -> str`
+1. **Input:** The model-supplied arguments arrive as one positional dictionary.
 2. **Return:** Always a JSON string. Success and errors alike.
 3. **Never raise:** Catch all exceptions, return error JSON instead.
-4. **Accept `**kwargs`:** Hermes may pass additional context in the future.
+4. **Runtime context:** Declare keyword parameters for the fields you use, such as
+   `task_id`, or accept `**kwargs` to receive all runtime context. A handler that
+   only takes `args` receives the dictionary by itself.
 
 ## Step 5: Write the registration
 
@@ -1776,17 +1778,6 @@ def handler(args, **kwargs):
 # Right — returns a JSON string
 def handler(args, **kwargs):
     return json.dumps({"result": 42})
-```
-
-**Missing `**kwargs` in handler signature:**
-```python
-# Wrong — will break if Hermes passes extra context
-def handler(args):
-    ...
-
-# Right
-def handler(args, **kwargs):
-    ...
 ```
 
 **Handler raises exceptions:**

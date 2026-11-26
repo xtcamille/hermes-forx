@@ -2,10 +2,13 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { onComposerAttachImagesRequest } from '@/app/chat/composer/focus'
+import { localPreviewTarget } from '@/lib/local-preview'
+import { $previewTabs, closeRightRail, openPreview } from '@/store/preview'
 import { $connection, $selectedStoredSessionId } from '@/store/session'
 
 import { forgetPreviewConsole, previewConsoleState } from './preview-console-store'
 import { PreviewPane } from './preview-pane'
+import { readActivePreview } from './preview-reader'
 
 // The consent dialog has its own test file and needs a QueryClientProvider;
 // these tests exercise the pane's console/watch/webview wiring, not the
@@ -75,6 +78,39 @@ describe('PreviewPane console state', () => {
 
     expect(watchPreviewFile).not.toHaveBeenCalled()
     expect(onPreviewFileChanged).not.toHaveBeenCalled()
+  })
+
+  it('returns the visible YAML file text through the active preview reader', async () => {
+    const target = localPreviewTarget('/work/plugin.yaml')!
+    const text = 'name: example-plugin\nversion: 1.0.0\n'
+    const readFileText = vi.fn(async () => ({ binary: false, language: 'yaml', text, truncated: false }))
+
+    vi.stubGlobal('hermesDesktop', { ...window.hermesDesktop, readFileText })
+    closeRightRail()
+    openPreview(target, 'tool-result')
+
+    try {
+      let rendered!: ReturnType<typeof render>
+
+      await act(async () => {
+        rendered = render(<PreviewPane tabId={$previewTabs.get()[0].id} target={target} />)
+      })
+
+      expect(await readActivePreview({ count: 14, start: 6 })).toMatchObject({
+        end: 20,
+        kind: 'file',
+        path: target.path,
+        start: 6,
+        text: 'example-plugin',
+        total_chars: text.length
+      })
+      expect(readFileText).toHaveBeenCalledOnce()
+
+      rendered.unmount()
+      expect(await readActivePreview()).toMatchObject({ text: '' })
+    } finally {
+      closeRightRail()
+    }
   })
 
   // The console lives in the TAB's store (the toggles sit on the tab, not in the

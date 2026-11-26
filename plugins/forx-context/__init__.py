@@ -34,7 +34,7 @@ TOOL_SCHEMA = {
 }
 
 
-def _tool_handler(args: Dict[str, Any]) -> str:
+def _tool_handler(args: Dict[str, Any], **_context: Any) -> str:
     sid = args.get("session_id")
     detailed = bool(args.get("detailed", False))
     if not sid:

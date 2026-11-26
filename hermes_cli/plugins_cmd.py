@@ -2038,9 +2038,10 @@ def _toggle_plugin_toolset(name: str, *, enable: bool) -> None:
             (ts_list.append if enable else ts_list.remove)(toolset_key)
             platform_toolsets[platform] = ts_list
             changed = True
-    # Enabling with no platform lists yet: seed "cli" at minimum.
-    if enable and not changed and not platform_toolsets:
-        platform_toolsets["cli"] = [toolset_key]
+    # The first explicit list replaces the implicit defaults, so keep the CLI bundle.
+    if enable and not platform_toolsets:
+        from hermes_cli.tools_config import _platform_default_toolset
+        platform_toolsets["cli"] = [_platform_default_toolset("cli"), toolset_key]
         changed = True
     if changed:
         save_config(config)

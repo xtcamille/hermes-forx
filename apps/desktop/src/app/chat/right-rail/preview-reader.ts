@@ -1,15 +1,6 @@
 /**
- * PREVIEW READER — the read_preview tool's window into the preview pane, the
- * preview analog of the terminal's buffer registry (see right-sidebar/
- * terminal/buffer.ts).
- *
- * A URL/HTML preview renders in a sandboxed <webview> owned by PreviewPane;
- * that pane registers a PAGE READER here (url + title + rendered text), keyed
- * by tab id. `readActivePreview` resolves the ACTIVE tab from the store and
- * owns the windowing: a registered reader answers with the live page's text;
- * a tab with no reader (a file peek, an artifact) still answers with its
- * identity and a note pointing the agent at the tool that reads that content
- * directly (read_file / the conversation's artifact).
+ * Desktop preview read bridge. The browser and text file panes register
+ * readers by tab id. This module picks the active tab and pages its text.
  */
 
 import { $rightRailActiveTabId } from '@/store/layout'
@@ -20,7 +11,7 @@ import { nudgeOverlay } from './preview-nudge'
 export interface PreviewReadOptions {
   /** Characters to return from `start` (capped at PREVIEW_READ_MAX_CHARS). */
   count?: number
-  /** 0-indexed character offset into the page text. */
+  /** 0-indexed character offset into the preview text. */
   start?: number
 }
 
@@ -36,14 +27,14 @@ export interface PreviewReadResult {
   url: string
 }
 
-/** What a pane's page reader extracts — the reader module owns the windowing. */
 interface PreviewPage {
+  note?: string
   text: string
-  title: string
-  url: string
+  title?: string
+  url?: string
 }
 
-type PageReader = () => Promise<PreviewPage>
+type PageReader = () => Promise<PreviewPage | null>
 
 /** Default + hard cap on one read — a page's innerText can be megabytes, and
  *  this crosses the gateway into model context. Page with start/count. */
@@ -91,33 +82,32 @@ export async function readActivePreview(opts: PreviewReadOptions = {}): Promise<
     try {
       const page = await reader()
 
-      // Say it on the page. Reading is by far the cheapest thing the agent
-      // does — a few hundredths of a second against a model round trip either
-      // side of it — so a run of reads used to leave the pane dark for the
-      // twenty seconds it took to page through a document, immediately after
-      // the one moment that showed anything.
-      nudgeOverlay('read')
+      if (page && readers.get(tab.id) === reader) {
+        nudgeOverlay('read')
 
-      return windowText(
-        { kind: target.kind, path: target.path, title: page.title || target.label, url: page.url || target.url },
-        page.text,
-        opts
-      )
+        return windowText(
+          {
+            kind: target.kind,
+            ...(page.note ? { note: page.note } : {}),
+            path: target.path,
+            title: page.title || target.label,
+            url: page.url || target.url
+          },
+          page.text,
+          opts
+        )
+      }
     } catch {
-      // Webview not ready (still booting / just navigated) — fall through to
-      // the identity answer, whose note says to retry.
+      // A webview can be replaced during a read. Return its tab identity below.
     }
   }
 
-  // No live webview behind the tab (a file peek, an artifact, or a page still
-  // booting): answer with the tab's identity so the agent knows what's on
-  // screen and which of its own tools reads the content directly.
   return windowText(
     {
       kind: target.kind,
       note:
         target.kind === 'file'
-          ? 'File preview — read the file itself with read_file.'
+          ? 'File preview text is unavailable. For a text file, retry once the content appears in the pane.'
           : target.kind === 'artifact'
             ? 'Generated artifact — its content is in the conversation that produced it.'
             : 'The page has not finished loading — retry in a moment.',

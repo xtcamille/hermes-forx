@@ -99,13 +99,14 @@ describe('readActivePreview (read_preview tool)', () => {
     })
   })
 
-  it('answers a file tab with its identity and points at read_file', async () => {
+  it('answers with the file identity while its text preview is unavailable', async () => {
     openPreview(fileTarget('/work/notes.md'), 'file-browser')
 
     expect(await readActivePreview()).toMatchObject({
       kind: 'file',
-      note: expect.stringContaining('read_file') as string,
-      path: '/work/notes.md'
+      note: expect.stringContaining('retry') as string,
+      path: '/work/notes.md',
+      text: ''
     })
   })
 

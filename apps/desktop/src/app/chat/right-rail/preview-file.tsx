@@ -40,6 +40,8 @@ import { setPreviewDirty } from '@/store/preview-edit'
 import { $connection, $currentCwd } from '@/store/session'
 import { notifyWorkspaceChanged } from '@/store/workspace-events'
 
+import { registerPreviewPageReader } from './preview-reader'
+
 const SHIKI_THEME = { dark: 'github-dark-default', light: 'github-light-default' } as const
 const TEXT_PREVIEW_MAX_BYTES = 512 * 1024
 const SOURCE_CHUNK_LINES = 200
@@ -661,7 +663,13 @@ export function SourceView({ filePath, language, text }: { filePath?: string; la
 
 export type PreviewViewMode = 'diff' | 'rendered' | 'source'
 
-export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; target: PreviewTarget }) {
+interface LocalFilePreviewProps {
+  reloadKey: number
+  tabId?: string
+  target: PreviewTarget
+}
+
+export function LocalFilePreview({ reloadKey, tabId, target }: LocalFilePreviewProps) {
   const { t } = useI18n()
   const [state, setState] = useState<LocalPreviewState>({ loading: true })
   const [forcePreview, setForcePreview] = useState(false)
@@ -715,6 +723,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
 
   useEffect(() => {
     let active = true
+    let unregisterReader: (() => void) | undefined
 
     async function load() {
       if (blockedByTarget) {
@@ -758,6 +767,19 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
             truncated: result.truncated
           })
 
+          if (tabId && !shouldBlock && !result.binary) {
+            unregisterReader = registerPreviewPageReader(tabId, async () => {
+              if (desktopFsCacheKey() !== fsCacheKey) {
+                return null
+              }
+
+              return {
+                note: result.truncated ? 'Only the first part of the file is loaded in the preview.' : undefined,
+                text: result.text
+              }
+            })
+          }
+
           // Best-effort: fetch the file's working-tree-vs-HEAD diff so the
           // preview can offer a DIFF view when there are uncommitted changes.
           // Empty (clean file / not a repo / remote) just hides the option.
@@ -788,6 +810,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
 
     return () => {
       active = false
+      unregisterReader?.()
     }
   }, [
     blockedByTarget,
@@ -799,6 +822,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     isText,
     reloadKey,
     selfReload,
+    tabId,
     target.dataUrl,
     target.language
   ])

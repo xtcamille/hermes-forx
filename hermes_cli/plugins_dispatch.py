@@ -163,6 +163,18 @@ def _hook_uses_callback_timeout(hook_name: str, timeout: float) -> bool:
     return hook_name in _HOOK_TIMEOUT_BOUNDED_HOOKS or hook_name in _HOOK_TIMEOUT_FAIL_CLOSED_HOOKS
 
 
+def _callback_keyword_names(callback: Callable, *, positional_count: int = 0) -> frozenset[str] | None:
+    """Return the context fields a callback accepts, or None to forward all fields."""
+    try:
+        parameters = tuple(inspect.signature(callback).parameters.values())
+    except (TypeError, ValueError):
+        return None  # Preserve dispatch for callables without an inspectable signature.
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters):
+        return None
+    keyword_kinds = {inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY}
+    return frozenset(p.name for p in parameters[positional_count:] if p.kind in keyword_kinds)
+
+
 class PluginDispatchMixin:
     @staticmethod
     def _invoke_hook_callback(callback: Callable, payload: Dict[str, Any]) -> Any:
@@ -173,17 +185,10 @@ class PluginDispatchMixin:
         plugin's body never runs (#12449).
         """
         from hermes_cli.plugins import resolve_plugin_command_result
-        try:
-            parameters = inspect.signature(callback).parameters
-        except (TypeError, ValueError):
-            return resolve_plugin_command_result(callback(**payload))  # no introspectable signature
-        if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
-            return resolve_plugin_command_result(callback(**payload))
-        keyword_kinds = {inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY}
-        return resolve_plugin_command_result(callback(**{
-            name: value for name, value in payload.items()
-            if name in parameters and parameters[name].kind in keyword_kinds
-        }))
+        keywords = _callback_keyword_names(callback)
+        if keywords is not None:
+            payload = {name: value for name, value in payload.items() if name in keywords}
+        return resolve_plugin_command_result(callback(**payload))
 
     def invoke_hook(self, hook_name: str, **kwargs: Any) -> List[Any]:
         """Call all callbacks for *hook_name*; return their non-``None`` results.
