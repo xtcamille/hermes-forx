@@ -82,11 +82,11 @@ jobs:
 
           pr_body="### 🔄 Auto-synced Plugin Catalog Updates
 
-The automated sync workflow detected newer commits in upstream repositories for plugins in \`plugin-catalog/\`.
+          The automated sync workflow detected newer commits in upstream repositories for plugins in \`plugin-catalog/\`.
 
-All modified catalog entries have passed \`scripts/validate_plugin_catalog.py\` validation.
+          All modified catalog entries have passed \`scripts/validate_plugin_catalog.py\` validation.
 
-Merging this PR will trigger \`deploy-pages.yml\`, publishing the updated catalog to all ForX users worldwide."
+          Merging this PR will trigger \`deploy-pages.yml\`, publishing the updated catalog to all ForX users worldwide."
 
           gh pr create \
             --title "chore(catalog): bump plugins to latest upstream commits" \
