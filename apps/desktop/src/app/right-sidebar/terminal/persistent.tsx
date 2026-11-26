@@ -56,15 +56,48 @@ interface Rect {
   left: number
   width: number
   height: number
+  clipPath?: string
+}
+
+interface SlotRect extends Rect {
+  slot: HTMLElement
 }
 
 const sameRect = (a: Rect | null, b: Rect) =>
-  !!a && a.hidden === b.hidden && a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height
+  !!a &&
+  a.hidden === b.hidden &&
+  a.top === b.top &&
+  a.left === b.left &&
+  a.width === b.width &&
+  a.height === b.height &&
+  a.clipPath === b.clipPath
+
+function measureSlot(slot: HTMLElement, frame: HTMLElement | null): Rect {
+  const r = slot.getBoundingClientRect()
+  const hidden = isElementInHiddenPane(slot)
+  if (!frame) {
+    // Standalone slots cover their full pixel footprint.
+    const top = Math.floor(r.top)
+    const left = Math.floor(r.left)
+    return { hidden, top, left, width: Math.ceil(r.right) - left, height: Math.ceil(r.bottom) - top }
+  }
+
+  // The fixed xterm host lives outside the pane's overflow clip. Reproduce
+  // its rounded padding edge in slot coordinates, including the parts behind
+  // the tab strip and terminal rail. Keep subpixel edges aligned at any zoom.
+  const pane = frame.getBoundingClientRect()
+  const style = getComputedStyle(frame)
+  const stroke = parseFloat(style.borderLeftWidth)
+  const radius = Math.max(0, parseFloat(style.borderTopLeftRadius) - stroke)
+  const insets = [pane.top - r.top, r.right - pane.right, r.bottom - pane.bottom, pane.left - r.left]
+  const clipPath = `inset(${insets.map(inset => `${inset + stroke}px`).join(' ')} round ${radius}px)`
+  return { hidden, top: r.top, left: r.left, width: r.width, height: r.height, clipPath }
+}
 
 export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalProps) {
   const slot = useStore($slot)
   const terminalTakeover = useStore($terminalTakeover)
-  const [rect, setRect] = useState<Rect | null>(null)
+  const [rect, setRect] = useState<SlotRect | null>(null)
   const [ready, setReady] = useState(false)
 
   // VS Code parity: once the pane has ever been opened, keep the terminals
@@ -93,6 +126,7 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
     let stopped = false
     let pendingReason = 'initial'
     let pauseController: ReturnType<typeof createRendererLoopPauseController> | null = null
+    const paneFrame = slot.closest<HTMLElement>('[data-pane-frame]')
 
     const rendererPaused = () => pauseController?.isPaused() ?? document.visibilityState === 'hidden'
 
@@ -103,48 +137,31 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
       }
     }
 
-    // Visibility is CORRECTNESS, not perf. The rect chase below forces layout,
-    // so it stays gated on the renderer pause — but `hidden` is a cheap
-    // attribute walk, and skipping it while paused strands the overlay over a
-    // tab the user has already switched away from: the terminal keeps covering
-    // the chat, opaque and pointer-interactive, until something refocuses the
-    // window. Sample it on every wake, paused or not.
-    const syncHidden = () => {
-      const hidden = isElementInHiddenPane(slot)
+    const updateRect = (next: Rect) => {
+      prev = next
+      setRect({ ...next, slot })
+    }
 
-      if (prev && prev.hidden !== hidden) {
-        prev = { ...prev, hidden }
-        setRect(prev)
+    // Stop painting and intercepting input as soon as the pane goes away.
+    // Only a fresh measurement may make the overlay visible again.
+    const hideOverlay = () => {
+      if (prev && !prev.hidden) {
+        updateRect({ ...prev, hidden: true })
       }
     }
 
     const measure = (reason: string): boolean => {
       if (rendererPaused()) {
-        syncHidden()
+        hideOverlay()
 
         return false
       }
 
       markRightPanePerf('terminal-measure', reason)
-      const r = slot.getBoundingClientRect()
-      // floor top/left + ceil right/bottom: overlay always covers the slot's
-      // full pixel footprint, so half-pixel rects can't leak page bg through.
-      const top = Math.floor(r.top)
-      const left = Math.floor(r.left)
-
-      // Inactive keep-alive panes deliberately retain the same rect as the
-      // foreground pane, so visibility must be sampled independently.
-      const next: Rect = {
-        hidden: isElementInHiddenPane(slot),
-        top,
-        left,
-        width: Math.ceil(r.right) - left,
-        height: Math.ceil(r.bottom) - top
-      }
+      const next = measureSlot(slot, paneFrame)
 
       if (!sameRect(prev, next)) {
-        prev = next
-        setRect(next)
+        updateRect(next)
 
         if (next.width > 0 && next.height > 0) {
           setReady(true)
@@ -161,16 +178,12 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
         return
       }
 
-      // Paused: no frame is coming (and none is wanted — the rect chase is the
-      // expensive half). Still settle visibility synchronously so a tab switch
-      // while the window is unfocused can't leave the overlay stranded.
-      if (rendererPaused()) {
-        syncHidden()
-
-        return
+      const paused = rendererPaused()
+      if (paused || isElementInHiddenPane(slot)) {
+        hideOverlay()
       }
 
-      if (frame !== 0) {
+      if (paused || frame !== 0) {
         return
       }
 
@@ -188,7 +201,7 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
     const handleVisibilityChange = () => {
       if (rendererPaused()) {
         cancelFrame()
-        syncHidden()
+        hideOverlay()
 
         return
       }
@@ -210,13 +223,18 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
             scheduleMeasure('ancestor-mutation')
           })
 
-    pauseController = createRendererLoopPauseController(handleVisibilityChange, { pauseWhenUnfocused: true })
+    // Startup can restore the window and pane bounds before it gets focus.
+    // Track visible windows, and pause only when hidden or minimized.
+    pauseController = createRendererLoopPauseController(handleVisibilityChange)
 
     if (measure('initial')) {
       scheduleMeasure('settle')
     }
 
     observer?.observe(slot)
+    if (paneFrame) {
+      observer?.observe(paneFrame)
+    }
 
     const handleScroll = () => scheduleMeasure('scroll')
     const scrollTargets: Array<HTMLElement | Window> = [window]
@@ -224,7 +242,7 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
 
     for (let node: HTMLElement | null = slot; node; node = node.parentElement) {
       positionObserver?.observe(node, {
-        attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'data-state', PANE_HIDDEN_ATTR],
+        attributeFilter: ['class', 'style', 'dir', 'hidden', 'aria-hidden', 'data-state', PANE_HIDDEN_ATTR],
         attributes: true,
         childList: true,
         subtree: false
@@ -260,7 +278,7 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
     }
   }, [slot])
 
-  const visible = Boolean(rect && !rect.hidden && rect.width > 0 && rect.height > 0)
+  const visible = Boolean(rect && rect.slot === slot && !rect.hidden && rect.width > 0 && rect.height > 0)
 
   const style: CSSProperties = {
     position: 'fixed',
@@ -268,6 +286,7 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
     left: rect?.left ?? 0,
     width: rect?.width ?? 0,
     height: rect?.height ?? 0,
+    clipPath: rect?.clipPath,
     display: 'flex',
     flexDirection: 'column',
     visibility: visible ? 'visible' : 'hidden',
@@ -277,9 +296,8 @@ export function PersistentTerminal({ onAddSelectionToChat }: PersistentTerminalP
     opacity: visible ? 1 : 0,
     pointerEvents: visible ? 'auto' : 'none',
     zIndex: 4,
-    // Match the live skin surface so the header strip (transparent) and body
-    // read as one cohesive pane instead of revealing a near-black slab behind.
-    backgroundColor: 'var(--ui-terminal-surface-background)',
+    // The framed pane paints the padding once, including its antialiased corners.
+    backgroundColor: rect?.clipPath ? undefined : 'var(--ui-terminal-surface-background)',
     contain: 'layout size paint'
   }
 

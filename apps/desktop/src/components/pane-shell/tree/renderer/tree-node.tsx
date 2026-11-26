@@ -10,12 +10,10 @@ import { TreeSplit } from './tree-split'
  *  child holding sessions/workspace/files. Side collapse (⌘B/⌘J) applies here.
  *  `parentAxis` is the containing split's orientation — a group collapses
  *  ALONG that axis, so it picks the minimized form (row → vertical rail,
- *  column → horizontal header). `railSide` is which half of that row the
- *  child sits in — the rail's divider stroke faces the content side. */
+ *  column → horizontal header). */
 export function TreeNode({
   node,
   parentAxis,
-  railSide,
   root,
   rootRow,
   topEdge = false,
@@ -24,7 +22,6 @@ export function TreeNode({
 }: {
   node: LayoutNode
   parentAxis?: 'column' | 'row'
-  railSide?: 'left' | 'right'
   root?: boolean
   rootRow?: boolean
   topEdge?: boolean
@@ -34,13 +31,6 @@ export function TreeNode({
   return node.type === 'split' ? (
     <TreeSplit leftEdge={leftEdge} node={node} rightEdge={rightEdge} root={root} rootRow={rootRow} topEdge={topEdge} />
   ) : (
-    <TreeGroup
-      leftEdge={leftEdge}
-      node={node}
-      parentAxis={parentAxis}
-      railSide={railSide}
-      rightEdge={rightEdge}
-      topEdge={topEdge}
-    />
+    <TreeGroup leftEdge={leftEdge} node={node} parentAxis={parentAxis} rightEdge={rightEdge} topEdge={topEdge} />
   )
 }

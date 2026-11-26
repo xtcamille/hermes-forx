@@ -18,16 +18,22 @@ import { SidebarDateDivider } from '@/app/chat/sidebar/chrome'
 import { ProfileRail } from '@/app/chat/sidebar/profile-switcher'
 import { SidebarPinnedEmptyState } from '@/app/chat/sidebar/section-states'
 import { useStatusbarContributions } from '@/app/contrib/panes'
+import { DEFAULT_TREE, registerLayoutPresets } from '@/app/contrib/layout-presets'
 import { OverlayNav } from '@/app/overlays/overlay-split-layout'
 import { PageSearchShell } from '@/app/page-search-shell'
+import { setTerminalTakeover } from '@/app/right-sidebar/store'
+import { TerminalPaneChrome } from '@/app/right-sidebar/terminal/chrome'
+import { PersistentTerminal } from '@/app/right-sidebar/terminal/persistent'
 import { SidebarPanelLabel } from '@/app/shell/sidebar-label'
 import { StatusbarControls } from '@/app/shell/statusbar-controls'
+import { TitlebarControls } from '@/app/shell/titlebar-controls'
 import { TitlebarIcon } from '@/app/shell/titlebar-icon'
 import { Thread } from '@/components/assistant-ui/thread'
 import { ThreadMessageList } from '@/components/assistant-ui/thread/list'
 import { StickyHumanMessageContainer, USER_BUBBLE_BASE_CLASS } from '@/components/assistant-ui/thread/user-message'
 import { group, split } from '@/components/pane-shell/tree/model'
-import { TreeSplit } from '@/components/pane-shell/tree/renderer/tree-split'
+import { LayoutTreeRoot } from '@/components/pane-shell/tree/renderer'
+import { $layoutTree, declareDefaultTree, markCollapsePane, setTreePaneHidden } from '@/components/pane-shell/tree/store'
 import { Button } from '@/components/ui/button'
 import { Codicon, codiconIcon } from '@/components/ui/codicon'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
@@ -37,6 +43,7 @@ import { RootTooltipProvider } from '@/components/ui/tooltip'
 import { registry } from '@/contrib/registry'
 import { I18nProvider } from '@/i18n'
 import { Activity, Command, FolderOpen, Hash, MessageCircle, ZapFilled } from '@/lib/icons'
+import { FILE_BROWSER_DEFAULT_WIDTH, FILE_BROWSER_MAX_WIDTH, FILE_BROWSER_MIN_WIDTH, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_MAX_WIDTH } from '@/store/layout'
 import { $profiles } from '@/store/profile'
 
 // Real primitives and stylesheet; only the sample labels and glass inputs are fixtures.
@@ -89,13 +96,57 @@ if (toolActivity) {
   }
 }
 
-const sidebarLayout = params.has('sidebar') ? split('row', [group(['sessions']), group(['workspace'])]) : null
+const sidebarLayout = params.has('sidebar')
+const presetLayout = params.get('sidebar') === 'presets'
+const liveTerminal = params.has('terminal')
 
 if (sidebarLayout) {
-  registry.registerMany([
-    { area: 'panes', data: { placement: 'left', width: '14rem' }, id: 'sessions', render: () => null, title: 'Sessions' },
-    { area: 'panes', data: { placement: 'main', uncloseable: true }, id: 'workspace', render: () => null, title: 'Chat' }
-  ])
+  root.style.setProperty('--titlebar-controls-left', '14px')
+  root.style.setProperty('--titlebar-controls-top', '5px')
+  root.style.setProperty('--titlebar-tools-right', '138px')
+  const sizing = {
+    left: {
+      width: `${SIDEBAR_DEFAULT_WIDTH}px`,
+      minWidth: `${SIDEBAR_DEFAULT_WIDTH}px`,
+      maxWidth: `${SIDEBAR_MAX_WIDTH}px`
+    },
+    right: { width: FILE_BROWSER_DEFAULT_WIDTH, minWidth: FILE_BROWSER_MIN_WIDTH, maxWidth: FILE_BROWSER_MAX_WIDTH },
+    main: { minWidth: '22vw' },
+    bottom: { height: '20vh', maxHeight: '80vh' }
+  }
+  for (const [id, title, placement] of [
+    ['sessions', 'Sessions', 'left'],
+    ['workspace', 'Chat', 'main'],
+    ['terminal', 'Terminal', 'bottom'],
+    ['files', 'Files', 'right'],
+    ['review', 'Review', 'right']
+  ] as const) {
+    const side = placement === 'left' || placement === 'right'
+    registry.register({
+      area: 'panes',
+      data: { collapsible: side, placement, uncloseable: id === 'workspace', ...sizing[placement] },
+      id,
+      render: id === 'terminal' && liveTerminal
+        ? () => <div className="flex h-full min-h-0 flex-col bg-(--ui-terminal-surface-background)"><TerminalPaneChrome /></div>
+        : () => <div className="h-full p-4" data-testid={id}>{title}</div>,
+      title
+    })
+  }
+  if (liveTerminal) {
+    setTreePaneHidden('review', true)
+    setTerminalTakeover(true)
+  }
+  if (presetLayout) {
+    registerLayoutPresets()
+    markCollapsePane('terminal')
+    declareDefaultTree(DEFAULT_TREE)
+  } else {
+    $layoutTree.set(split('row', [
+      group(['sessions']),
+      split('column', [group(['workspace']), group(['terminal'])], [3, 1]),
+      group(['files'])
+    ]))
+  }
 }
 
 const messages = Array.from({ length: 6 }, (_, turn) => [
@@ -373,8 +424,10 @@ createRoot(document.getElementById('root')!).render(
         <MemoryRouter>
           {shellControls && <ShellControlsFixture />}
           {sidebarLayout && (
-            <div className="flex h-64">
-              <TreeSplit node={sidebarLayout} root rootRow topEdge />
+            <div className="flex h-screen flex-col">
+              <TitlebarControls onOpenSettings={() => document.body.setAttribute('data-settings-open', '')} />
+              <LayoutTreeRoot titlebar />
+              {liveTerminal && <PersistentTerminal onAddSelectionToChat={() => {}} />}
             </div>
           )}
           <div style={{ padding: 40 }}>

@@ -396,6 +396,8 @@
     --ui-sidebar-surface-background: var(--ui-bg-sidebar);
     --ui-chat-surface-background: var(--ui-bg-chrome);
     --ui-editor-surface-background: var(--ui-bg-chrome);
+    --pane-gap: clamp(8px, 0.7vw, 12px);
+    --ui-pane-gutter: color-mix(in srgb, var(--ui-bg-chrome) 95%, var(--ui-text-primary));
     /* The integrated terminal wears the transcript's background, not the
        editor's — it reads as part of the conversation surface. Its own token so
        the two can diverge without dragging the terminal along, and so a skin
@@ -644,6 +646,7 @@
     --ui-chat-surface-background: transparent;
     --ui-sidebar-surface-background: transparent;
     --ui-editor-surface-background: transparent;
+    --ui-pane-gutter: transparent;
     --ui-terminal-surface-background: var(--ui-bg-chrome);
   }
 
@@ -950,6 +953,12 @@
 
 .ref > i.codicon {
   font-size: 0.875em;
+}
+
+[data-pane-frame] {
+  overflow: hidden;
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: var(--radius-xl);
 }
 
 /* Hover-reveal suppression — the shared, declarative escape hatch.

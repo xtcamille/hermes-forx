@@ -8,10 +8,6 @@ import { translateNow } from '@/i18n'
 import { isMetaClose, middleClickHandlers } from '@/lib/middle-click'
 import { cn } from '@/lib/utils'
 
-/** Inset stroke for a vertical tab rail — content-facing edge. */
-export const PANE_TAB_STRIP_LINE_LEFT = 'shadow-[inset_1px_0_0_var(--ui-stroke-tertiary)]'
-export const PANE_TAB_STRIP_LINE_RIGHT = 'shadow-[inset_-1px_0_0_var(--ui-stroke-tertiary)]'
-
 // Surface tokens become transparent under glass; the body owns the tint.
 const TAB =
   'group/tab relative flex shrink-0 items-center rounded-md border-transparent bg-(--tab-bg) text-sm font-medium [-webkit-app-region:no-drag]'
@@ -57,8 +53,6 @@ interface PaneTabProps extends React.ComponentProps<'div'> {
   selected?: boolean
   /** Vertical rail form (collapsed sidebar zones). */
   vertical?: boolean
-  /** Content-facing edge of a vertical rail — the strip line the active tab cuts. */
-  side?: 'left' | 'right'
 }
 
 /**
@@ -79,16 +73,12 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
     onClickCapture,
     selected = false,
     vertical = false,
-    side = 'left',
     children,
     className,
     ...props
   },
   ref
 ) {
-  // Vertical rails only. Horizontal tabs draw no bottom border — the strip owns
-  // that rule, and a per-tab border stacked a second translucent line over it.
-  const edge = vertical ? (side === 'right' ? 'border-l' : 'border-r') : undefined
   const middle = middleClickHandlers(onClose)
 
   return (
@@ -97,10 +87,7 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
         TAB,
         vertical ? TAB_VERTICAL : TAB_HORIZONTAL,
         !vertical && onClose && TAB_CLOSEABLE,
-        edge,
-        active
-          ? cn(TAB_ACTIVE, !vertical && TAB_ACTIVE_UNDERLINE)
-          : cn(TAB_IDLE, edge && `${edge}-(--ui-stroke-tertiary)`),
+        active ? cn(TAB_ACTIVE, !vertical && TAB_ACTIVE_UNDERLINE) : TAB_IDLE,
         selected && TAB_SELECTED,
         className
       )}
@@ -147,14 +134,14 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
       ref={ref}
       {...props}
     >
-      <div className={cn('flex h-full min-w-0 max-w-full flex-1 items-center', vertical && 'contents')}>
-        {children}
-      </div>
+      <div className={cn('flex h-full min-w-0 max-w-full flex-1 items-center', vertical && 'contents')}>{children}</div>
       {(dirty || (onClose && !vertical)) && (
         <span
           className={cn(
             'grid place-items-center',
-            vertical ? 'pointer-events-none absolute bottom-1.5 left-1/2 size-4 -translate-x-1/2' : 'h-full w-6 shrink-0'
+            vertical
+              ? 'pointer-events-none absolute bottom-1.5 left-1/2 size-4 -translate-x-1/2'
+              : 'h-full w-6 shrink-0'
           )}
         >
           {dirty && (

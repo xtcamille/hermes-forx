@@ -1,6 +1,5 @@
 /**
- * Split node renderer — a flex row/column whose 1px seams double as resize
- * sashes (the seam IS the boundary — junction-owned, never doubled). Sizing
+ * Split node renderer — a flex row/column with a resize sash in each gutter. Sizing
  * is the TRACK MODEL (track-model.ts): fixed tracks keep their declared size,
  * flex tracks share the leftover by weight, and an all-fixed run lets an
  * UNCAPPED last track absorb the slack (capped sidebars stay put).
@@ -43,11 +42,18 @@ import {
   paneChrome,
   type PaneSizing,
   resolveCssPx,
+  sashSizeProperty,
   shownPaneIds,
   subtreeGone,
   type TrackContext
 } from './track-model'
 import { TreeNode } from './tree-node'
+
+/** Weights divide the tracks' pixels. Gutters and display:none tracks consume no share. */
+function trackPixels(container: HTMLElement, horizontal: boolean): number {
+  const dimension = horizontal ? 'width' : 'height'
+  return Array.from(container.children).reduce((sum, child) => sum + child.getBoundingClientRect()[dimension], 0)
+}
 
 /** The single group id a subtree resolves to, or null when it holds several
  *  zones — the sash can only collapse a boundary that IS exactly one zone. */
@@ -207,11 +213,11 @@ export function TreeSplit({
 
       const handle = e.currentTarget
       const { pointerId } = e
-      const rect = container.getBoundingClientRect()
-      const totalPx = horizontal ? rect.width : rect.height
+      const totalPx = trackPixels(container, horizontal)
       const totalWeight = node.weights.reduce((a, b) => a + b, 0) || 1
       const pxPerWeight = totalPx / totalWeight
       const start = horizontal ? e.clientX : e.clientY
+      const dragSign = horizontal && getComputedStyle(container).direction === 'rtl' ? -1 : 1
       const restoreCursor = document.body.style.cursor
       const restoreSelect = document.body.style.userSelect
 
@@ -228,7 +234,7 @@ export function TreeSplit({
       const sideFor = (child: LayoutNode, wrapper: HTMLElement, edge: 'start' | 'end') => {
         const fixed = fixedTrackSize(child, axis, trackCtx) !== null
         const zone = fixed ? edgeFixedZone(child, edge, axis, trackCtx) : null
-        const zoneEl = zone ? container.querySelector<HTMLElement>(`[data-tree-group="${zone.id}"]`) : null
+        const zoneEl = zone ? container.querySelector<HTMLElement>(`[data-tree-group="${CSS.escape(zone.id)}"]`) : null
         // Clamps live on the zone's split-child WRAPPER (where we render them).
         const el = zoneEl?.parentElement ?? wrapper
         const cs = window.getComputedStyle(el)
@@ -237,6 +243,12 @@ export function TreeSplit({
         // release minimizes the zone instead of leaving a useless sliver.
         const toolZone = allPaneIds(child).length > 0 && allPaneIds(child).every(isCollapsePane)
         const floor = toolZone ? COLLAPSED_ZONE_PX : MIN_PANE_PX
+        const cssMin = horizontal ? cs.minWidth : cs.minHeight
+        // Chromium preserves percentages in computed min()/max() values.
+        // Resolve the same floor that flexbox used before starting the drag.
+        const minPx = cssMin.includes('(')
+          ? (resolveCssPx(el.parentElement ?? container, cssMin, horizontal) ?? floor)
+          : computedPx(cssMin, floor)
 
         return {
           // EVERY shown pane of the zone: the zone's track is the max() of its
@@ -244,9 +256,9 @@ export function TreeSplit({
           // writing only the active pane would leave the zone pinned at a
           // larger sibling's width.
           paneIds: zone ? shownPaneIds(zone, trackCtx) : [],
-          fixed: Boolean(zone),
+          previewProperty: zone && sashSizeProperty(zone.id, axis),
           size: sizeOf(zoneEl ?? wrapper),
-          min: toolZone ? floor : Math.max(floor, computedPx(horizontal ? cs.minWidth : cs.minHeight, 0)),
+          min: toolZone ? floor : Math.max(floor, minPx),
           max: computedPx(horizontal ? cs.maxWidth : cs.maxHeight, Number.POSITIVE_INFINITY),
           collapseId: toolZone ? (zone?.id ?? groupIdOf(child)) : null,
           floor
@@ -273,7 +285,7 @@ export function TreeSplit({
           ...side,
           element,
           index,
-          initial: side.fixed ? side.size : sizeOf(element),
+          initial: side.previewProperty ? side.size : sizeOf(element),
           // A minimized rail is its 28px strip: it neither donates nor takes,
           // and its remembered weight must survive the gesture so restoring
           // it brings back the size it had before it was folded.
@@ -356,7 +368,7 @@ export function TreeSplit({
 
           const px = Math.round(plan.sizes[index])
 
-          if (track.fixed) {
+          if (track.previewProperty) {
             if (px !== Math.round(track.initial)) {
               track.paneIds.forEach(id => setOverride(id, px))
             }
@@ -395,9 +407,8 @@ export function TreeSplit({
       //
       // Preview rules (learned the hard way — a wrong shape here left a
       // phantom gap where a hidden sidebar lived):
-      //  - a FIXED track gets ONLY a flex-basis override. Its wrapper renders
-      //    as `flex: 0 1 <track>`, so basis is the whole difference; grow and
-      //    shrink stay React's.
+      //  - a fixed track previews its edge pane's size. Ancestor track bases
+      //    use the same variable, retaining their other panes and gutters.
       //  - every visible flex track is pinned to `0 1 <px>`. The plan keeps
       //    the run's total px constant, so no leftover gap can open.
       //  - hidden (display:none) and minimized tracks are left untouched.
@@ -411,8 +422,8 @@ export function TreeSplit({
 
           const px = plan.sizes[index]
 
-          if (track.fixed) {
-            track.element.style.flexBasis = `${px}px`
+          if (track.previewProperty) {
+            track.element.style.setProperty(track.previewProperty, `${px}px`)
           } else {
             track.element.style.flex = `0 1 ${px}px`
           }
@@ -446,7 +457,7 @@ export function TreeSplit({
       let done = false
 
       const onMove = (ev: PointerEvent) => {
-        const shift = (horizontal ? ev.clientX : ev.clientY) - start
+        const shift = ((horizontal ? ev.clientX : ev.clientY) - start) * dragSign
         const direction = Math.sign(shift) as -1 | 0 | 1
 
         const allowCascade = cascadeDirection === null || direction === cascadeDirection
@@ -558,8 +569,7 @@ export function TreeSplit({
       const preset = presetSplitWeights(node.id, node.weights.length)
       const weights = preset ?? [...node.weights]
 
-      const rect = container.getBoundingClientRect()
-      const totalPx = horizontal ? rect.width : rect.height
+      const totalPx = trackPixels(container, horizontal)
       let pinned = false
 
       for (const i of [aIndex, bIndex]) {
@@ -673,26 +683,33 @@ export function TreeSplit({
     return -1
   }
 
-  // Which half of this row a visible child sits in — a minimized zone's rail
-  // hugs the app edge it collapsed toward, so its divider stroke must face
-  // the content side (left rail → stroke right, right rail → stroke left).
   const visibleOrder = tracks.map((t, j) => (t.collapsed ? -1 : j)).filter(j => j >= 0)
-
-  const railSideFor = (i: number): 'left' | 'right' => {
-    const pos = visibleOrder.indexOf(i)
-
-    return pos >= 0 && (pos + 0.5) / visibleOrder.length > 0.5 ? 'right' : 'left'
-  }
+  // Under pressure, fixed sidebars yield before the reading area. Flex panes
+  // give up their minima only if those alone would overflow a custom row.
+  const rowMinimum = (includeFixed: boolean) =>
+    visibleOrder
+      .map(i => {
+        const child = tracks[i]
+        if (child.minimized) {
+          return MINIMIZED_TRACK
+        }
+        return (includeFixed || !child.track ? child.sizing?.minWidth : undefined) ?? '0px'
+      })
+      .join(' + var(--pane-gap) + ')
+  const fullMinimum = horizontal ? rowMinimum(true) : ''
+  const flexMinimum = horizontal && !allFixed ? rowMinimum(false) : fullMinimum
 
   return (
     <div
-      className={cn('flex min-h-0 min-w-0 flex-1', horizontal ? 'flex-row' : 'flex-col')}
+      className={cn('relative flex min-h-0 min-w-0 flex-1 gap-(--pane-gap)', horizontal ? 'flex-row' : 'flex-col')}
       data-tree-split={node.id}
       ref={containerRef}
     >
       {tracks.map(({ child, collapsed, minimized, narrowCollapsed, sizing, track }, i) => {
         const partner = collapsed ? -1 : seamPartner(i)
         const absorbs = i === absorberIndex
+        const minWidth = horizontal && sizing?.minWidth
+        const minimum = track ? fullMinimum : flexMinimum
 
         return (
           <div
@@ -715,7 +732,7 @@ export function TreeSplit({
                       // (a rail's width clamp shouldn't constrain its height).
                       // The absorber is uncapped by selection, so dropping its
                       // max is a no-op; capped tracks always keep theirs.
-                      minWidth: (horizontal && sizing?.minWidth) || 0,
+                      minWidth: minWidth ? `max(0px, ${minWidth} - max(0px, ${minimum} - 100%))` : 0,
                       maxWidth: horizontal && !absorbs ? sizing?.maxWidth : undefined,
                       minHeight: (!horizontal && sizing?.minHeight) || 0,
                       maxHeight: horizontal || absorbs ? undefined : sizing?.maxHeight
@@ -728,6 +745,7 @@ export function TreeSplit({
                 horizontal={horizontal}
                 onDoubleClick={() => resetBoundary(partner, i)}
                 onPointerDown={e => startSash(partner, i, e)}
+                topEdge={topEdge}
               />
             )}
             {!narrowCollapsed && (
@@ -735,7 +753,6 @@ export function TreeSplit({
                 leftEdge={leftEdge && (!horizontal || i === visibleOrder[0])}
                 node={child}
                 parentAxis={axis}
-                railSide={horizontal ? railSideFor(i) : undefined}
                 rightEdge={rightEdge && (!horizontal || i === visibleOrder[visibleOrder.length - 1])}
                 rootRow={rootRow || childRootRow(child)}
                 topEdge={topEdge && (horizontal || i === visibleOrder[0])}
@@ -752,43 +769,34 @@ function Sash({
   disabled,
   horizontal,
   onDoubleClick,
-  onPointerDown
+  onPointerDown,
+  topEdge
 }: {
   disabled?: boolean
   horizontal: boolean
   onDoubleClick?: () => void
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void
+  topEdge: boolean
 }) {
   return (
     <div
+      aria-disabled={disabled || undefined}
+      aria-orientation={horizontal ? 'vertical' : 'horizontal'}
       className={cn(
-        'group absolute z-20 [-webkit-app-region:no-drag]',
-        // Asymmetric grab band: only 1px reaches into the leading pane so its
-        // edge-hugging 8px scrollbar stays clickable (the old centered 9px band
-        // swallowed it entirely — the pointer got col-resize instead of the
-        // thumb). The trailing side keeps a generous 7px reach; total grab
-        // width stays ~8px so the sash is no harder to hit.
-        horizontal ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]' : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
+        'group absolute z-20 grid touch-none place-items-center [-webkit-app-region:no-drag]',
+        horizontal ? 'inset-y-0 end-full w-(--pane-gap)' : 'inset-x-0 bottom-full h-(--pane-gap)',
+        horizontal && topEdge && 'top-[calc(var(--pane-window-band,0px)+var(--pane-gap))]',
         disabled ? 'pointer-events-none' : horizontal ? 'cursor-col-resize' : 'cursor-row-resize'
       )}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
       role="separator"
     >
-      {/* The theme stroke already carries transparency. Keep it visible even on window glass. */}
-      <span
-        className={cn(
-          'absolute rounded-full bg-(--ui-stroke-secondary)',
-          horizontal ? 'inset-y-0.5 left-[1px] w-px -translate-x-1/2' : 'inset-x-0.5 top-[1px] h-px -translate-y-1/2'
-        )}
-      />
       {!disabled && (
         <span
           className={cn(
-            'absolute rounded-full bg-(--ui-sash-hover-border) opacity-0 transition-opacity duration-100 group-hover:opacity-100',
-            horizontal
-              ? 'inset-y-1 left-[1px] w-(--vscode-sash-hover-size,0.25rem) -translate-x-1/2'
-              : 'inset-x-1 top-[1px] h-(--vscode-sash-hover-size,0.25rem) -translate-y-1/2'
+            'pointer-events-none rounded-full bg-(--ui-sash-hover-border) opacity-0 transition-opacity duration-100 group-hover:opacity-100',
+            horizontal ? 'h-10 max-h-full w-1' : 'h-1 w-10 max-w-full'
           )}
         />
       )}

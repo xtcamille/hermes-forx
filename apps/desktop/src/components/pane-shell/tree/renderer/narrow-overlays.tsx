@@ -134,7 +134,10 @@ export function NarrowOverlays() {
       {/* Hover-intent strips on each edge that has a collapsed pane. */}
       {sides.map(side => (
         <div
-          className={cn('absolute inset-y-0 z-30 w-1.5', side === 'left' ? 'left-0' : 'right-0')}
+          className={cn(
+            'absolute top-[calc(var(--pane-window-band,0px)+var(--pane-gap))] bottom-(--pane-gap) z-30 w-(--pane-gap)',
+            side === 'left' ? 'left-0' : 'right-0'
+          )}
           key={side}
           onMouseEnter={() => {
             const first = collapsibles.find(p => sideOf(p) === side)
@@ -149,15 +152,14 @@ export function NarrowOverlays() {
       {revealed && (
         <div
           className={cn(
-            'absolute inset-y-0 z-40 flex flex-col overflow-hidden bg-(--ui-sidebar-surface-background) shadow-2xl',
-            sideOf(revealed) === 'left'
-              ? 'left-0 rounded-r-lg border-r border-(--ui-stroke-secondary)'
-              : 'right-0 rounded-l-lg border-l border-(--ui-stroke-secondary)'
+            'absolute top-[calc(var(--pane-window-band,0px)+var(--pane-gap))] bottom-(--pane-gap) z-40 flex flex-col bg-(--ui-sidebar-surface-background) shadow-2xl',
+            sideOf(revealed) === 'left' ? 'left-(--pane-gap)' : 'right-(--pane-gap)'
           )}
           // Floats OVER the layout, so under glass its surface must mask the
           // panes beneath it — a see-through overlay reads as text bleeding
           // through text. Contract: `[data-glass-opaque]` in styles.css.
           data-glass-opaque=""
+          data-pane-frame=""
           onMouseLeave={() => setReveal(current => (current?.pinned ? current : null))}
           // Match the pane's docked width (sessions ~237px, files its rail
           // width) instead of a fat fixed 20rem — capped for tiny screens.

@@ -122,8 +122,8 @@ describe('TreeGroup', () => {
 
     it.each([300, 800])('keeps sidebar tabs below the native band at width %s', width => {
       const { strip } = mountCrowdedStrip(width, 'left')
-      expect(strip.className).toContain('bottom-0')
-      expect(container!.querySelector<HTMLElement>('[data-panel-header]')!.style.height).toBe('62px')
+      expect(strip.closest('[data-pane-frame]')).not.toBeNull()
+      expect(strip.closest('[data-window-titlebar-band]')).toBeNull()
     })
 
     it.each(['zone', 'default'] as const)('preserves the saved %s hide-tabs preference', source => {
@@ -144,9 +144,11 @@ describe('TreeGroup', () => {
         const savedDefault = localStorage.getItem('hermes.desktop.tabStripDefault')
         render(<TreeGroup leftEdge node={node} rightEdge topEdge />)
         expect(container!.querySelector('[data-zone-tabstrip]')).toBeNull()
-        expect(container!.querySelector<HTMLElement>('[data-panel-header]')!.style.height).toBe('34px')
+        expect(container!.querySelector('[data-window-titlebar-band] [data-window-drag-handle]')).not.toBeNull()
         expect(node.tabStrip).toBe(source === 'zone' ? 'never' : undefined)
         expect(localStorage.getItem('hermes.desktop.tabStripDefault')).toBe(savedDefault)
+        act(() => setTabStripDefault('always'))
+        expect(Boolean(container!.querySelector('[data-zone-tabstrip]'))).toBe(source === 'default')
       } finally {
         act(() => setTabStripDefault(originalDefault))
       }
@@ -187,7 +189,7 @@ describe('TreeGroup', () => {
     it('leaves the whole free band draggable when tabs drop below the controls', () => {
       const { handles, strip } = mountCrowdedStrip(300)
 
-      expect(strip.className).toContain('bottom-0')
+      expect(strip.closest('[data-pane-frame]')).not.toBeNull()
       expect(handles.some(handle => handle.className.includes('flex-1') && handle.style.width === '')).toBe(true)
     })
   })
@@ -259,9 +261,8 @@ describe('TreeGroup', () => {
     render(<TreeGroup leftEdge node={terminalGroup(false)} rightEdge topEdge />)
     const zone = container!.querySelector('[data-tree-group]')!
     const strip = zone.querySelector<HTMLElement>('[data-zone-tabstrip]')!
-    const header = zone.querySelector<HTMLElement>('[data-panel-header]')!
     expect(strip.closest('[data-tree-group]')).toBe(zone)
-    expect(header.contains(strip)).toBe(true)
+    expect(strip.closest('[data-panel-header], [data-window-titlebar-band]')).not.toBeNull()
     expect(zone.querySelectorAll('[data-window-drag-handle]').length).toBeGreaterThan(0)
     act(() => $treeDragging.set('terminal'))
     expect(strip.style).toHaveProperty('WebkitAppRegion', 'no-drag')

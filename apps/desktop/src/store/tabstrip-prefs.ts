@@ -27,12 +27,13 @@ export function setTabStripDefault(value: TabStripDefault) {
 }
 
 /** The mode a zone resolves against: its own choice, else the app default. */
-export function effectiveTabStripMode(zoneMode: TabStripMode | undefined): TabStripMode | undefined {
+export function effectiveTabStripMode(
+  zoneMode: TabStripMode | undefined,
+  fallback = $tabStripDefault.get()
+): TabStripMode | undefined {
   if (zoneMode) {
     return zoneMode
   }
-
-  const fallback = $tabStripDefault.get()
 
   return fallback === 'auto' ? undefined : fallback
 }

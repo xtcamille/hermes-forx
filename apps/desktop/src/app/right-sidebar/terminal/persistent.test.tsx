@@ -244,9 +244,11 @@ describe('PersistentTerminal rect tracking', () => {
 
   it('does not schedule rect RAFs while the Electron window is paused, then resumes when visible', () => {
     const raf = installRaf()
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 200, 100))
+    let currentRect = rect(10, 20, 200, 100)
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => currentRect)
 
     mount.render(<Harness />)
+    const overlay = mount.container!.lastElementChild as HTMLElement
 
     expect(raf.request).toHaveBeenCalledTimes(1)
 
@@ -256,7 +258,9 @@ describe('PersistentTerminal rect tracking', () => {
 
     expect(raf.cancel).toHaveBeenCalledTimes(1)
     expect(raf.pending()).toBe(0)
+    expect(overlay.style.visibility).toBe('hidden')
 
+    currentRect = rect(330, 510, 200, 100)
     act(() => {
       resizeObserverCallback?.([], {} as ResizeObserver)
     })
@@ -268,44 +272,63 @@ describe('PersistentTerminal rect tracking', () => {
     })
 
     expect(raf.request).toHaveBeenCalledTimes(2)
+    expect(overlay.style.visibility).toBe('hidden')
+    act(() => raf.runNext())
+    expect(overlay.style.visibility).toBe('visible')
+    expect(overlay.style.top).toBe('330px')
   })
 
-  it('suspends while unfocused and cancels every callback on unmount', () => {
+  it('tracks restored window bounds before the first click and cancels pending work on unmount', () => {
     const raf = installRaf()
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 200, 100))
+    let currentRect = rect(60, 400, 200, 100)
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => currentRect)
+    $terminalTakeover.set(true)
 
     mount.render(<Harness />)
-    expect(raf.pending()).toBe(1)
-
-    act(() => window.dispatchEvent(new Event('blur')))
+    const overlay = mount.container!.lastElementChild as HTMLElement
+    const workspace = mount.container!.querySelector('[data-testid="terminal-workspace"]')
+    act(() => raf.runNext())
     expect(raf.pending()).toBe(0)
+    expect(overlay.style.top).toBe('60px')
 
-    act(() => window.dispatchEvent(new Event('focus')))
+    act(() => {
+      vi.mocked(document.hasFocus).mockReturnValue(false)
+      window.dispatchEvent(new Event('blur'))
+      currentRect = rect(580, 900, 260, 140)
+      window.dispatchEvent(new Event('resize'))
+    })
+
     expect(raf.pending()).toBe(1)
+    act(() => raf.runNext())
+    expect(overlay.style.top).toBe('580px')
+    expect(overlay.style.left).toBe('900px')
+    expect(overlay.style.visibility).toBe('visible')
+    expect(workspace).not.toBeNull()
+    expect(mount.container!.querySelector('[data-testid="terminal-workspace"]')).toBe(workspace)
 
     mount.unmount()
     expect(raf.pending()).toBe(0)
 
     act(() => {
-      window.dispatchEvent(new Event('focus'))
+      window.dispatchEvent(new Event('resize'))
       resizeObserverCallback?.([], {} as ResizeObserver)
       mutationObserverCallback?.([], {} as MutationObserver)
     })
     expect(raf.pending()).toBe(0)
   })
 
-  it('does not schedule an initial frame when mounted while unfocused', () => {
-    const raf = installRaf()
+  it('shows the terminal at the measured slot when the first window is visible without focus', () => {
+    installRaf()
     vi.mocked(document.hasFocus).mockReturnValue(false)
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 200, 100))
+    $terminalTakeover.set(true)
 
     mount.render(<Harness />)
 
-    expect(raf.request).not.toHaveBeenCalled()
-
-    act(() => window.dispatchEvent(new Event('focus')))
-
-    expect(raf.pending()).toBe(1)
+    const overlay = mount.container!.lastElementChild as HTMLElement
+    expect(overlay.style.top).toBe('10px')
+    expect(overlay.style.visibility).toBe('visible')
+    expect(mount.container!.querySelector('[data-testid="terminal-workspace"]')).not.toBeNull()
   })
 
   it('hides the overlay but keeps its workspace mounted when the terminal tab becomes inactive', () => {
@@ -367,11 +390,8 @@ describe('PersistentTerminal rect tracking', () => {
   })
 
   it('hides the overlay on a tab switch that happens while the window is unfocused', () => {
-    // The trap: the terminal is a tab in the main zone and the user clicks
-    // another tab without the window being focused (or right as it blurs).
-    // The rect chase is paused then — but visibility is correctness, not perf,
-    // so the overlay must still stand down instead of covering the chat with
-    // an opaque, pointer-interactive surface until something refocuses.
+    // An inactive terminal must stop taking pointer input before the next
+    // geometry frame, even if the tab changes while focus is elsewhere.
     installRaf()
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 200, 100))
     $terminalTakeover.set(true)

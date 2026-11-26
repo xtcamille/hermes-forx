@@ -185,19 +185,222 @@ test('shell and page navigation keep the same label and icon sizes', async ({ pa
   await expect(pageNav.getByRole('button', { name: 'Skills', exact: true })).toBeVisible()
 })
 
-test('the docked sidebar divider is visible at rest on window glass', async ({ page }) => {
+test('docked panes have rounded frames and draggable gaps clear of the window controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
   await page.goto(`${url}?sidebar&light`)
-  const divider = page.getByRole('separator')
-  await expect(divider).toBeVisible()
-  const bounds = (await divider.boundingBox())!
-
-  // Sample the titlebar and pane body against the glass on both sides.
-  for (const dy of [6, bounds.height / 2]) {
-    const row = await sampleRow(page, Math.floor(bounds.x) - 3, Math.floor(bounds.y + dy), 8)
-    const alpha = row.map(pixel => pixel[3])
-
-    expect(Math.max(...alpha) - Math.max(alpha[0], alpha.at(-1)!)).toBeGreaterThan(12)
+  const bounds = async (id: string) => (await page.getByTestId(id).boundingBox())!
+  const left = await bounds('sessions')
+  const chat = await bounds('workspace')
+  const files = await bounds('files')
+  const terminal = await bounds('terminal')
+  expect(chat.x - left.x - left.width).toBeGreaterThanOrEqual(8)
+  expect(files.x - chat.x - chat.width).toBeGreaterThanOrEqual(8)
+  expect(terminal.y - chat.y - chat.height).toBeGreaterThanOrEqual(8)
+  for (const id of ['sessions', 'workspace', 'terminal', 'files']) {
+    const frame = page.locator('[data-pane-frame]').filter({ has: page.getByTestId(id) })
+    const style = await frame.evaluate(el => {
+      const css = getComputedStyle(el)
+      return { radius: parseFloat(css.borderTopLeftRadius), overflow: css.overflow }
+    })
+    expect(style.radius).toBeGreaterThanOrEqual(8)
+    expect(style.overflow).toBe('hidden')
   }
+
+  const rightTools = page.locator('[data-titlebar-cluster="right"]')
+  const toolbar = (await rightTools.boundingBox())!
+  const sash = page.locator('[role="separator"][aria-orientation="vertical"]').last()
+  const box = (await sash.boundingBox())!
+  const x = box.x + box.width / 2
+  expect(x).toBeGreaterThan(toolbar.x)
+  expect(x).toBeLessThan(toolbar.x + toolbar.width)
+  expect(box.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height)
+  await rightTools.getByRole('button').first().click()
+  await expect(page.locator('body')).toHaveAttribute('data-settings-open', '')
+
+  await page.mouse.move(x, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(x - 40, box.y + box.height / 2)
+  await page.mouse.up()
+  await expect.poll(async () => (await bounds('files')).width).toBeCloseTo(files.width + 40, 0)
+  await sash.dblclick()
+  await expect.poll(async () => (await bounds('files')).width).toBeCloseTo(files.width, 0)
+
+  const row = (await page.locator('[role="separator"][aria-orientation="horizontal"]').boundingBox())!
+  const rowX = row.x + row.width / 2
+  const rowY = row.y + row.height / 2
+  await page.mouse.move(rowX, rowY)
+  await page.mouse.down()
+  await page.mouse.move(rowX, rowY + 32)
+  await page.mouse.up()
+  await expect.poll(async () => (await bounds('workspace')).height).toBeCloseTo(chat.height + 32, 0)
+
+  // In a mirrored row the files pane grows when its visible gutter moves right.
+  await page.locator('html').evaluate(root => root.setAttribute('dir', 'rtl'))
+  const mirrored = await bounds('files')
+  const mirroredSash = (await sash.boundingBox())!
+  expect(mirroredSash.x).toBeGreaterThanOrEqual(mirrored.x + mirrored.width)
+  await sash.hover()
+  await page.mouse.down()
+  await page.mouse.move(mirroredSash.x + mirroredSash.width / 2 + 24, mirroredSash.y + mirroredSash.height / 2)
+  await page.mouse.up()
+  await expect.poll(async () => (await bounds('files')).width).toBeCloseTo(mirrored.width + 24, 0)
+  await page.locator('html').evaluate(root => root.setAttribute('dir', 'ltr'))
+})
+
+test('a narrow drawer leaves the window controls and workspace margins clear', async ({ page }) => {
+  await page.setViewportSize({ width: 550, height: 640 })
+  await page.goto(`${url}?sidebar`)
+  const tools = page.locator('[data-titlebar-cluster="right"]')
+  const toolbar = (await tools.boundingBox())!
+  const files = page.getByTestId('files')
+  await expect(files).toHaveCount(0)
+  await page.mouse.move(549, 160)
+  await expect(files).toBeVisible()
+  const drawer = page.locator('[data-pane-frame][data-glass-opaque]').filter({ has: files })
+  const box = (await drawer.boundingBox())!
+  expect(box.y).toBeGreaterThan(toolbar.y + toolbar.height)
+  expect(550 - box.x - box.width).toBeGreaterThanOrEqual(8)
+  expect(await drawer.evaluate(el => parseFloat(getComputedStyle(el).borderTopRightRadius))).toBeGreaterThanOrEqual(8)
+})
+
+test('switching presets and resizing nested sidebars preserve their individual widths', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(`${url}?sidebar=presets&light`)
+  const frame = (id: string) => page.locator('[data-pane-frame]').filter({ has: page.getByTestId(id) })
+  const bounds = async (id: string) => (await frame(id).boundingBox())!
+  const choose = async (name: string) => {
+    await page.getByRole('button', { name: 'Layout editor', exact: true }).click()
+    await page.getByRole('button', { name, exact: true }).click()
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+  }
+
+  await choose('Terminal deck')
+  const stacked = await bounds('files')
+  await choose('Default')
+  const files = await bounds('files')
+  const review = await bounds('review')
+  expect(files.width).toBeCloseTo(stacked.width, 0)
+
+  const outer = page.locator('[data-tree-split]').first().locator(':scope > div > [role="separator"]').last()
+  const sash = (await outer.boundingBox())!
+  const x = sash.x + sash.width / 2
+  const y = sash.y + sash.height / 2
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x - 40, y)
+  await expect.poll(async () => (await bounds('review')).width).toBeCloseTo(review.width + 40, 0)
+  expect((await bounds('files')).width).toBeCloseTo(files.width, 0)
+  await page.mouse.up()
+  await page.reload()
+  expect((await bounds('review')).width).toBeCloseTo(review.width + 40, 0)
+
+  await page.setViewportSize({ width: 640, height: 720 })
+  const squeezed = await bounds('files')
+  expect(squeezed.width).toBeGreaterThan(0)
+  expect(squeezed.x + squeezed.width).toBeLessThanOrEqual(640)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  expect((await bounds('files')).width).toBeCloseTo(files.width, 0)
+  expect((await bounds('review')).width).toBeCloseTo(review.width + 40, 0)
+})
+
+test('the live terminal preserves its frame stroke and corners when docked or stacked', async ({ page }) => {
+  await page.addInitScript(() => {
+    const terminal = {
+      start: async () => ({ id: 'shell', cwd: 'C:/workspace', shell: 'pwsh' }),
+      attach: async () => true,
+      cwd: async () => null,
+      dispose: async () => true,
+      onData: (_id: string, receive: (data: string) => void) => {
+        receive('PS C:/workspace> ')
+        return () => {}
+      },
+      onExit: () => () => {},
+      resize: async () => true,
+      write: async () => true
+    }
+    Object.defineProperty(window, 'hermesDesktop', { value: { terminal } })
+  })
+  await page.setViewportSize({ width: 1249, height: 767 })
+  await page.goto(`${url}?sidebar=presets&terminal&light`)
+  const overlay = page.locator('[data-persistent-terminal]')
+  const screen = overlay.locator('.xterm-screen')
+  const slot = page.locator('[data-terminal-slot]:visible')
+  const frame = page.locator('[data-pane-frame]').filter({ has: slot })
+  await expect(screen).toBeVisible()
+  const originalScreen = await screen.elementHandle()
+
+  async function checkFrame() {
+    await expect(overlay).toHaveCSS('visibility', 'visible')
+    await expect.poll(async () => {
+      const a = (await slot.boundingBox())!
+      const b = (await overlay.boundingBox())!
+      return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.width - b.width), Math.abs(a.height - b.height))
+    }).toBeLessThan(0.05)
+    const box = (await frame.boundingBox())!
+    const target = (await slot.boundingBox())!
+    const x = Math.floor(box.x) - 1
+    const width = Math.ceil(box.x + box.width) - x + 1
+    const radius = await frame.evaluate(el => Math.ceil(parseFloat(getComputedStyle(el).borderBottomLeftRadius)))
+    const readEdges = async () => {
+      const bottom = await sampleRow(page, x, Math.floor(box.y + box.height) - 2, width)
+      const middle = await sampleRow(page, x, Math.floor(target.y + target.height / 2), width)
+      return [...bottom.slice(0, radius + 1), ...bottom.slice(-radius - 1), ...middle.slice(0, 3), ...middle.slice(-3)]
+    }
+    const painted = await readEdges()
+    // The pane paints the reference stroke even while the separate xterm layer is hidden.
+    const hide = await page.addStyleTag({ content: '[data-persistent-terminal] { opacity: 0 !important; }' })
+    const reference = await readEdges()
+    await hide.evaluate(el => el.parentNode?.removeChild(el))
+    const difference = painted.flatMap((pixel, i) => pixel.map((channel, j) => Math.abs(channel - reference[i][j])))
+    expect(Math.max(...difference)).toBeLessThanOrEqual(4)
+    const hitsTerminal = (x: number, y: number) => page.evaluate(({ x, y }) =>
+      Boolean(document.elementFromPoint(x, y)?.closest('[data-persistent-terminal]')), { x, y })
+    expect(await hitsTerminal(target.x + target.width / 2, target.y + target.height / 2)).toBe(true)
+    const byLeftEdge = target.x - box.x < box.x + box.width - target.x - target.width
+    const cornerX = byLeftEdge ? box.x + 2 : box.x + box.width - 2
+    expect(await hitsTerminal(cornerX, box.y + box.height - 2)).toBe(false)
+  }
+
+  await checkFrame()
+  // Electron can restore the window bounds after its first paint, before the
+  // user focuses the window. The live canvas must follow without a click.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+  await page.setViewportSize({ width: 1511, height: 913 })
+  await checkFrame()
+  await page.locator('html').evaluate(el => el.setAttribute('dir', 'rtl'))
+  await checkFrame()
+  await page.locator('html').evaluate(el => el.setAttribute('dir', 'ltr'))
+  await page.getByRole('button', { name: 'Layout editor', exact: true }).click()
+  await page.getByRole('button', { name: 'Focus', exact: true }).click()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await page.locator('[data-tree-tab="terminal"]').click()
+  await checkFrame()
+  expect(await screen.evaluate((current, original) => current === original, originalScreen)).toBe(true)
+})
+
+test('a saved column layout fits a half-screen window and restores its panes', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto(`${url}?sidebar=presets&light`)
+  await page.getByRole('button', { name: 'Layout editor', exact: true }).click()
+  await page.getByRole('button', { name: 'New grid layout' }).click()
+  await page.getByRole('spinbutton').fill('5')
+  await page.getByRole('button', { name: 'Columns', exact: true }).click()
+  await page.getByPlaceholder(/Layout name/).fill('Saved columns')
+  await page.getByRole('button', { name: 'Save & apply' }).click()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+
+  const groups = page.locator('[data-tree-group]:visible')
+  const groupIds = () => groups.evaluateAll(elements => elements.map(el => el.getAttribute('data-tree-group')))
+  const saved = await groupIds()
+  expect(saved.length).toBeGreaterThan(1)
+  await page.setViewportSize({ width: 640, height: 720 })
+  await page.reload()
+  await expect.poll(groupIds).toEqual(saved)
+  const fits = await groups.evaluateAll(elements => elements.every(el => {
+    const { left, right, width } = el.getBoundingClientRect()
+    return width > 0 && left >= 0 && right <= window.innerWidth
+  }))
+  expect(fits).toBe(true)
 })
 
 test('dark sidebar glass stays close to the chat canvas over a neutral backdrop', async ({ page }) => {

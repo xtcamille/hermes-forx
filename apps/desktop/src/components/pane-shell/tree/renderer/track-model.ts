@@ -185,13 +185,13 @@ export const cssMax = (values: (string | null | undefined)[]): string | undefine
  *  - zone: the max() of its shown panes' declared `width`/`height` (a live px
  *    override from a sash drag wins) — sidebars keep their size, main flexes,
  *    and the zone never resizes when tabs switch or a drop fronts a pane.
- *  - split ALONG the axis: the sum of its visible children — fixed only when
+ *  - split ALONG the axis: its visible children plus their gutters — fixed only when
  *    every child is (one flex child makes the run flex).
  *  - split ACROSS the axis: the max of its visible fixed children (flex
  *    children just stretch to the container); flex only when none are fixed.
  *
  * This is how "two right sidebars over a terminal row" sizes itself from its
- * content (237px, or 474px when review is visible) instead of taking a
+ * content (one sidebar, or two sidebars and a gutter) instead of taking a
  * fraction of the window.
  */
 /** A minimized zone IS its strip: the vertical rail (row) / header (column)
@@ -226,6 +226,12 @@ export function allFixedAbsorberIndex(
   }
 
   return -1
+}
+
+/** The drag override is inherited by the edge pane and all its enclosing tracks.
+ * Encode punctuation in contributed group ids to keep the CSS names distinct. */
+export function sashSizeProperty(groupId: string, axis: 'row' | 'column'): string {
+  return `--pane-${axis}-${groupId.replace(/[^a-z0-9-]/gi, char => `_${char.charCodeAt(0).toString(16)}_`)}`
 }
 
 export function fixedTrackSize(node: LayoutNode, axis: 'row' | 'column', ctx: TrackContext): string | null {
@@ -279,7 +285,8 @@ export function fixedTrackSize(node: LayoutNode, axis: 'row' | 'column', ctx: Tr
     // dropping a pane into a zone — the drop fronts it — or switching tabs
     // must not resize the container (dropping sessions into a wider fixed
     // zone used to snap the whole zone down to sidebar width).
-    return cssMax(declaredSizes) ?? null
+    const size = cssMax(declaredSizes)
+    return size ? `var(${sashSizeProperty(node.id, axis)}, ${size})` : null
   }
 
   const visible = node.children.filter(child => !subtreeGone(child, ctx))
@@ -290,7 +297,7 @@ export function fixedTrackSize(node: LayoutNode, axis: 'row' | 'column', ctx: Tr
       return null
     }
 
-    return sizes.length === 1 ? sizes[0] : `calc(${sizes.join(' + ')})`
+    return sizes.length === 1 ? sizes[0] : `calc(${sizes.join(' + var(--pane-gap) + ')})`
   }
 
   // Across the axis a flex child just stretches; the fixed ones set the size.

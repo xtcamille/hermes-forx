@@ -10,7 +10,7 @@
  */
 
 import type { Contribution } from '@/contrib/types'
-import { effectiveTabStripMode } from '@/store/tabstrip-prefs'
+import { effectiveTabStripMode, type TabStripDefault } from '@/store/tabstrip-prefs'
 
 import type { TabStripMode } from '../model'
 
@@ -111,21 +111,24 @@ export function resolveTabStripVisible(zone: StripZone): boolean {
  * here, so neither can drift on which chrome flags feed the answer or forget to
  * fold in the app-wide default.
  */
-export function tabStripVisibleForZone(zone: {
-  /** The zone's ACTIVE pane. */
-  active: string
-  isCollapsePane: (id: string) => boolean
-  /** The zone's own choice, before the app default applies. */
-  mode: TabStripMode | undefined
-  paneFor: (id: string) => Contribution | undefined
-  /** Panes currently rendered as chips. */
-  shown: readonly string[]
-  /** Another zone in the layout hosts a main tile too (`$mainTileZoneCount`). */
-  siblingMainZone: boolean
-}): boolean {
+export function tabStripVisibleForZone(
+  zone: {
+    /** The zone's ACTIVE pane. */
+    active: string
+    isCollapsePane: (id: string) => boolean
+    /** The zone's own choice, before the app default applies. */
+    mode: TabStripMode | undefined
+    paneFor: (id: string) => Contribution | undefined
+    /** Panes currently rendered as chips. */
+    shown: readonly string[]
+    /** Another zone in the layout hosts a main tile too (`$mainTileZoneCount`). */
+    siblingMainZone: boolean
+  },
+  defaultMode?: TabStripDefault
+): boolean {
   return resolveTabStripVisible({
     headerVeto: paneChrome(zone.paneFor(zone.active)).headerVeto,
-    mode: effectiveTabStripMode(zone.mode),
+    mode: effectiveTabStripMode(zone.mode, defaultMode),
     siblingMainZone: zone.siblingMainZone,
     shown: zone.shown.map(id => {
       const chrome = paneChrome(zone.paneFor(id))

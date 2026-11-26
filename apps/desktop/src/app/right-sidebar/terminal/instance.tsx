@@ -12,7 +12,7 @@ import { useTerminalSession } from './use-terminal-session'
 
 // Absolute-stacked so inactive tabs keep layout size (a display:none host goes
 // 0×0 and renders garbled on re-show); visibility toggles which one is seen.
-const INSTANCE_CLASS = 'absolute inset-0 flex flex-col bg-(--ui-terminal-surface-background) px-2 pb-2 pt-0'
+const INSTANCE_CLASS = 'absolute inset-0 flex flex-col px-2 pb-2 pt-0'
 
 // xterm host. The screen/viewport overrides matter for the DOM renderer (the
 // WebGL fast-path paints the canvas from ITheme.background instead) — both
@@ -85,8 +85,7 @@ export function TerminalInstance({
           </Button>
         </div>
       )}
-      {/* Outer div paints the terminal inset; inner div is the xterm host so the
-          canvas sizes to the content area and p-2 stays as terminal padding. */}
+      {/* Keep padding outside xterm so the canvas fits the content area. */}
       <div className={HOST_CLASS} ref={hostRef} />
     </div>
   )

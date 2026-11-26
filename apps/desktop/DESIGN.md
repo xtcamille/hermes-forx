@@ -131,7 +131,7 @@ In dark Sidebar only mode, the body blends the skin's sidebar color into the
 glass tint so the rail stays close in tone to the chat canvas over a bright
 desktop. At maximum Tint the native material shows through the rail interior.
 In either appearance the glass blends into the canvas over the last `--radius-lg`
-inside the rail, ending at the draggable divider.
+inside the rail, ending at the edge of its frame.
 
 ## Stroke & color tokens
 
@@ -283,9 +283,17 @@ Lower panels keep local headers. Empty header space moves the window;
 tabs and actions remain no-drag, with native-control space reserved from the
 existing traffic-light and Window Controls Overlay measurements.
 
-Adjacent panes share one `--ui-stroke-secondary` hairline through the titlebar
-and pane body. Its ends and the wider hover highlight are rounded. Pane tabs
-use the same corner radius as sidebar navigation rows.
+Each docked pane has a rounded frame below the window controls. The same
+gutter separates neighboring frames horizontally and vertically and insets
+them from the window edges. Drag anywhere in a shared gutter to resize the
+adjacent panes. The grip appears on hover. Top-edge tabs can still share the
+native titlebar. Narrow drawers use the same inset and radius and keep the
+titlebar clear.
+
+Nested splits reserve space for every visible gutter. Resizing a fixed sidebar
+keeps its neighbor at its own width throughout the drag. When the window is too
+narrow for all declared minima, fixed sidebars yield first. Widening the window
+restores the saved sizes.
 
 Sidebar and overlay navigation, page and pane tabs, sidebar section and date
 labels, and the status bar use `text-sm` (14px at actual size). Navigation,

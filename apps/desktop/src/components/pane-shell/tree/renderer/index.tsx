@@ -1,8 +1,7 @@
 /**
  * Layout tree renderer (root).
  *
- * - `split` -> flex row/column; 1px seams between siblings double as resize
- *   sashes (the seam IS the boundary — junction-owned, never doubled). See
+ * - `split` -> flex row/column; gutters between siblings are resize sashes. See
  *   tree-split.tsx.
  * - `group` -> a ZONE: header strip (tabs when stacked, minimize chevron) +
  *   the active pane's content, resolved from the contribution registry
@@ -21,7 +20,9 @@
  */
 
 import { useStore } from '@nanostores/react'
-import { type ReactNode, useEffect } from 'react'
+import { type CSSProperties, type ReactNode, useEffect } from 'react'
+
+import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 
 import { useLayoutEditHotkey } from '../../edit-mode'
 import { publishWorkspaceGeometry } from '../../geometry'
@@ -51,15 +52,19 @@ export function LayoutTreeRoot({ children, titlebar = false }: { children?: Reac
   }
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1">
-      {/* THE SEAM INVARIANT: boundaries are drawn by the tree (one sash
-          hairline per seam) — content mounted in a zone must not paint its
-          own edge chrome. App components (asides, the shadcn sidebar) carry
-          edge borders + inset highlights for the OLD shell's geometry; this
-          neutralizes all of them at the zone boundary, for every current and
-          future pane, instead of per-pane class surgery. */}
+    <div
+      className="relative flex min-h-0 min-w-0 flex-1 bg-(--ui-pane-gutter) px-(--pane-gap) pb-(--pane-gap)"
+      style={
+        {
+          '--pane-window-band': `${titlebar ? TITLEBAR_HEIGHT : 0}px`,
+          paddingTop: titlebar ? 0 : 'var(--pane-gap)'
+        } as CSSProperties
+      }
+    >
+      {/* Docked panes and narrow drawers share a frame. Their content can
+          also render standalone, where it supplies its own edge chrome. */}
       <style>{`
-        [data-tree-group] :is(aside, [data-slot=sidebar]) {
+        [data-pane-frame] :is(aside, [data-slot=sidebar]) {
           border-left-width: 0;
           border-right-width: 0;
           box-shadow: none;
