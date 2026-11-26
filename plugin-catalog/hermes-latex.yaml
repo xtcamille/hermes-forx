@@ -1,0 +1,21 @@
+name: hermes-latex
+repo: https://github.com/xtcamille/hermes-latex
+sha: a078aa05553dca3c4e66bbac4faa7a382bce49bb
+description: 全流程单人 AI LaTeX 论文创作插件：零本地TeX环境(Tectonic)编译、SyncTeX双向定位、IEEE/顶会/CCF区块链期刊模板、BibTeX管家、AST语法保护改写、投稿双盲与一致性体检。
+maintainer: xtcamille
+tier: community
+category: tools
+version: 0.1.0
+capabilities:
+  provides_tools:
+  - latex_project_manage
+  - latex_compile
+  - latex_syntax_rewrite
+  - latex_bib_manage
+  - latex_preflight_check
+  - latex_generate_snippet
+  - latex_setup_compiler
+  - latex_project_chat
+  provides_hooks: []
+  provides_middleware: []
+  requires_env: []
