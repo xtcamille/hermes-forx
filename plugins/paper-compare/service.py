@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import atexit
+import importlib.util
 import json
 import os
 import select
-import shutil
 import subprocess
 import threading
 import tempfile
@@ -18,6 +18,9 @@ from urllib.parse import urlparse
 import yaml
 
 ROOT = Path(__file__).resolve().parent
+_setup_spec = importlib.util.spec_from_file_location('paper_runtime_setup', ROOT / 'runtime_setup.py')
+runtime_setup = importlib.util.module_from_spec(_setup_spec)
+_setup_spec.loader.exec_module(runtime_setup)
 _services = {}
 _lock = threading.RLock()
 
@@ -130,22 +133,11 @@ def configuration(home, frame_origin):
         legacy = load_env_file(private_file)
         secrets.update({key: value for key, value in legacy.items()
                         if key.startswith("MINERU_") or key in ("PDF_PARSER", "PDFTOTEXT_PATH", "PDFTOPPM_PATH", "PDFINFO_PATH")})
-    own_node = home / "plugin-data/paper-compare/runtime/node/bin" / ("node.exe" if os.name == "nt" else "node")
-    node = prefs.get("node_path") or (str(own_node) if own_node.is_file() else shutil.which("node"))
-    if node and len(Path(node).parts) > 1:
-        node = str(_path(node, home))
-    if not node:
-        raise ValueError("未找到 Node.js，请安装 Node.js 22.13+ 或配置插件 node_path。")
-    result = subprocess.run([node, "--version"], capture_output=True, text=True, timeout=10, check=True)
-    version = tuple(int(p) for p in result.stdout.strip().lstrip("v").split(".")[:2])
-    if version < (22, 13):
-        raise ValueError("论文工作台需要 Node.js 22.13 或更新版本。")
-    if not (ROOT / "runtime/node_modules/katex").is_dir():
-        raise ValueError("论文插件依赖尚未安装，请在插件 runtime 目录运行 npm ci。")
     if frame_origin not in ("null", "file:", "file://"):
         origin = urlparse(frame_origin)
         if origin.scheme not in ("http", "https") or origin.hostname not in ("localhost", "127.0.0.1", "::1"):
             raise ValueError("此插件需要本机 ForX 后端；当前支持本机桌面端与本机 Dashboard。")
+    node = runtime_setup.prepare(home, prefs.get('node_path'))
     directory = _path(prefs.get("data_dir") or "plugin-data/paper-compare/library", home)
     port_file = home / "plugin-data/paper-compare/port.json"
     saved_port = json.loads(port_file.read_text("utf-8")).get("port", 0) if port_file.exists() else 0

@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent
-TOP_FILES = {"__init__.py", "plugin.yaml", "service.py", "sidecar.mjs", "install.py", "storage.py", "migrate.py", "README.md"}
+TOP_FILES = {"__init__.py", "plugin.yaml", "service.py", "sidecar.mjs", "runtime_setup.py", "install.py", "storage.py", "migrate.py", "README.md", "after-install.md"}
 
 
 def _storage():
@@ -25,19 +25,19 @@ def _storage():
     return module
 
 
+def _runtime():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('paper_install_runtime', ROOT / 'runtime_setup.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _node(home, explicit):
     executable = "node.exe" if os.name == "nt" else "node"
     own = home / "plugin-data/paper-compare/runtime/node/bin" / executable
-    selected = explicit or (str(own) if own.is_file() else shutil.which("node"))
-    if not selected:
-        raise ValueError("需要 Node.js 22.13+；安装后由 ForX 管理论文插件，无需单独启动服务。")
-    path = Path(selected).expanduser()
-    if not path.is_absolute():
-        path = home / path if len(path.parts) > 1 else Path(shutil.which(str(path)) or str(path))
-    path = path.resolve()
-    version = subprocess.check_output([str(path), "--version"], text=True, timeout=10).strip()
-    if tuple(int(part) for part in version.lstrip("v").split(".")[:2]) < (22, 13):
-        raise ValueError("论文插件需要 Node.js 22.13+。")
+    resolved, version = _runtime().node_command(home, explicit)
+    path = Path(resolved)
     own.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path != own.resolve():
         temporary = own.with_name(".node-" + uuid.uuid4().hex)
@@ -82,13 +82,7 @@ def _copy_package(destination, *, reuse_dependencies):
 
 
 def _npm_ci(node, directory):
-    cli = node.parent.parent / "lib/node_modules/npm/bin/npm-cli.js"
-    if not cli.is_file():
-        command = shutil.which("npm")
-        if not command:
-            raise ValueError("首次安装依赖需要 npm；请安装 Node.js，或使用包含运行依赖的插件包。")
-        cli = Path(command).resolve()
-    subprocess.run([str(node), str(cli), "ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"], cwd=directory, check=True)
+    _runtime().install_dependencies(node, directory)
 
 
 def install(home, *, data_dir=None, env_file=None, vision_report=None, node_path=None, skip_deps=False, link=False):

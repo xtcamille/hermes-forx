@@ -22,6 +22,8 @@ const MIME = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': [
   '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/markdown.js': ['markdown.js', 'text/javascript; charset=utf-8'], '/desktop.js': ['desktop.js', 'text/javascript; charset=utf-8'] };
 MIME['/workspace.js'] = ['workspace.js', 'text/javascript; charset=utf-8'];
 MIME['/evidence.js'] = ['evidence.js', 'text/javascript; charset=utf-8'];
+MIME['/integration.js'] = ['integration.js', 'text/javascript; charset=utf-8'];
+MIME['/forx.css'] = ['forx.css', 'text/css; charset=utf-8'];
 const VENDOR = fileURLToPath(new URL('./node_modules/', import.meta.url));
 const VENDOR_FILES = {
   '/vendor/katex/katex.min.js': ['katex/dist/katex.min.js', 'text/javascript'],
