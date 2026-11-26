@@ -27,7 +27,7 @@ permissions:
 
 concurrency:
   group: release-desktop-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-desktop:
@@ -46,7 +46,7 @@ jobs:
               apps/desktop/release/*.exe
           - name: macOS (Apple Silicon arm64)
             os: macos-arm64
-            runner: macos-latest
+            runner: macos-15
             build_cmd: npm run dist:mac
             artifact_glob: |
               apps/desktop/release/*.dmg
