@@ -1,25 +1,28 @@
 name: afterforge
 repo: https://github.com/ussyverse/afterforge
-sha: 067a739e5ab64097140c5200bde2cc5d52662ea5
-description: Local-first regression workbench turning agent failures and corrections into reviewed, evidence-backed checks.
+sha: 19ae19920dd1748af999eabac21306be66617eee
+description: Local-first regression workbench that turns Hermes failures and corrections
+  into reproducible, evidence-backed test cases.
 maintainer: ussyverse
 tier: community
 category: tools
 docs_url: https://github.com/ussyverse/afterforge/blob/067a739e5ab64097140c5200bde2cc5d52662ea5/README.md
-platforms: [linux]
+platforms:
+- linux
 capabilities:
   provides_tools:
-    - fixlab_status
-    - fixlab_scan
-    - fixlab_list_cases
-    - fixlab_inspect_case
-    - fixlab_review_case
-    - fixlab_build_regression
-    - fixlab_verify_regression
-    - fixlab_report
+  - fixlab_status
+  - fixlab_scan
+  - fixlab_list_cases
+  - fixlab_inspect_case
+  - fixlab_review_case
+  - fixlab_build_regression
+  - fixlab_verify_regression
+  - fixlab_report
   provides_hooks:
-    - post_tool_call
-    - on_session_end
-    - pre_verify
+  - post_tool_call
+  - on_session_end
+  - pre_verify
   provides_middleware: []
   requires_env: []
+version: 0.5.1

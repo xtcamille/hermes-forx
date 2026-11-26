@@ -1,8 +1,9 @@
 name: hermes-rustpush-imessage
 repo: https://github.com/boobutler/hermes-rustpush-imessage
-sha: 695f74755cbcdbcd742baa51021fdb96a78ac10e
-description: Local-only iMessage platform plugin backed by a launchd-supervised OpenBubbles RustPush sidecar
-  over a same-user Unix socket.
+sha: 9ffc324a679c55970c2ea706cf87018f68af4d94
+description: Thin local-only Hermes adapter for a launchd-supervised RustPush sidecar
+  over a same-user mode-0600 Unix-domain socket. No relay, GUI automation, or Messages.app
+  control.
 maintainer: boobutler
 tier: community
 category: platform
@@ -13,3 +14,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.1.0

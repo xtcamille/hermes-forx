@@ -1,17 +1,27 @@
 name: jev-approvals
 repo: https://github.com/anpicasso/hermes-jev-approvals
-sha: 28be98a19539b29768398fb400f4c62f41337c26
+sha: fb5e5ba8052d74eb980420b8594981961f67cfeb
 subdir: plugin
-description: "TypeSafe's Jev decision model as Hermes' smart-approval reviewer only: it cannot generate text and refuses every other task. Supports TypeSafe direct, OpenRouter, and configurable Jev-compatible HTTPS endpoints with optional endpoint-specific authentication; validates typed answers and endpoint/redirect boundaries, redacts command credentials, and records bounded structured audit logs. Disclosure — each command routed to smart approval (redacted best-effort) and the operator's smart-policy text leave the machine for the configured third-party endpoint; provider or validation failures fail closed to ESCALATE."
+description: 'APPROVALS ONLY. Registers TypeSafe''s Jev decision model as a Hermes
+  provider for the single purpose of serving `auxiliary.approval` when `approvals.mode:
+  smart`. Jev returns typed probabilities instead of text, the native shape of the
+  guardian''s APPROVE/DENY/ESCALATE question. An original 156-command baseline measured
+  9.8x lower latency and 4.2x fewer human prompts than one configured aux chat model;
+  this is baseline-specific, not a universal speedup, and the README links an independent
+  v0.2.1 live-sandbox study. TypeSafe and OpenRouter are endpoint presets; any other
+  Jev-compatible HTTPS decision endpoint can be selected with `base_url` plus an optional
+  plugin-level `key_env`; without it, the request itself is anonymous. It registers
+  no hooks and CANNOT generate text, so it refuses any prompt that is not the smart-approval
+  guardian''s — never set it as a chat provider or for any other auxiliary task.'
 maintainer: anpicasso
 tier: community
 category: models
 docs_url: https://github.com/anpicasso/hermes-jev-approvals#readme
-version: "0.3.0"
+version: 0.5.1
 platforms: []
 capabilities:
   provides_tools: []
   provides_hooks: []
   provides_middleware: []
   requires_env:
-    - TYPESAFE_API_KEY
+  - TYPESAFE_API_KEY

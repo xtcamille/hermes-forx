@@ -1,6 +1,6 @@
 name: hermes-plugin-guard
 repo: https://github.com/mauricemohr88-debug/hermes-plugin-guard
-sha: 857d881be77249c192c5fefa8254db186a7abbca
+sha: 01a2290c16b28c45e1c4bef9cec68f8ac32f8f6a
 description: Static review of candidate Hermes plugins; target code is never executed.
 maintainer: mauricemohr88-debug
 tier: community
@@ -12,3 +12,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.2.2

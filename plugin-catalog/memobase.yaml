@@ -1,8 +1,8 @@
 name: memobase
 repo: https://github.com/fred0m/hermes-memobase-provider
-sha: 4e8e447966acefaea372395e2db96ca0d0127f18
-description: Memobase memory provider — self-hosted user profile + event timeline
-  recall, with hybrid BM25/vector/entity retrieval and automatic per-turn prefetch.
+sha: 129cce63ec2bfcbbba8403f02332be31f5a4c751
+description: Memobase — self-hosted user profile + event timeline memory backend,
+  with automatic per-turn recall and hybrid (BM25 + vector + entity) retrieval.
 maintainer: fred0m
 tier: community
 category: memory
@@ -14,3 +14,4 @@ capabilities:
   requires_env:
   - MEMOBASE_API_KEY
   - MEMOBASE_BASE_URL
+version: 3.1.0

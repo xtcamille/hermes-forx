@@ -1,7 +1,8 @@
 name: skill-router
 repo: https://github.com/xXLODXx/hermes-skill-router
-sha: 445c32f9b274f53bf3d37ce1b37ec1b3e5530ac4
-description: Evidence-based, session-safe skill routing with auditable decisions and opt-in learning
+sha: 7b27e37958617d6dfd682fd5d44202e74e4d0d76
+description: Evidence-based, session-safe skill routing with auditable decisions,
+  profile-safe homes and opt-in context rescue
 maintainer: xXLODXx
 tier: community
 category: general
@@ -15,3 +16,4 @@ capabilities:
   - pre_tool_call
   provides_middleware: []
   requires_env: []
+version: 0.8.13

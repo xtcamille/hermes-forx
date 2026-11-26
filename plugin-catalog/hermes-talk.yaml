@@ -1,24 +1,29 @@
 name: hermes-talk
 repo: https://github.com/TheSmokeDev/hermes-talk
-sha: 7219f2fdff353df72f5323b219bfe759991b0365
-description: >-
-  Realtime voice for Hermes through terminal, Discord, dashboard and Desktop.
-  Live voice mode (TALK_VOICE_MODE=live, TALK_LIVE_AUTH=subscription) connects with your
-  own Codex OAuth session to the undocumented chatgpt.com/backend-api/codex/realtime/calls
-  endpoint, which is outside the vendor's published API terms and may change or stop
-  working without notice.
+sha: 55ae7b29082faf5aaebac7cb7d692c3c2f8ade4f
+description: 'OpenAI Realtime speech-to-speech voice for Hermes: duplex talk with
+  live tool calling.'
 maintainer: TheSmokeDev
 tier: community
 category: voice
-version: "0.21.0"
+version: 0.25.0
 docs_url: https://github.com/TheSmokeDev/hermes-talk/blob/7219f2fdff353df72f5323b219bfe759991b0365/README.md
 capabilities:
-  provides_tools: []
+  provides_tools:
+  - phone_prepare
+  - phone_call
+  - phone_status
+  - phone_cancel
+  - phone_kill_switch
+  - phone_inbox
+  - phone_reply
   provides_hooks:
-    - on_session_end
-    - subagent_start
-    - subagent_stop
-    - post_tool_call
-    - pre_approval_request
+  - on_session_end
+  - subagent_start
+  - subagent_stop
+  - post_tool_call
+  - pre_approval_request
+  - pre_tool_call
+  - pre_llm_call
   provides_middleware: []
   requires_env: []

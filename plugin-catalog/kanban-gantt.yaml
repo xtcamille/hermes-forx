@@ -1,9 +1,11 @@
 name: kanban-gantt
 repo: https://github.com/e-is/hermes-kanban-gantt
-sha: 0bac644268c104f6afd168c5a6e2ef11b011fa56
-description: 'Gantt timeline view for the Hermes kanban boards: a full /kanban-gantt desktop page rendering any board as a timeline of real work timestamps
-  (created/started/review/done), with dependency tree connectors, live-activity arcs, filters, bulk actions, and a dockable task detail drawer. Zero API keys,
-  zero model tokens.'
+sha: 1804e8458af745303b9d459c9fd78121e8fc76f8
+description: Gantt timeline view for the Hermes kanban boards — a full /kanban-gantt
+  desktop page with board switching, real-time status bars (created/started/done timestamps),
+  dependencies, filters, bulk actions and a task detail drawer. The interface is the
+  desktop page; the web dashboard serves the plugin's data routes and a page that
+  points to it. Zero API keys.
 maintainer: e-is
 tier: community
 category: desktop
@@ -15,3 +17,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 1.13.2

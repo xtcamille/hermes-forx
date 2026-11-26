@@ -1,33 +1,42 @@
 name: hermes-jev
 repo: https://github.com/keeltrace/hermes-jev
-sha: 92bd505f48338ec60bd31eb5fa0175d63afbaee1
-description: Asynchronous Jev decision nervous system with adaptive routing, receipt-backed verification,
-  confidence-gated challenges, typed decisions, and context governance. Disclosure — with the default
-  settings (nervous_enabled / turn_admission on) each turn's user prompt (up to 12k characters) and redacted
-  tool/result previews are sent to OpenRouter Decisions (TypeSafe Jev) using your OPENROUTER_API_KEY or
-  TYPESAFE_API_KEY, spending your credits on every turn.
+sha: 76320ec5d764d588d9042baac60702f333896b1a
+description: Nerve supervisory nervous system for Hermes Agent with Jev, Laya, and
+  OpenJev Reflex backends, evidence-backed Kanban supervision, token-budget trajectory
+  control, context governance, and durable SSH Hermes workers.
 maintainer: keeltrace
 tier: community
 category: automation
 requires_hermes: '>=0.21'
 docs_url: https://github.com/keeltrace/hermes-jev#readme
-version: 0.2.1.2
+version: 0.4.15
 capabilities:
   provides_tools:
-  - jev_decide
-  - jev_rank
-  - jev_verify
-  - jev_assess
-  - jev_context_curate
-  - jev_context_rehydrate
-  - jev_stats
-  - jev_nervous_event
+  - nerve_decide
+  - nerve_rank
+  - nerve_verify
+  - nerve_assess
+  - nerve_context_curate
+  - nerve_context_rehydrate
+  - nerve_context_explain
+  - nerve_stats
+  - nerve_nervous_event
+  - nerve_supervise_card
+  - nerve_work_event
+  - nerve_work_status
+  - nerve_remote_delegate_task
+  - nerve_remote_worker_status
+  - nerve_remote_worker_result
+  - nerve_remote_worker_cancel
+  - nerve_remote_worker_control
   provides_hooks:
   - pre_tool_call
   - post_tool_call
   - pre_llm_call
   - transform_tool_result
   - pre_verify
+  - post_api_request
+  - api_request_error
   - post_llm_call
   - on_session_end
   provides_middleware: []

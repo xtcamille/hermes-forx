@@ -1,7 +1,14 @@
 name: quota
 repo: https://github.com/rarf/hermes-quota-plugin
-sha: 40cc87b1170a129d9e8b347175c8dac27de54ced
-description: Per-provider quota / rate-limit status via /quota command and desktop widget. Reads precomputed quota_cache.json so the widget never does network I/O. Disclosure — refreshes your Gemini OAuth token using the Gemini CLI's client identity and queries Copilot's internal usage endpoint with VS Code client headers; the opt-in (default off) grok.com check reads local browser cookies.
+sha: 39708d74349d482b568009835c54cd5b6a123d0c
+description: 'Per-provider quota / rate-limit status via /quota command and desktop
+  widget. Reads precomputed quota_cache.json so the widget never does network I/O.
+  Cherry-pick providers in Settings. Nous Portal works on free accounts; Gemini detects
+  tier via loadCodeAssist; Grok uses the REST rate-limits endpoint. Antigravity requires
+  antigravityEnabled=true (default off), reads Windows Credential Manager, macOS Keychain,
+  or the Linux agy token file, refreshes with Antigravity''s installed-app OAuth client
+  identity, and sends User-Agent antigravity/2.8.0 windows/amd64. Pane detail: clean
+  or dense.'
 maintainer: rarf
 tier: community
 category: desktop
@@ -9,7 +16,8 @@ docs_url: https://github.com/rarf/hermes-quota-plugin#readme
 capabilities:
   provides_tools: []
   provides_hooks:
-    - footer
-    - usage_extra
+  - footer
+  - usage_extra
   provides_middleware: []
   requires_env: []
+version: 3.1.0

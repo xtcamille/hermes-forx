@@ -1,7 +1,9 @@
 name: usage-stats
 repo: https://github.com/meviusisback/usage-stats
-sha: ba0652c5cc45b18a602a087da25bc5fa293b7f99
-description: Multi-provider usage/balance for the Hermes Desktop status bar — shows live usage for OpenCode, OpenRouter, DeepSeek, Kimi, NovitaAI, ZAI, Alibaba, Arcee, plus gateway-native Claude/Codex/Cursor/Nous.
+sha: fa3959392381d43f33adc92eef8e9090799dbc1c
+description: Multi-provider usage/balance for the Hermes Desktop status bar (OpenCode,
+  OpenRouter, DeepSeek, Kimi, NovitaAI, ZAI, Alibaba, Arcee — plus gateway-native
+  Claude/Codex/Nous)
 maintainer: meviusisback
 tier: community
 category: desktop
@@ -11,3 +13,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 2.2.2

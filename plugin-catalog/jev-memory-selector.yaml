@@ -1,7 +1,8 @@
 name: jev-memory-selector
 repo: https://github.com/Pinutss/jev-memory-selector
-sha: 87bd9be2a67d380024be194e6d80a1a053024361
-description: "Agent Plugins v1 package: one skill plus one stdio MCP server (memory_select) started with uv run from the checkout. Needs uv on PATH. Registers no Hermes tools or hooks; do not expect jev_* tools."
+sha: 0c8afbb97e6027f19b086688ebb778f422e6358a
+description: Selects retrieved memories that actually fit the current query and token
+  budget.
 maintainer: Pinutss
 tier: community
 category: memory
@@ -12,3 +13,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.2.0

@@ -1,19 +1,30 @@
 name: provider-status
 repo: https://github.com/apoapostolov/hermes-agent-awesome-plugins
-sha: b270520f14d5141c2ad686d7053907a341c8a46f
+sha: 46c215da9351478f4d19dda5d7210c039581f4f3
 subdir: public/provider-status
-description: Multi-provider quota chips in the desktop status bar, with OAuth, color warnings, and extra
-  keys. This edition does not rotate Hermes env keys on exhaust. Disclosure — quota checks for Codex and
-  Grok present those vendors' CLI client identity/user-agent to their CLI endpoints.
+description: Unified multi-provider quota usage tracking in the status bar, with read-only
+  OAuth access checks and user-managed provider pools. Public edition does not read
+  vendor CLI auth files, refresh vendor tokens, write Hermes config automatically,
+  or copy secrets into a plugin-owned library.env. Publishes the current session's
+  tokens/sec, context occupancy, and that provider's remaining quota as the Discord
+  bot presence.
 maintainer: apoapostolov
 tier: community
 category: desktop
 docs_url: https://github.com/apoapostolov/hermes-agent-awesome-plugins/tree/main/public/provider-status
-version: 1.5.7
+version: 1.6.10
 image: https://raw.githubusercontent.com/apoapostolov/hermes-agent-awesome-plugins/b270520f14d5141c2ad686d7053907a341c8a46f/public/provider-status/docs/hero.png
 platforms: []
 capabilities:
-  provides_tools: []
-  provides_hooks: []
+  provides_tools:
+  - agent_pulse
+  provides_hooks:
+  - pre_api_request
+  - post_api_request
+  - api_request_error
+  - pre_tool_call
+  - post_tool_call
+  - pre_llm_call
+  - post_llm_call
   provides_middleware: []
   requires_env: []

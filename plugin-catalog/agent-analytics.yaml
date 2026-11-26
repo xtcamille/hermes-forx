@@ -1,6 +1,6 @@
 name: agent-analytics
 repo: https://github.com/Agent-Analytics/agent-analytics-hermes-plugin
-sha: 63f11d3669330e40dad977b7d32f9b69e69a9fb8
+sha: f139dd63f3755126a759b99f0f557074d1a4ec9f
 description: Dashboard-only read plugin for Agent Analytics inside Hermes.
 maintainer: Agent-Analytics
 tier: community
@@ -11,3 +11,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.1.0

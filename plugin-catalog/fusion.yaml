@@ -1,11 +1,9 @@
 name: fusion
 repo: https://github.com/BoredSexyJordan/hermes-fusion
-sha: edab6a6d17838d4d9a1525a2a7d3500c62694e17
-description: >-
-  Multi-model fusion router for Hermes: detects the model fleet your harnesses
-  (Hermes, Codex, Claude, Grok) actually have installed and builds a
-  Frontier -> Middle Manager -> Frontier routing structure with pinned models
-  and provenance from execution records. `hermes fusion teams|validate|plan|run|index|report|status`.
+sha: 78124fab1aee937d964b0d96948f43a37e7bbbd6
+description: 'Multi-model fusion router: detects your installed model fleet across
+  Hermes, Codex, Claude and Grok and builds a Frontier -> Middle Manager -> Frontier
+  routing structure with pinned models and provenance.'
 maintainer: Jordan Rosenberg
 tier: community
 docs_url: https://github.com/BoredSexyJordan/hermes-fusion
@@ -15,3 +13,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.1.0

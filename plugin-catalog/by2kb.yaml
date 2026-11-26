@@ -1,17 +1,18 @@
 name: by2kb
 repo: https://github.com/Charlesmpc/by2kb
-sha: 300c4938666e7b475605d23fce129f340bfce7c2
+sha: 2b03e029ceccf9bc541ab55997c5809aabe1ea0d
 subdir: by2kb/integrations/hermes
-description: Turn Bilibili and YouTube videos into transcripts, short abstracts, and Markdown study notes using the Hermes host model.
+description: Discover learning videos by topic, select numbered recommendations, and
+  transcribe/enrich videos with the Hermes host model.
 maintainer: Charlesmpc
 tier: community
 category: tools
-version: "0.6.1"
+version: 0.7.5
 docs_url: https://github.com/Charlesmpc/by2kb/blob/v0.6.1/docs/agent-integration.md
 platforms: []
 capabilities:
   provides_tools: []
   provides_hooks:
-    - pre_gateway_dispatch
+  - pre_gateway_dispatch
   provides_middleware: []
   requires_env: []

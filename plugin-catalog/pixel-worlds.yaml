@@ -1,14 +1,15 @@
 name: pixel-worlds
 repo: https://github.com/cygnostik/pd-pixel-worlds
-sha: 778928b5881fbcc558d04b476c7013b5823bd7fc
-description: Watch your agents inhabit pixel-art realms in Hermes Desktop, with imported scenes and a minimal PW Agents display.
+sha: 55feb15cf6d3c147504b8f5d68c2de8e8d995cac
+description: Pixel Worlds realm viewer and PW Agents daily display for Hermes Desktop.
 maintainer: cygnostik
 tier: community
 category: desktop
-version: "0.2.0"
+version: 0.3.1
 docs_url: https://github.com/cygnostik/pd-pixel-worlds/blob/778928b5881fbcc558d04b476c7013b5823bd7fc/docs/install.md
 image: https://raw.githubusercontent.com/cygnostik/pd-pixel-worlds/778928b5881fbcc558d04b476c7013b5823bd7fc/docs/images/catalog-banner.png
-platforms: [macos]
+platforms:
+- macos
 capabilities:
   provides_tools: []
   provides_hooks: []
