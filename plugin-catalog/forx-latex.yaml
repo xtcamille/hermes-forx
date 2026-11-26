@@ -1,11 +1,11 @@
-name: hermes-latex
-repo: https://github.com/xtcamille/hermes-latex
-sha: a078aa05553dca3c4e66bbac4faa7a382bce49bb
+name: forx-latex
+repo: https://github.com/xtcamille/forx-latex
+sha: 7cc55415389aa1d9e10e4ad9934058099b947f29
 description: 全流程单人 AI LaTeX 论文创作插件：零本地TeX环境(Tectonic)编译、SyncTeX双向定位、IEEE/顶会/CCF区块链期刊模板、BibTeX管家、AST语法保护改写、投稿双盲与一致性体检。
 maintainer: xtcamille
 tier: community
 category: tools
-version: 0.1.0
+version: 0.2.0
 capabilities:
   provides_tools:
   - latex_project_manage
