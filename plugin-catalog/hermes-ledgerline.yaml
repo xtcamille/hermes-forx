@@ -1,6 +1,6 @@
 name: hermes-ledgerline
 repo: https://github.com/Adolanium/hermes-ledgerline
-sha: 9be4b850c874cebaa18b0077cdc5164b5e7b953b
+sha: 09a9a9ecb131f6b945cb4a6aacb1b53f50332eb2
 description: Inspect session costs and usage in Hermes Desktop.
 maintainer: Adolanium
 tier: community
@@ -12,3 +12,4 @@ capabilities:
   provides_middleware: []
   requires_env: []
 subdir: catalog
+version: 0.1.8

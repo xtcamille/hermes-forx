@@ -1,13 +1,9 @@
 name: mem-os
 repo: https://github.com/Markgatcha/memos
-sha: af8fa31e01078e4d5e38210b61acdf90f6d70581
+sha: 78a796bb951732b84be80975b5b7ae94a8627f17
 subdir: plugin
-description: 'Local-first persistent memory: store durable facts once and recall them in any
-  session. Portable Agent Plugins v1 package (mcp.json + skills/): the @mem-os/sdk MCP server
-  (pinned 1.6.26) over npx stdio, plus the mem-os-memory skill covering when to store and when
-  to recall. All data stays in a local SQLite database under the user home directory; no cloud,
-  no telemetry, no API keys. Server cwd is ${PLUGIN_DATA} so nothing is written into the install
-  tree. Needs Node.js and npm on PATH.'
+description: 'Local-first persistent memory: store durable facts, recall them in any
+  session. Zero cloud, zero telemetry, SQLite-backed.'
 maintainer: Markgatcha
 tier: community
 category: memory
@@ -18,3 +14,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 1.6.27

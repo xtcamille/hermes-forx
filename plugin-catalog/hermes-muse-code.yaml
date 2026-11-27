@@ -1,11 +1,13 @@
 name: hermes-muse-code
 repo: https://github.com/TheStreamCode/hermes-muse-code
-sha: e33501185e328b5597fd98c6de916495922ec727
-description: Muse Spark in Hermes billed to the Muse Code monthly login (device-code login, no API key).
+sha: 3c60c0d19e9082026cffb87ff377786e67c112eb
+description: 'Unofficial and experimental: Muse models in Hermes using a Muse Code
+  subscription credential. May conflict with Meta''s terms; use at your own risk (see
+  DISCLAIMER.md).'
 maintainer: TheStreamCode
 tier: community
 category: models
-requires_hermes: ">=0.21.3"
+requires_hermes: '>=0.21.3'
 docs_url: https://github.com/TheStreamCode/hermes-muse-code
 platforms: []
 capabilities:
@@ -13,3 +15,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.6.4

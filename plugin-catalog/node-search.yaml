@@ -1,6 +1,6 @@
 name: node-search
 repo: https://github.com/Heeervas/node-search-plugin
-sha: 3a1ad9df4ae367d27a1b9533fb271a968b6099be
+sha: 875fc7fa50f7ef3776409bbf5b0c8779992545b9
 description: Bounded Markdown metadata+graph prefilter for configured local roots
 maintainer: Heeervas
 tier: community
@@ -12,3 +12,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.3.1

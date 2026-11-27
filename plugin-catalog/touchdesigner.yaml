@@ -1,9 +1,8 @@
 name: touchdesigner
 repo: https://github.com/NousResearch/hermes-plugin-touchdesigner
-sha: 88a7a7884e5eda33cfe4b1dd5e69df7cb15d5898
-description: 'Drive a live TouchDesigner session through the twozero MCP server (Streamable HTTP on
-  127.0.0.1:40404), with the touchdesigner-mcp workflow skill bundled. Portable Agent Plugins v1 package
-  (mcp.json + skills/); TouchDesigner itself runs on macOS/Windows.'
+sha: 1b52990dda525b8dd7b907e8166868af3b0375b1
+description: Drive a live TouchDesigner session through the twozero MCP server, with
+  the touchdesigner-mcp skill (workflow, pitfalls, recipes) bundled.
 maintainer: NousResearch
 tier: official
 category: tools
@@ -14,3 +13,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 1.0.0

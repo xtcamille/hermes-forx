@@ -1,11 +1,16 @@
 name: openrouter-voice
 repo: https://github.com/esketids/hermes-openrouter-voice
-sha: 3f2478ab6e795da54547e7a4b162dd207d73079a
-description: OpenRouter speech-to-text and text-to-speech providers for Hermes Agent (stt.provider / tts.provider = openrouter).
+sha: 6fcf23b88d0237669e381e1b18200ca869f71a96
+description: OpenRouter for both voice directions — stt.provider / tts.provider =
+  openrouter, reusing OPENROUTER_API_KEY. Handles the request shapes these endpoints
+  actually accept (json/verbose_json transcription, 16 kHz mono WAV where a model
+  demands it, vendor-prefixed speech slugs with model-specific voices, and local mp3
+  conversion for PCM-only speech models). Ships the stt.providers / tts.providers
+  command shims that make both names selectable in the desktop Voice tab.
 maintainer: esketids
 tier: community
 category: voice
-requires_hermes: ">=0.21"
+requires_hermes: '>=0.21'
 docs_url: https://github.com/esketids/hermes-openrouter-voice#readme
 capabilities:
   provides_tools: []
@@ -13,3 +18,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - OPENROUTER_API_KEY
+version: 1.8.0

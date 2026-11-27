@@ -1,8 +1,8 @@
 name: apify
 repo: https://github.com/apify/apify-hermes-agent-plugin
-sha: 07b21464f96cedf5af5d78950623711da77d80f7
-description: 'Apify, the largest marketplace of tools for AI: discover, run, and collect results from
-  thousands of ready-to-run Actors, from the comfort of your agent.'
+sha: 45b20edf5a28c750fd8593d784fdb92fbb64b8ee
+description: Scrape social media, Google Maps, search results, and websites with thousands
+  of ready-to-run Apify Actors, plus web search and fetch.
 maintainer: apify
 tier: community
 category: web
@@ -16,3 +16,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - APIFY_API_TOKEN
+version: 0.1.5

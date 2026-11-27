@@ -1,11 +1,9 @@
 name: reme
 repo: https://github.com/agentscope-ai/ReMe
-sha: 5231f3970c550bb0bc5d1bc7fbc85534274ca530
+sha: e3d602cc9d24e69348d4f243bafa7159c79bfc0e
 subdir: integrations/hermes_agent
-description: Local-first, file-native long-term memory with HTTP and embedded ReMe backends. Disclosure
-  — search queries and full user/assistant turns are sent to the configured ReMe endpoint (default http://127.0.0.1:2333;
-  a non-loopback http:// endpoint receives them in plaintext) or handled by the in-process ReMe SDK; no
-  API keys are forwarded.
+description: ReMe local-first, file-native long-term memory for Hermes Agent (HTTP
+  or embedded).
 maintainer: agentscope-ai
 tier: community
 category: memory
@@ -16,3 +14,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.1.0

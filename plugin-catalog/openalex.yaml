@@ -1,26 +1,29 @@
 name: openalex
 repo: https://github.com/Adolanium/hermes-plugin-openalex
-sha: 47aafae87256ef634f32c18a69bf35d39c2c5682
-description: Scholarly search, citation traversal, grouped counts, and fulltext access through OpenAlex with session spending limits.
+sha: d38a1ee2fb04df0f7ad136bd30bff5f2136fe0cd
+description: OpenAlex for Hermes. Search 250M scholarly works, authors, journals and
+  institutions, with a USD budget guard, per-call cost prediction, and response shaping
+  that keeps a 2.8 MB paper inside the context window.
 maintainer: Adolanium
 tier: community
 category: tools
 docs_url: https://github.com/Adolanium/hermes-plugin-openalex#readme
 capabilities:
   provides_tools:
-    - openalex_resolve
-    - openalex_get
-    - openalex_count
-    - openalex_search
-    - openalex_related
-    - openalex_account
-    - openalex_fields
-    - openalex_fulltext
-    - openalex_classify
-    - openalex_harvest
+  - openalex_resolve
+  - openalex_get
+  - openalex_count
+  - openalex_search
+  - openalex_related
+  - openalex_account
+  - openalex_fields
+  - openalex_fulltext
+  - openalex_classify
+  - openalex_harvest
   provides_hooks:
-    - on_session_start
-    - on_session_reset
+  - on_session_start
+  - on_session_reset
   provides_middleware: []
   requires_env:
-    - OPENALEX_API_KEY
+  - OPENALEX_API_KEY
+version: 0.1.1

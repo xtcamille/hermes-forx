@@ -1,10 +1,12 @@
 name: carbonvoice-platform
 repo: https://github.com/PhononX/hermes-plugin-carbonvoice
-sha: 55867dba9c6645ce493fd955970302e59a4548ea
-description: Carbon Voice gateway adapter for Hermes Agent. Connects via Socket.IO (primary) with REST
-  polling fallback — no public webhook or tunnel required. Persists a cursor to disk so messages received
-  while Hermes is offline are processed on the next startup. Replies via POST /v3/messages/start, so the
-  Her
+sha: 903350415ef951e187dca42cb15e52e665352606
+description: Carbon Voice gateway adapter for Hermes Agent. Connects via Socket.IO
+  (primary) with REST polling fallback — no public webhook or tunnel required. Persists
+  a cursor to disk so messages received while Hermes is offline are processed on the
+  next startup. Replies via POST /v3/messages/start, so the Hermes agent appears as
+  a bot user inside Carbon Voice. Text-only — Carbon Voice transcribes voice messages
+  to text before delivering them.
 maintainer: PhononX
 tier: community
 category: platform
@@ -15,3 +17,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - name
+version: 0.3.6
