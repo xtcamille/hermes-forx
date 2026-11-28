@@ -1,6 +1,6 @@
 name: hermes-evolve
 repo: https://github.com/nuffin/hermes-evolve
-sha: 941c0b11a3afa18a88cd26ce1612c0e017525f42
+sha: ed3a3e6e58d832d1bdc62540d30571f81f720192
 description: Hot-reload plugins and evolve the system prompt in-place — /evolve now
 maintainer: nuffin
 tier: community
@@ -11,3 +11,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 1.3.0

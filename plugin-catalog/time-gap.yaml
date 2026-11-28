@@ -1,7 +1,8 @@
 name: time-gap
 repo: https://github.com/Randool/time-gap
-sha: bc5e65503a412808029573a98b6008387a0ac2f6
-description: Inject an implicit time-gap sense only when a gap or a date rollover crosses.
+sha: 711f79df2c34218af598b0bc902629abd72955cf
+description: Inject an implicit time-gap sense only when a gap or a date rollover
+  crosses.
 maintainer: Randool
 tier: community
 category: general
@@ -12,3 +13,4 @@ capabilities:
   - pre_llm_call
   provides_middleware: []
   requires_env: []
+version: 2.1.0

@@ -1,12 +1,12 @@
 name: junie-acp
 repo: https://github.com/JetBrains/junie
-sha: 296ea839b354956fbd22544687a88b944c18dc22
+sha: 57945eea1966a5acd228c24da1f12802f3b980f7
 subdir: hermes-plugin
-description: JetBrains Junie coding agent as a Hermes model provider over ACP.
+description: JetBrains Junie coding agent as a Hermes model provider over ACP
 maintainer: JetBrains
 tier: community
 category: models
-requires_hermes: ">=0.21.1"
+requires_hermes: '>=0.21.1'
 docs_url: https://github.com/JetBrains/junie/tree/main/hermes-plugin
 platforms: []
 capabilities:
@@ -14,3 +14,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 1.0.0

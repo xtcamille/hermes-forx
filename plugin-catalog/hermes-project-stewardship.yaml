@@ -1,18 +1,20 @@
 name: hermes-project-stewardship
 repo: https://github.com/Sahil-SS9/hermes-project-stewardship
-sha: 4f733a81fa5f9da964e253e577b036b0b9608b85
-description: Durable project ownership and bounded initiative management for Hermes fleets.
+sha: 2ca16a4c53c07585c60a0600d714e84ebf36aa8e
+description: Durable project ownership for Hermes agent fleets.
 maintainer: Sahil-SS9
 tier: community
 category: automation
-requires_hermes: ">=0.21"
+requires_hermes: '>=0.21'
 docs_url: https://github.com/Sahil-SS9/hermes-project-stewardship
 platforms: []
 capabilities:
   provides_tools:
-    - steward_status
-    - steward_run_cycle
-    - steward_propose_initiative
-  provides_hooks: []
+  - steward_status
+  - steward_run_cycle
+  - steward_propose_initiative
+  provides_hooks:
+  - pre_llm_call
   provides_middleware: []
   requires_env: []
+version: 0.5.7

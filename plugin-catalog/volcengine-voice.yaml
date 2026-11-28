@@ -1,8 +1,9 @@
 name: volcengine-voice
 repo: https://github.com/linxichen/hermes-volcengine-voice
-sha: e3f8a305f95e133c0524b632207384d3a644e291
-description: Volcengine (火山引擎) Doubao TTS & STT provider for Hermes Agent — 60+ Chinese voices, dialect
-  support, speaker diarization
+sha: cd242cc2e9dea8e139a5500914cc1619dc249497
+description: Volcengine (火山引擎) Doubao TTS & STT provider for Hermes Agent via public
+  provider APIs — Chinese voices, emotion control, optional opt-in LLM transcript
+  cleanup
 maintainer: linxichen
 tier: community
 category: voice
@@ -14,3 +15,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - VOLCENGINE_VOICE_API_KEY
+version: 2.0.0

@@ -1,8 +1,8 @@
 name: document-reader
 repo: https://github.com/lEWFkRAD/hermes-document-reader
-sha: f3a0bed28e6c289942b899924d9e7cf8b93045e8
-description: Profile-scoped document OCR for Hermes Desktop and HUD, with a guarded per-profile Windows
-  service.
+sha: c250d8174fe265160a129d4e6712702ff608a00f
+description: Profile-scoped document OCR for Hermes Desktop and HUD, with a guarded
+  per-profile Windows service.
 maintainer: lEWFkRAD
 tier: community
 category: desktop
@@ -14,3 +14,4 @@ capabilities:
   requires_env: []
 platforms:
 - windows
+version: 0.1.0

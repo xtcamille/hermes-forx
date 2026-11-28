@@ -1,7 +1,8 @@
 name: hermes-security-audit
 repo: https://github.com/dafka007/hermes-security-audit
-sha: 60a7661bbe2f255c507d620275c59782cabe0335
-description: Approval-gated local security audit for Hermes Agent using Gitleaks, OSV-Scanner, and Semgrep CE.
+sha: 0c445c08caa505c9599b2c81c3d69a73f0e0b5fd
+description: Approval-gated local security audit tool for Hermes Agent using Gitleaks,
+  OSV-Scanner, and Semgrep CE.
 maintainer: dafka007
 tier: community
 category: tools
@@ -9,8 +10,9 @@ docs_url: https://github.com/dafka007/hermes-security-audit#readme
 platforms: []
 capabilities:
   provides_tools:
-    - security_audit
+  - security_audit
   provides_hooks:
-    - pre_tool_call
+  - pre_tool_call
   provides_middleware: []
   requires_env: []
+version: 1.0.1

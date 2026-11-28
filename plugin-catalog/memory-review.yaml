@@ -1,13 +1,13 @@
 name: memory-review
 repo: https://github.com/apoapostolov/hermes-agent-awesome-plugins
-sha: 07e4fd6518f571796fdbc4488d715abfac92c651
+sha: c82c2787fe8d16cf05ba2e406994ae5a7c576d58
 subdir: public/memory-review
-description: "Checkbox staged memory writes and approve or reject the selection from a dialog."
+description: A dialog to checkbox staged memory writes and approve or reject the selection.
 maintainer: apoapostolov
 tier: community
 category: desktop
 docs_url: https://github.com/apoapostolov/hermes-agent-awesome-plugins/tree/main/public/memory-review
-version: "1.2.1"
+version: 1.2.6
 image: https://raw.githubusercontent.com/apoapostolov/hermes-agent-awesome-plugins/07e4fd6518f571796fdbc4488d715abfac92c651/public/memory-review/docs/hero.png
 platforms: []
 capabilities:

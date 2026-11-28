@@ -1,12 +1,13 @@
 name: hermes-pets-all
 repo: https://github.com/poponline63/hermes-pets-all
-sha: 2130957d3d84d68f2e367c7aa2f52a61bf3c8064
-description: Browse every pet installed for this Hermes profile in its own desktop pane
-  (thumbnails, search, click-to-adopt), plus a read-only list_pets tool for the agent.
+sha: 4ea8dfab97fe591f598886d699c3076ea1bb58ad
+description: Browse every pet installed for this Hermes profile. Ships a desktop pane
+  with thumbnails, search and click-to-adopt (no 60-row cap), plus a read-only list_pets
+  tool so the agent can answer what pets exist and which one is active.
 maintainer: poponline63
 tier: community
 category: desktop
-requires_hermes: ">=0.19"
+requires_hermes: '>=0.19'
 docs_url: https://github.com/poponline63/hermes-pets-all
 platforms: []
 capabilities:
@@ -15,3 +16,4 @@ capabilities:
   provides_hooks: []
   provides_middleware: []
   requires_env: []
+version: 0.1.1

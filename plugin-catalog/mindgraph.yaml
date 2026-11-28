@@ -1,8 +1,9 @@
 name: mindgraph
 repo: https://github.com/shuruheel/mindgraph
-sha: b96c2590435bb625210506a47df682967215b6d7
-description: MindGraph — semantic graph memory with hybrid retrieval, goal/decision tracking, and cross-document
-  synthesis.
+sha: 547f0d6125b19947ee50517e35b15711b7cfc1da
+description: 'MindGraph — typed knowledge-graph memory: bounded per-message recall,
+  session transcript capture, and the mindgraph-mcp general tool surface (capture,
+  reason, commit, plan, retrieve, remember, ingest, synthesize, ontology).'
 maintainer: shuruheel
 tier: community
 category: memory
@@ -13,3 +14,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - name
+version: 1.3.0

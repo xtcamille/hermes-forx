@@ -1,11 +1,12 @@
 name: pstack
 repo: https://github.com/Cloeille/pstack
-sha: ac5e5ab5f090f4d2113f17dbe7ca7a8d8c8a4856
-description: "Engineering rigor stack: poteto-mode orchestrator with 7 playbooks (new-feature, bugfix, refactor, testing, one-shot, migrate, explore), plus how, architect, interrogate, swarm, and unslop skills."
+sha: c92ed033493dbd04b4cbc6a4d219270ee176574c
+description: Poteto's engineering rigor stack. Playbooks, principles, multi-model
+  review.
 maintainer: Cloeille
 tier: community
 category: tools
-version: "0.1.0"
+version: 0.3.5
 docs_url: https://github.com/Cloeille/pstack
 platforms: []
 capabilities:

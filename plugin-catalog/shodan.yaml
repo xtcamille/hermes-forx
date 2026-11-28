@@ -1,7 +1,9 @@
 name: shodan
 repo: https://github.com/Adolanium/hermes-plugin-shodan
-sha: c7d56211420438bd300c3526b7536f55aafb0fce
-description: Shodan tools with complete capability declarations.
+sha: d12828e9c90654bca598d45832cee2ef6454cf30
+description: Shodan.io for Hermes. Host intel, search, DNS, CVE lookups, network monitoring
+  and on-demand scanning, with a per-session credit budget and response shaping that
+  keeps results inside the context window.
 maintainer: Adolanium
 tier: community
 category: tools
@@ -26,3 +28,4 @@ capabilities:
   provides_middleware: []
   requires_env:
   - SHODAN_API_KEY
+version: 0.1.1
